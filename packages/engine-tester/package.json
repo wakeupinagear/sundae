@@ -2,14 +2,20 @@
     "name": "@repo/engine-tester",
     "type": "module",
     "scripts": {
-        "test": "vitest run"
+        "test": "vitest run",
+        "test:write": "WRITE_SNAPSHOTS=true vitest"
     },
     "exports": {},
     "devDependencies": {
         "@repo/engine": "workspace:*",
+        "@repo/engine-scenarios": "workspace:*",
         "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
-        "vitest": "latest",
-        "typescript": "5.5.4"
+        "@types/node": "^22.10.5",
+        "typescript": "5.5.4",
+        "vitest": "latest"
+    },
+    "dependencies": {
+        "skia-canvas": "^3.0.8"
     }
 }

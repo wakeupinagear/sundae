@@ -30,7 +30,7 @@ import {
 } from './systems/scene';
 import { SceneSystem } from './systems/scene';
 import { type Stats, StatsSystem } from './systems/stats';
-import { type Camera, type CameraData, type WebKey } from './types';
+import { type Camera, type CameraData, type ICanvas, type WebKey } from './types';
 import { DEFAULT_CAMERA_OPTIONS } from './utils';
 
 const DEBUG_OVERLAY_SCENE_NAME = '__ENGINE_DEBUG_SCENE__';
@@ -108,6 +108,7 @@ export interface EngineOptions {
     onReadyForNextFrame: ((startNextFrame: () => void) => void) | null;
     onDestroy: (() => void) | null;
 
+    devicePixelRatio: number;
     delayDeltaTimeByNFrames: number;
 
     alwaysRender: boolean;
@@ -144,6 +145,7 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     onReadyForNextFrame: null,
     onDestroy: null,
 
+    devicePixelRatio: 1,
     delayDeltaTimeByNFrames: 2,
 
     alwaysRender: false,
@@ -158,7 +160,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     protected static _nextId: number = 1;
     protected readonly _id: string = (Engine._nextId++).toString();
 
-    protected _canvas: HTMLCanvasElement | null = null;
+    protected _canvas: ICanvas | null = null;
     protected _options: TOptions = { ...DEFAULT_ENGINE_OPTIONS } as TOptions;
     protected _devicePixelRatio: number = 1;
 
@@ -260,11 +262,11 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._id;
     }
 
-    get canvas(): HTMLCanvasElement | null {
+    get canvas(): ICanvas | null {
         return this._canvas;
     }
 
-    set canvas(canvas: HTMLCanvasElement | null) {
+    set canvas(canvas: ICanvas | null) {
         this._canvas = canvas;
         this._cameraSystem.worldToScreenMatrixDirty = true;
         this._pointerSystem.canvas = canvas;
@@ -768,6 +770,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
         if (newOptions.logOutput !== undefined) {
             this._logSystem.logOutput = newOptions.logOutput;
+        }
+
+        if (newOptions.devicePixelRatio !== undefined) {
+            this._devicePixelRatio = newOptions.devicePixelRatio;
         }
     }
 }

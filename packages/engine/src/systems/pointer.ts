@@ -1,7 +1,7 @@
 import { System } from '.';
 import { C_PointerTarget } from '../components/PointerTarget';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
-import type { BoundingBox } from '../types';
+import type { BoundingBox, ICanvas } from '../types';
 import type { ButtonState } from './input';
 
 const MAX_DISTANCE_DURING_CLICK = 10;
@@ -106,7 +106,7 @@ export class PointerSystem extends System {
 
     #checkForOverlap: boolean = true;
 
-    #canvas: HTMLCanvasElement | null = null;
+    #canvas: ICanvas | null = null;
     #currentCursor: CursorType = 'default';
     #cursorRequests: Map<string, CursorRequest> = new Map();
 
@@ -158,7 +158,7 @@ export class PointerSystem extends System {
         return this.#currentCursor;
     }
 
-    set canvas(canvas: HTMLCanvasElement | null) {
+    set canvas(canvas: ICanvas | null) {
         this.#canvas = canvas;
         this.#applyCursor();
     }
@@ -415,7 +415,7 @@ export class PointerSystem extends System {
     }
 
     #applyCursor(): void {
-        if (this.#canvas) {
+        if (this.#canvas?.style) {
             this.#canvas.style.cursor = this.#currentCursor;
         }
     }

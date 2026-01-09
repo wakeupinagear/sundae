@@ -8,38 +8,47 @@
     "exports": {
         ".": {
             "types": "./src/exports/index.ts",
+            "import": "./src/exports/index.ts",
             "default": "./dist/exports/index.js"
         },
         "./components": {
             "types": "./src/exports/components.ts",
+            "import": "./src/exports/components.ts",
             "default": "./dist/exports/components.js"
         },
         "./image": {
             "types": "./src/exports/image.ts",
+            "import": "./src/exports/image.ts",
             "default": "./dist/exports/image.js"
         },
         "./input": {
             "types": "./src/exports/input.ts",
+            "import": "./src/exports/input.ts",
             "default": "./dist/exports/input.js"
         },
         "./log": {
             "types": "./src/exports/log.ts",
+            "import": "./src/exports/log.ts",
             "default": "./dist/exports/log.js"
         },
         "./pointer": {
             "types": "./src/exports/pointer.ts",
+            "import": "./src/exports/pointer.ts",
             "default": "./dist/exports/pointer.js"
         },
         "./render": {
             "types": "./src/exports/render.ts",
+            "import": "./src/exports/render.ts",
             "default": "./dist/exports/render.js"
         },
         "./scene": {
             "types": "./src/exports/scene.ts",
+            "import": "./src/exports/scene.ts",
             "default": "./dist/exports/scene.js"
         },
         "./stats": {
             "types": "./src/exports/stats.ts",
+            "import": "./src/exports/stats.ts",
             "default": "./dist/exports/stats.js"
         }
     },

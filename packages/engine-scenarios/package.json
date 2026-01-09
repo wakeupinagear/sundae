@@ -1,0 +1,26 @@
+{
+    "name": "@repo/engine-scenarios",
+    "type": "module",
+    "scripts": {
+        "dev": "tsc --watch",
+        "build": "tsc"
+    },
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts",
+            "default": "./dist/index.js"
+        },
+        "./list": {
+            "types": "./src/list/index.ts",
+            "import": "./src/list/index.ts",
+            "default": "./dist/list/index.js"
+        }
+    },
+    "devDependencies": {
+        "@repo/engine": "workspace:*",
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "typescript": "latest"
+    }
+}

@@ -4,7 +4,7 @@ import type { Entity } from '../../entities';
 import { HashFactory } from '../../hashFactory';
 import { ItemCache } from '../../itemCache';
 import { Matrix2D } from '../../math/matrix';
-import type { Camera } from '../../types';
+import type { Camera, ICanvasRenderingContext2D } from '../../types';
 import { zoomToScale } from '../../utils';
 import type { LoadedImage } from '../image';
 import {
@@ -66,7 +66,7 @@ export class RenderSystem extends System {
         return this.#stream?.stats ?? null;
     }
 
-    render(ctx: CanvasRenderingContext2D, rootEntity: Entity, camera: Camera) {
+    render(ctx: ICanvasRenderingContext2D, rootEntity: Entity, camera: Camera) {
         if (!this.#stream) {
             this.#stream = new RenderCommandStream(
                 this.#hashedMaterials,
@@ -98,7 +98,7 @@ export class RenderSystem extends System {
         );
     }
 
-    #renderCommands(ctx: CanvasRenderingContext2D) {
+    #renderCommands(ctx: ICanvasRenderingContext2D) {
         let opacity = 1;
         const activeStyle = { ...DEFAULT_RENDER_STYLE };
         this.#canvasStateCache = {};
@@ -293,7 +293,7 @@ export class RenderSystem extends System {
         }
     }
 
-    #applyStyle = (ctx: CanvasRenderingContext2D, style: CanvasStyle) => {
+    #applyStyle = (ctx: ICanvasRenderingContext2D, style: CanvasStyle) => {
         for (const key in style) {
             const styleKey = key as keyof CanvasStyle;
             const value = style[styleKey];
@@ -318,7 +318,7 @@ export class RenderSystem extends System {
         ry: number,
         gx: number,
         gy: number,
-        ctx: CanvasRenderingContext2D,
+        ctx: ICanvasRenderingContext2D,
         activeStyle: RenderStyle,
     ) {
         // Fill first so stroke remains visible on top
@@ -365,7 +365,7 @@ export class RenderSystem extends System {
         ry: number,
         gx: number,
         gy: number,
-        ctx: CanvasRenderingContext2D,
+        ctx: ICanvasRenderingContext2D,
         activeStyle: RenderStyle,
     ) {
         const currentScale =
@@ -428,7 +428,7 @@ export class RenderSystem extends System {
         ry: number,
         gx: number,
         gy: number,
-        ctx: CanvasRenderingContext2D,
+        ctx: ICanvasRenderingContext2D,
         activeStyle: RenderStyle,
     ) {
         const strokeColor = activeStyle.strokeStyle
@@ -468,7 +468,7 @@ export class RenderSystem extends System {
         w: number,
         h: number,
         imageID: number,
-        ctx: CanvasRenderingContext2D,
+        ctx: ICanvasRenderingContext2D,
     ) {
         const image = this.#imageCache.get(imageID);
         if (!image) {
@@ -482,7 +482,7 @@ export class RenderSystem extends System {
         text: string,
         x: number,
         y: number,
-        ctx: CanvasRenderingContext2D,
+        ctx: ICanvasRenderingContext2D,
         activeStyle: RenderStyle,
     ) {
         if (

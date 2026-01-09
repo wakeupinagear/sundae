@@ -11,6 +11,7 @@ interface EngineCanvasProps<TEngine extends Engine = Engine>
     height: number;
     scrollDirection?: -1 | 1;
     scrollSensitivity?: number;
+    onInitialized?: (engine: TEngine) => void;
 }
 
 export function EngineCanvas<TEngine extends Engine = Engine>({
@@ -20,6 +21,7 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
     height,
     scrollDirection = 1,
     scrollSensitivity = 1,
+    onInitialized,
     ...rest
 }: EngineCanvasProps<TEngine>) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,33 +29,48 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
 
     const engineRef = useRef<TEngine | null>(null);
     const requestedAnimationFrame = useRef<number>(-1);
+    const initializedRef = useRef(false);
+
     if (!engineRef.current) {
+        const options: Partial<TEngine['options']> = {
+            onReadyForNextFrame: (startNextFrame) => {
+                requestedAnimationFrame.current =
+                    window.requestAnimationFrame(startNextFrame);
+            },
+            onDestroy: () => {
+                if (requestedAnimationFrame.current !== -1) {
+                    window.cancelAnimationFrame(
+                        requestedAnimationFrame.current,
+                    );
+                    requestedAnimationFrame.current = -1;
+                }
+            },
+            devicePixelRatio: dpr,
+            ...engineOptions,
+        };
+
         if (engine) {
             if (
                 typeof engine === 'function' &&
                 engine.prototype &&
                 engine.prototype.constructor === engine
             ) {
-                engineRef.current = new engine({
-                    onReadyForNextFrame: (startNextFrame) => {
-                        requestedAnimationFrame.current =
-                            window.requestAnimationFrame(startNextFrame);
-                    },
-                    onDestroy: () => {
-                        if (requestedAnimationFrame.current !== -1) {
-                            window.cancelAnimationFrame(
-                                requestedAnimationFrame.current,
-                            );
-                            requestedAnimationFrame.current = -1;
-                        }
-                    },
-                    ...engineOptions,
-                });
+                engineRef.current = new engine(options);
             } else {
                 engineRef.current = engine as TEngine;
+                engineRef.current.options = options;
             }
         }
     }
+
+    useEffect(() => {
+        if (!canvasRef.current || !engineRef.current || initializedRef.current) {
+            return;
+        }
+
+        initializedRef.current = true;
+        onInitialized?.(engineRef.current);
+    }, [onInitialized]);
 
     useEffect(() => {
         if (!canvasRef.current || !engineRef.current) {
@@ -210,7 +227,7 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
             localCanvas.removeEventListener('dragover', onDragOver);
             localCanvas.removeEventListener('drop', onDrop);
         };
-    }, [width, height, engineRef, scrollDirection, scrollSensitivity]);
+    }, [dpr, engineRef, scrollDirection, scrollSensitivity]);
 
     return (
         <canvas

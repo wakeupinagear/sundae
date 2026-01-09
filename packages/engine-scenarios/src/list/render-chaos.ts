@@ -4,13 +4,14 @@ import {
     IVector,
     type TwoAxisAlignment,
 } from '@repo/engine';
+import { EngineScenario } from '@repo/engine-scenarios';
 import { C_Shape } from '@repo/engine/components';
 import { C_Text } from '@repo/engine/components';
 import { Scene } from '@repo/engine/scene';
 
 const NUM_BOXES = 50;
 
-export class TestScene extends Scene {
+class ChaosScene extends Scene {
     #rotatingBox: Entity | null = null;
 
     override create() {
@@ -178,3 +179,7 @@ export class TestScene extends Scene {
         }
     }
 }
+
+export const renderChaos: EngineScenario = async (harness) => {
+    harness.engine.openScene(ChaosScene);
+};
