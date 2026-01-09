@@ -1,5 +1,5 @@
 import { Component, type ComponentOptions } from '.';
-import { Vector } from '../math';
+import { Vector } from '../math/vector';
 import type { CursorType } from '../systems/pointer';
 import type { BoundingBox } from '../types';
 import { boundingBoxesIntersect } from '../utils';

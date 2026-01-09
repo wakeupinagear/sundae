@@ -1,7 +1,7 @@
 import type { Component, ComponentOptions } from '../components';
 import { C_Transform } from '../components/transforms';
 import type { Engine } from '../engine';
-import { type IVector, Vector, type VectorConstructor } from '../math';
+import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 import type {
     BoundingBox,

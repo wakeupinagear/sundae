@@ -3,6 +3,7 @@ import { DynamicNumberArray } from '../../dynamicNumberArray';
 import type { Entity } from '../../entities';
 import { HashFactory } from '../../hashFactory';
 import { ItemCache } from '../../itemCache';
+import { Matrix2D } from '../../math/matrix';
 import type { Camera } from '../../types';
 import { zoomToScale } from '../../utils';
 import type { LoadedImage } from '../image';
@@ -23,7 +24,7 @@ interface CanvasStyle extends RenderStyle {
 
 export class RenderSystem extends System {
     #stream: RenderCommandStream | null = null;
-    #cameraTransform: DOMMatrix = new DOMMatrix();
+    #cameraTransform: Matrix2D = new Matrix2D();
 
     #hashedMaterials: HashFactory<RenderStyle> = new HashFactory<RenderStyle>(
         (style: RenderStyle) => {
@@ -77,12 +78,7 @@ export class RenderSystem extends System {
         }
 
         const cameraTransform = this.#cameraTransform;
-        cameraTransform.a = 1;
-        cameraTransform.b = 0;
-        cameraTransform.c = 0;
-        cameraTransform.d = 1;
-        cameraTransform.e = 0;
-        cameraTransform.f = 0;
+        cameraTransform.identity();
         cameraTransform
             .translateSelf(camera.position.x, camera.position.y)
             .rotateSelf(camera.rotation)

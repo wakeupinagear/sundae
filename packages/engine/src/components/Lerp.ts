@@ -1,5 +1,5 @@
 import { Component, type ComponentOptions } from '.';
-import { type IVector } from '../math';
+import { type IVector } from '../math/vector';
 
 type LerpValueType = number | IVector<number>;
 

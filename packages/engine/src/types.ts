@@ -1,4 +1,4 @@
-import type { IVector } from './math';
+import type { IVector } from './math/vector';
 import type { RenderCommandStream } from './systems/render/command';
 
 export interface BoundingBox {

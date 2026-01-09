@@ -1,11 +1,12 @@
-import { RefObject, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Engine, type WebKey } from '@repo/engine';
 import { PointerButton } from '@repo/engine/pointer';
 
 interface EngineCanvasProps<TEngine extends Engine = Engine>
     extends React.CanvasHTMLAttributes<HTMLCanvasElement> {
-    engineRef: RefObject<TEngine | null>;
+    engine?: TEngine | (new (options?: Partial<TEngine['options']>) => TEngine);
+    engineOptions?: Partial<TEngine['options']>;
     width: number;
     height: number;
     scrollDirection?: -1 | 1;
@@ -13,15 +14,46 @@ interface EngineCanvasProps<TEngine extends Engine = Engine>
 }
 
 export function EngineCanvas<TEngine extends Engine = Engine>({
+    engine,
+    engineOptions,
     width,
     height,
-    engineRef,
     scrollDirection = 1,
     scrollSensitivity = 1,
     ...rest
 }: EngineCanvasProps<TEngine>) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [dpr] = useState(() => window.devicePixelRatio || 1);
+
+    const engineRef = useRef<TEngine | null>(null);
+    const requestedAnimationFrame = useRef<number>(-1);
+    if (!engineRef.current) {
+        if (engine) {
+            if (
+                typeof engine === 'function' &&
+                engine.prototype &&
+                engine.prototype.constructor === engine
+            ) {
+                engineRef.current = new engine({
+                    onReadyForNextFrame: (startNextFrame) => {
+                        requestedAnimationFrame.current =
+                            window.requestAnimationFrame(startNextFrame);
+                    },
+                    onDestroy: () => {
+                        if (requestedAnimationFrame.current !== -1) {
+                            window.cancelAnimationFrame(
+                                requestedAnimationFrame.current,
+                            );
+                            requestedAnimationFrame.current = -1;
+                        }
+                    },
+                    ...engineOptions,
+                });
+            } else {
+                engineRef.current = engine as TEngine;
+            }
+        }
+    }
 
     useEffect(() => {
         if (!canvasRef.current || !engineRef.current) {

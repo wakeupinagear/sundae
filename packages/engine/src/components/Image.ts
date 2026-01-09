@@ -1,5 +1,5 @@
 import { C_Drawable, type C_DrawableOptions } from '.';
-import { Vector, type VectorConstructor } from '../math';
+import { Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 
 interface C_ImageOptions extends C_DrawableOptions {

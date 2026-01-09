@@ -1,6 +1,6 @@
 import type { Engine } from '../engine';
 import type { Entity } from '../entities';
-import { Vector, type VectorConstructor } from '../math';
+import { Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { RenderStyle } from '../systems/render/style';
 import type { BoundingBox, Camera, Renderable } from '../types';

@@ -1,5 +1,6 @@
 import { Component, type ComponentOptions } from '.';
-import { Vector, type VectorConstructor } from '../math';
+import { Matrix2D } from '../math/matrix';
+import { Vector, type VectorConstructor } from '../math/vector';
 import type { BoundingBox } from '../types';
 
 export interface C_TransformOptions extends ComponentOptions {
@@ -16,20 +17,20 @@ export class C_Transform extends Component {
     #positionOffset: Vector = new Vector(0);
     #scaleMult: Vector = new Vector(1);
 
-    #localMatrix: DOMMatrix = new DOMMatrix();
+    #localMatrix: Matrix2D = new Matrix2D();
     #localMatrixDirty: boolean = true;
 
-    #worldMatrix: DOMMatrix = new DOMMatrix();
+    #worldMatrix: Matrix2D = new Matrix2D();
     #worldMatrixDirty: boolean = true;
     #worldPosition: Vector = new Vector(0);
 
     #boundingBox: BoundingBox = { x1: 0, x2: 0, y1: 0, y2: 0 };
     #boundingBoxDirty: boolean = true;
-    #corners: [DOMPoint, DOMPoint, DOMPoint, DOMPoint] = [
-        new DOMPoint(),
-        new DOMPoint(),
-        new DOMPoint(),
-        new DOMPoint(),
+    #corners: [Vector, Vector, Vector, Vector] = [
+        new Vector(0),
+        new Vector(0),
+        new Vector(0),
+        new Vector(0),
     ];
 
     constructor(options: C_TransformOptions) {
@@ -71,7 +72,7 @@ export class C_Transform extends Component {
         return this.#scaleMult;
     }
 
-    get localMatrix(): Readonly<DOMMatrix> {
+    get localMatrix(): Readonly<Matrix2D> {
         if (this.#localMatrixDirty) {
             this.#computeLocalMatrix();
             this.#localMatrixDirty = false;
@@ -80,7 +81,7 @@ export class C_Transform extends Component {
         return this.#localMatrix;
     }
 
-    get worldMatrix(): Readonly<DOMMatrix> {
+    get worldMatrix(): Readonly<Matrix2D> {
         if (this.#worldMatrixDirty) {
             this.#computeWorldMatrix();
             this.#boundingBoxDirty = true;
@@ -164,14 +165,8 @@ export class C_Transform extends Component {
     }
 
     #computeLocalMatrix() {
-        // Why is there no easy reset function ._.
         const localMatrix = this.#localMatrix;
-        localMatrix.a = 1;
-        localMatrix.b = 0;
-        localMatrix.c = 0;
-        localMatrix.d = 1;
-        localMatrix.e = 0;
-        localMatrix.f = 0;
+        localMatrix.identity();
 
         localMatrix.translateSelf(
             this.#position.x + this.#positionOffset.x,
@@ -193,7 +188,7 @@ export class C_Transform extends Component {
                     this.localMatrix,
                 );
         } else {
-            this.#worldMatrix = this.localMatrix;
+            this.#worldMatrix = this.localMatrix.clone();
         }
 
         this.#boundingBoxDirty = true;
@@ -210,14 +205,10 @@ export class C_Transform extends Component {
 
             const compBB = comp.boundingBox;
 
-            this.#corners[0].x = compBB.x1;
-            this.#corners[0].y = compBB.y1;
-            this.#corners[1].x = compBB.x2;
-            this.#corners[1].y = compBB.y1;
-            this.#corners[2].x = compBB.x2;
-            this.#corners[2].y = compBB.y2;
-            this.#corners[3].x = compBB.x1;
-            this.#corners[3].y = compBB.y2;
+            this.#corners[0].set({ x: compBB.x1, y: compBB.y1 });
+            this.#corners[1].set({ x: compBB.x2, y: compBB.y1 });
+            this.#corners[2].set({ x: compBB.x2, y: compBB.y2 });
+            this.#corners[3].set({ x: compBB.x1, y: compBB.y2 });
 
             for (const corner of this.#corners) {
                 const worldCorner = this.worldMatrix.transformPoint(corner);

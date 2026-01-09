@@ -1,5 +1,6 @@
 import { DynamicNumberArray } from '../../dynamicNumberArray';
 import { HashFactory } from '../../hashFactory';
+import { Matrix2D } from '../../math/matrix';
 import type { CacheStats } from '../../types';
 import { OPACITY_THRESHOLD } from '../../utils';
 import { type RenderStyle } from './style';
@@ -20,7 +21,7 @@ export type RenderCommandType =
 
 export interface PushTransform {
     type: typeof RenderCommandType.PUSH_TRANSFORM;
-    t: DOMMatrix;
+    t: Matrix2D;
 }
 
 export type PopTransform = [
@@ -145,7 +146,7 @@ export class RenderCommandStream {
         return this.#stats;
     }
 
-    pushTransform(t: DOMMatrix) {
+    pushTransform(t: Matrix2D) {
         this.#pushTransformStack.pushMultiple(t.a, t.b, t.c, t.d, t.e, t.f);
     }
 

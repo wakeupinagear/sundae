@@ -1,5 +1,5 @@
 import { System } from '.';
-import { Vector } from '../math';
+import { Vector } from '../math/vector';
 import type { WebKey } from '../types';
 
 export interface CapturedKey {

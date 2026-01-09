@@ -1,5 +1,6 @@
 import { Entity, type EntityOptions } from './entities';
-import { type IVector } from './math';
+import { Matrix2D } from './math/matrix';
+import { type IVector } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import { CameraSystem } from './systems/camera';
@@ -99,11 +100,13 @@ export interface EngineOptions {
     cullScale: number;
 
     images: Record<string, string | HTMLImageElement>;
+    asyncImageLoading: boolean;
 
     inputConfigs: Record<string, InputConfig>;
     capturedKeys: CapturedKey[];
 
-    asyncImageLoading: boolean;
+    onReadyForNextFrame: ((startNextFrame: () => void) => void) | null;
+    onDestroy: (() => void) | null;
 
     delayDeltaTimeByNFrames: number;
 
@@ -133,11 +136,13 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     cullScale: 1,
 
     images: {},
+    asyncImageLoading: true,
 
     inputConfigs: {},
     capturedKeys: [],
 
-    asyncImageLoading: true,
+    onReadyForNextFrame: null,
+    onDestroy: null,
 
     delayDeltaTimeByNFrames: 2,
 
@@ -176,15 +181,11 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     #forceRender: boolean = true;
     #boundEngineLoop = this.#engineLoop.bind(this);
-    #animationFrameHandleId: number | null = null;
     #browserEventHandlers: Partial<
         Record<BrowserEvent, BrowserEventHandler<BrowserEvent>[]>
     > = {};
 
     #frameCount: number = 0;
-
-    // Saves needing to re-allocate in temp functions
-    #tempPoint: DOMPoint = new DOMPoint();
 
     constructor(options: Partial<TOptions> = {}) {
         this._rootEntity = new Entity({
@@ -252,7 +253,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             this.openScene(sceneCtor);
         }
 
-        window.requestAnimationFrame(this.#boundEngineLoop);
+        this._options.onReadyForNextFrame?.(this.#boundEngineLoop);
     }
 
     get id(): string {
@@ -265,7 +266,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     set canvas(canvas: HTMLCanvasElement | null) {
         this._canvas = canvas;
-        this._devicePixelRatio = window.devicePixelRatio || 1;
         this._cameraSystem.worldToScreenMatrixDirty = true;
         this._pointerSystem.canvas = canvas;
         this.#forceRender = true;
@@ -306,11 +306,11 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._rootEntity;
     }
 
-    get worldToScreenMatrix(): Readonly<DOMMatrix> {
+    get worldToScreenMatrix(): Readonly<Matrix2D> {
         return this._cameraSystem.worldToScreenMatrix;
     }
 
-    get inverseWorldToScreenMatrix(): Readonly<DOMMatrix> {
+    get inverseWorldToScreenMatrix(): Readonly<Matrix2D> {
         return this._cameraSystem.inverseWorldToScreenMatrix;
     }
 
@@ -408,12 +408,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             return position;
         }
 
-        const point = this.#tempPoint;
-        point.x = position.x;
-        point.y = position.y;
-        const p = this.inverseWorldToScreenMatrix.transformPoint(point);
-
-        return { x: p.x, y: p.y };
+        return this.inverseWorldToScreenMatrix.transformPoint(position);
     }
 
     worldToScreen(position: IVector<number>): IVector<number> {
@@ -421,12 +416,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             return position;
         }
 
-        const point = this.#tempPoint;
-        point.x = position.x;
-        point.y = position.y;
-        const p = this.worldToScreenMatrix.transformPoint(point);
-
-        return { x: p.x, y: p.y };
+        return this.worldToScreenMatrix.transformPoint(position);
     }
 
     getKey(keyCode: WebKey): Readonly<KeyboardKeyState> {
@@ -535,17 +525,14 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this.#handleBrowserEvent(...args);
 
     destroy(): void {
+        this._options.onDestroy?.();
+
         this._rootEntity.destroy();
 
         for (const system of this._systems) {
             system.destroy();
         }
         this._systems = [];
-
-        if (this.#animationFrameHandleId) {
-            window.cancelAnimationFrame(this.#animationFrameHandleId);
-            this.#animationFrameHandleId = null;
-        }
     }
 
     trace<T>(name: string, callback: () => T): T {
@@ -568,6 +555,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     closeDebugOverlay(): void {
         this.destroyScene(DEBUG_OVERLAY_SCENE_NAME);
         this.#debugOverlayScene = null;
+    }
+
+    startNextFrame(): void {
+        this.#boundEngineLoop();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -689,9 +680,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
         this.#frameCount++;
 
-        this.#animationFrameHandleId = window.requestAnimationFrame(
-            this.#boundEngineLoop,
-        );
+        this._options.onReadyForNextFrame?.(this.#boundEngineLoop);
     }
 
     #handleBrowserEvent(

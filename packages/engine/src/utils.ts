@@ -1,11 +1,9 @@
-import { type IVector } from './math';
+import { type IVector } from './math/vector';
 import type { BoundingBox, Camera } from './types';
 
 export const lerp = (from: number, to: number, t: number): number => {
     return from + (to - from) * t;
 };
-
-export const isMac = navigator.platform.toUpperCase().includes('MAC');
 
 export const DEFAULT_CAMERA_OPTIONS: Camera = {
     zoom: 0,

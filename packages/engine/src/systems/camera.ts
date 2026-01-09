@@ -1,6 +1,7 @@
 import { System } from '.';
 import type { Engine } from '../engine';
-import { type IVector, Vector } from '../math';
+import { Matrix2D } from '../math/matrix';
+import { type IVector, Vector } from '../math/vector';
 import type { Camera, CameraData } from '../types';
 import {
     DEFAULT_CAMERA_OPTIONS,
@@ -15,8 +16,8 @@ export class CameraSystem extends System {
 
     #prevCanvasSize: Vector | null = null;
 
-    #worldToScreenMatrix: DOMMatrix | null = null;
-    #inverseWorldToScreenMatrix: DOMMatrix | null = null;
+    #worldToScreenMatrix: Matrix2D | null = null;
+    #inverseWorldToScreenMatrix: Matrix2D | null = null;
     #worldToScreenMatrixDirty: boolean = true;
 
     constructor(engine: Engine, cameraStart: CameraData) {
@@ -46,7 +47,7 @@ export class CameraSystem extends System {
             : null;
     }
 
-    get worldToScreenMatrix(): Readonly<DOMMatrix> {
+    get worldToScreenMatrix(): Readonly<Matrix2D> {
         if (!this.#worldToScreenMatrix || this.#worldToScreenMatrixDirty) {
             this.#recomputeWorldMatrix();
         }
@@ -54,7 +55,7 @@ export class CameraSystem extends System {
         return this.#worldToScreenMatrix!;
     }
 
-    get inverseWorldToScreenMatrix(): Readonly<DOMMatrix> {
+    get inverseWorldToScreenMatrix(): Readonly<Matrix2D> {
         if (!this.#worldToScreenMatrix || this.#worldToScreenMatrixDirty) {
             this.#recomputeWorldMatrix();
         }
@@ -269,18 +270,18 @@ export class CameraSystem extends System {
 
     #recomputeWorldMatrix() {
         if (!this._engine.canvasSize) {
-            return new DOMMatrix();
+            return new Matrix2D();
         }
 
         const scale = zoomToScale(this.#camera.zoom);
-        this.#worldToScreenMatrix = new DOMMatrix()
-            .translate(
+        this.#worldToScreenMatrix = new Matrix2D()
+            .translateSelf(
                 this._engine.canvasSize.x / 2,
                 this._engine.canvasSize.y / 2,
             )
-            .translate(this.#camera.position.x, this.#camera.position.y)
-            .rotate(this.#camera.rotation)
-            .scale(scale, scale);
+            .translateSelf(this.#camera.position.x, this.#camera.position.y)
+            .rotateSelf(this.#camera.rotation)
+            .scaleSelf(scale, scale);
         this.#inverseWorldToScreenMatrix = this.#worldToScreenMatrix.inverse();
         this.#worldToScreenMatrixDirty = false;
     }

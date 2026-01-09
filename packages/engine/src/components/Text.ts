@@ -1,5 +1,5 @@
 import { C_Drawable, type C_DrawableOptions } from '.';
-import { Vector } from '../math';
+import { Vector } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { TwoAxisAlignment } from '../types';
 

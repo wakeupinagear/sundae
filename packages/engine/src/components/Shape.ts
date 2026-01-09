@@ -1,4 +1,4 @@
-import { type IVector, Vector, type VectorConstructor } from '../math';
+import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 import { C_Drawable, type C_DrawableOptions } from './index';
 
