@@ -16,7 +16,8 @@
         "@tailwindcss/vite": "^4.1.18",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "tailwindcss": "^4.1.5"
+        "tailwindcss": "^4.1.5",
+        "zustand": "^5.0.9"
     },
     "devDependencies": {
         "@repo/engine": "workspace:*",

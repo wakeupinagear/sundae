@@ -1,5 +1,5 @@
 import { System } from '.';
-import { C_PointerTarget } from '../components/PointerTarget';
+import { C_PointerTarget } from '../components/pointerTarget';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { BoundingBox, ICanvas } from '../types';
 import type { ButtonState } from './input';

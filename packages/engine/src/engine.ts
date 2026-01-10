@@ -1,4 +1,16 @@
-import { Entity, type EntityOptions } from './entities';
+import type { Component } from './components';
+import type { InternalComponentOptions } from './components';
+import {
+    type ComponentJSON,
+    createComponentFromJSON,
+} from './components/factory';
+import { Entity } from './entities';
+import type { InternalEntityOptions } from './entities';
+import {
+    type BaseEntityJSON,
+    type EntityJSON,
+    createEntityFromJSON,
+} from './entities/factory';
 import { Matrix2D } from './math/matrix';
 import { type IVector } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
@@ -30,7 +42,12 @@ import {
 } from './systems/scene';
 import { SceneSystem } from './systems/scene';
 import { type Stats, StatsSystem } from './systems/stats';
-import { type Camera, type CameraData, type ICanvas, type WebKey } from './types';
+import {
+    type Camera,
+    type CameraData,
+    type ICanvas,
+    type WebKey,
+} from './types';
 import { DEFAULT_CAMERA_OPTIONS } from './utils';
 
 const DEBUG_OVERLAY_SCENE_NAME = '__ENGINE_DEBUG_SCENE__';
@@ -78,6 +95,12 @@ type BrowserEventHandler<T extends BrowserEvent> = (
     event: T,
     data: BrowserEventMap[T],
 ) => void | boolean;
+
+type TypedEntityJSON = Extract<EntityJSON, { type: string }>;
+type BaseEntityInput = BaseEntityJSON &
+    Partial<
+        Record<Exclude<keyof TypedEntityJSON, keyof BaseEntityJSON>, never>
+    >;
 
 export type SceneConstructor<
     T extends Scene = Scene,
@@ -164,7 +187,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     protected _options: TOptions = { ...DEFAULT_ENGINE_OPTIONS } as TOptions;
     protected _devicePixelRatio: number = 1;
 
-    protected _rootEntity: Entity;
+    protected _rootEntity: Entity<this>;
 
     protected _renderSystem: RenderSystem;
     protected _sceneSystem: SceneSystem;
@@ -190,17 +213,18 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     #frameCount: number = 0;
 
     constructor(options: Partial<TOptions> = {}) {
-        this._rootEntity = new Entity({
-            name: 'root',
+        this._rootEntity = createEntityFromJSON({
+            type: 'entity',
             engine: this,
+            parent: null,
+            name: 'root',
             cull: 'none',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any);
+        });
 
         // Order of system creation is important
         this._inputSystem = new InputSystem(this);
         this._pointerSystem = new PointerSystem(this);
-        this._sceneSystem = new SceneSystem(this, this._rootEntity);
+        this._sceneSystem = new SceneSystem(this);
         this._imageSystem = new ImageSystem(this);
         this._cameraSystem = new CameraSystem(this, this._options.cameraStart);
 
@@ -258,6 +282,18 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._options.onReadyForNextFrame?.(this.#boundEngineLoop);
     }
 
+    createEntityFromJSON(
+        json: EntityJSON & InternalEntityOptions<this>,
+    ): Entity<this> {
+        return createEntityFromJSON<this>(json);
+    }
+
+    createComponentFromJSON(
+        json: ComponentJSON & InternalComponentOptions<this>,
+    ): Component<this> {
+        return createComponentFromJSON<this>(json);
+    }
+
     get id(): string {
         return this._id;
     }
@@ -304,7 +340,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._cameraSystem.cameraTarget = cameraTarget;
     }
 
-    get rootEntity(): Readonly<Entity> {
+    get rootEntity(): Readonly<Entity<this>> {
         return this._rootEntity;
     }
 
@@ -356,39 +392,28 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._systems.push(system);
     }
 
-    addEntities<
-        T extends Entity,
-        TOptions extends EntityOptions = EntityOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        options: Omit<TOptions, 'engine'> & { scene?: string },
-    ): T;
-    addEntities<
-        T extends Entity,
-        TOptions extends EntityOptions = EntityOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        ...optionObjs: (Omit<TOptions, 'engine'> & { scene?: string })[]
-    ): T[];
-    addEntities<
-        T extends Entity,
-        TOptions extends EntityOptions = EntityOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        ...optionObjs: (Omit<TOptions, 'engine'> & { scene?: string })[]
-    ): T | T[] {
-        const instances = optionObjs.map((option) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const entity = new ctor({ ...option, engine: this } as any);
-            if (option.scene) {
-                this._sceneSystem.registerEntities(option.scene, entity);
-            } else {
-                entity.parent = this._rootEntity;
-            }
+    createEntities(...entities: BaseEntityInput[]): Entity<this>[];
+    createEntities(...entities: TypedEntityJSON[]): Entity<this>[];
+    createEntities(...entities: EntityJSON[]): Entity<this>[] {
+        return this.createEntitiesWithParent(entities, this._rootEntity);
+    }
 
-            return entity;
-        });
-        return instances.length === 1 ? instances[0] : instances;
+    createEntitiesWithParent(
+        entities: EntityJSON[],
+        parent: Entity<this>,
+    ): Entity<this>[] {
+        const createdEntities: Entity<this>[] = [];
+        for (const entityJSON of entities) {
+            const fullJSON: EntityJSON & InternalEntityOptions<this> = {
+                engine: this,
+                parent: parent,
+                ...entityJSON,
+            };
+            const createdEntity = createEntityFromJSON(fullJSON);
+            createdEntities.push(createdEntity);
+        }
+
+        return createdEntities;
     }
 
     openScene<T extends Scene>(
@@ -564,9 +589,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    update(_deltaTime: number): boolean {
-        return false;
-    }
+    update(_deltaTime: number): boolean | void {}
 
     log: I_Logging['log'] = (...args) => this._logSystem.log(...args);
     warn: I_Logging['warn'] = (...args) => this._logSystem.warn(...args);
@@ -583,7 +606,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             return false;
         }
 
-        let updated = this.update(deltaTime);
+        let updated = this.update(deltaTime) ?? false;
         updated = this._rootEntity.engineUpdate(deltaTime) || updated;
 
         return updated;

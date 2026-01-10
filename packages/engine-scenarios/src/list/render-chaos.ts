@@ -1,12 +1,6 @@
-import {
-    Entity,
-    EntityOptions,
-    IVector,
-    type TwoAxisAlignment,
-} from '@repo/engine';
+import { IVector, type TwoAxisAlignment } from '@repo/engine';
 import { EngineScenario } from '@repo/engine-scenarios';
-import { C_Shape } from '@repo/engine/components';
-import { C_Text } from '@repo/engine/components';
+import { Entity } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
 const NUM_BOXES = 50;
@@ -20,8 +14,7 @@ class ChaosScene extends Scene {
         ])
             .setScale({ x: 200, y: 200 })
             .rotate(45);
-        this.#rotatingBox.addEntities(
-            Entity,
+        this.#rotatingBox.addChildren(
             {
                 name: 'Top Left',
                 scale: 0.25,
@@ -90,6 +83,10 @@ class ChaosScene extends Scene {
     override update(deltaTime: number): boolean {
         this.#rotatingBox?.rotate(90 * deltaTime);
 
+        this._engine.setCameraRotation(
+            this._engine.camera.rotation - 10 * deltaTime,
+        );
+
         return true;
     }
 
@@ -98,7 +95,7 @@ class ChaosScene extends Scene {
         let root: Entity | null = null;
         for (let i = 0; i < count; i++) {
             const frame = pattern[i % pattern.length];
-            const entityOptions: Omit<EntityOptions, 'engine'> = {
+            const entityOptions = {
                 name: `Nested Box Level ${i + 1}`,
                 scene: this.name,
                 position: frame,
@@ -106,10 +103,11 @@ class ChaosScene extends Scene {
                 rotation: 12 * (i % 2 === 0 ? 1 : -1),
             };
             const entity: Entity = currEntity
-                ? currEntity.addEntities(Entity, entityOptions)
-                : this._engine.addEntities(Entity, entityOptions);
-            entity.addComponents(C_Shape, {
+                ? currEntity.addChildren(entityOptions)[0]
+                : this._engine.createEntities(entityOptions)[0];
+            entity.addComponents({
                 name: `Box Level ${i + 1}`,
+                type: 'shape',
                 shape: 'RECT',
                 style: {
                     fillStyle: `hsl(${(i * 40) % 360}, 70%, 50%)`,
@@ -152,23 +150,23 @@ class ChaosScene extends Scene {
             const x = startX + col * cellWidth + cellWidth / 2;
             const y = startY + row * cellHeight + cellHeight / 2;
 
-            const textEntity = this.add(Entity, {
+            const textEntity = this.createEntities({
                 name: `textAlign_${textAlignments[i]}`,
                 zIndex: 1000,
-            });
+            })[0];
             textEntity.transform.position.set({ x, y });
 
-            // Add a guide marker at the center point
-            textEntity.addComponents(C_Shape, {
+            textEntity.addComponents({
+                type: 'shape',
                 shape: 'ELLIPSE',
                 style: {
                     fillStyle: 'blue',
                 },
-                scale: 10,
+                size: 10,
             });
 
-            // Add the text with the current alignment
-            textEntity.addComponents(C_Text, {
+            textEntity.addComponents({
+                type: 'text',
                 text: `${debugText}\n(${textAlignments[i]})`,
                 fontSize: 14,
                 textAlign: textAlignments[i],

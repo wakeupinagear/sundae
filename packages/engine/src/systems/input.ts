@@ -18,7 +18,7 @@ interface KeyboardInput {
     alt?: boolean;
 }
 
-type Input = KeyboardInput;
+type Input = WebKey | KeyboardInput;
 
 interface ButtonConfig {
     type: 'button';
@@ -27,10 +27,10 @@ interface ButtonConfig {
 
 interface AxisConfig {
     type: 'axis';
-    up?: Input[];
-    down?: Input[];
-    left?: Input[];
-    right?: Input[];
+    up?: Input | Input[];
+    down?: Input | Input[];
+    left?: Input | Input[];
+    right?: Input | Input[];
 }
 
 export type InputConfig = ButtonConfig | AxisConfig;
@@ -317,7 +317,11 @@ export class InputSystem extends System {
         for (const [name, config] of Object.entries(inputConfigs)) {
             if (config.type === 'button') {
                 newButtonInputs[name] = [];
-                for (const input of config.inputs) {
+                for (const _input of config.inputs) {
+                    const input =
+                        typeof _input === 'string'
+                            ? ({ type: 'key', key: _input } as KeyboardInput)
+                            : _input;
                     if (input.type === 'key') {
                         newButtonInputs[name]!.push(input);
                     }
@@ -358,13 +362,22 @@ export class InputSystem extends System {
                 ] as const;
 
                 for (const {
-                    inputs = [],
+                    inputs: _inputs = [],
                     up,
                     down,
                     left,
                     right,
                 } of directions) {
-                    for (const input of inputs) {
+                    const inputs = Array.isArray(_inputs) ? _inputs : [_inputs];
+                    for (const _input of inputs) {
+                        const input =
+                            typeof _input === 'string'
+                                ? ({
+                                      type: 'key',
+                                      key: _input,
+                                  } as KeyboardInput)
+                                : _input;
+
                         this.#keyToAxesConfig[input.key] ??= [];
                         this.#keyToAxesConfig[input.key]!.push({
                             name,
@@ -497,7 +510,12 @@ export class InputSystem extends System {
         return `${capturedKey.key}-${capturedKey.ctrl ? '1' : '0'}-${capturedKey.meta ? '1' : '0'}-${capturedKey.shift ? '1' : '0'}-${capturedKey.alt ? '1' : '0'}`;
     }
 
-    #saveInputAsKeyCapture(input: Input) {
+    #saveInputAsKeyCapture(_input: Input) {
+        const input =
+            typeof _input === 'string'
+                ? ({ type: 'key', key: _input } as KeyboardInput)
+                : _input;
+
         if (input.type === 'key') {
             this.#capturedKeyHashes.add(
                 this.#keyCaptureHash({

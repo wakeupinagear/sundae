@@ -10,6 +10,9 @@ beforeAll(() => {
     canvas = new Canvas(1000, 750);
 });
 
-for (const scenario of Object.values(scenarios)) {
-    defineSnapshotTest(scenario.name, scenario.scenario, { canvas });
+for (const scenarioMetadata of Object.values(scenarios)) {
+    const { skipInTests, name, scenario } = scenarioMetadata;
+    if (skipInTests) continue;
+
+    defineSnapshotTest(name, scenario, { canvas });
 }

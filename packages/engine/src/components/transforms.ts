@@ -1,4 +1,5 @@
 import { Component, type ComponentOptions } from '.';
+import { Engine } from '../engine';
 import { Matrix2D } from '../math/matrix';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { BoundingBox } from '../types';
@@ -9,7 +10,13 @@ export interface C_TransformOptions extends ComponentOptions {
     scale: VectorConstructor;
 }
 
-export class C_Transform extends Component {
+export interface C_TransformJSON extends C_TransformOptions {
+    type: 'transform';
+}
+
+export class C_Transform<
+    TEngine extends Engine = Engine,
+> extends Component<TEngine> {
     #position: Vector = new Vector(0);
     #rotation: number = 0;
     #scale: Vector = new Vector(1);

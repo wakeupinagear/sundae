@@ -1,6 +1,7 @@
-import { C_Drawable, type C_DrawableOptions } from '../components';
-import { C_Text } from '../components/Text';
+import { C_Drawable, C_DrawableOptions } from '../components/drawable';
+import { Engine } from '../engine';
 import { Entity } from '../entities';
+import { C_Text } from '../objects/text';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { RenderStyle } from '../systems/render/style';
 import { Scene } from '../systems/scene';
@@ -14,8 +15,10 @@ const IMPORTANT_TRACE_STALE_TIME = 5000;
 const HEADER_SIZE = 16;
 const LABEL_COLOR = '#CCCCCC';
 
-export class C_StatsDebug extends C_Drawable {
-    #text: C_Text;
+export class C_StatsDebug<
+    TEngine extends Engine = Engine,
+> extends C_Drawable<TEngine> {
+    #text: C_Text<TEngine>;
     #importantTraces: Map<string, number> = new Map();
 
     constructor(options: C_DrawableOptions) {
@@ -29,7 +32,8 @@ export class C_StatsDebug extends C_Drawable {
         } = options;
         super({ name, style, ...rest });
 
-        this.#text = this.entity.addComponents(C_Text, {
+        this.#text = this.entity.addComponent({
+            type: 'text',
             text: '',
             fontSize: 12,
             textAlign: 'top-left',
@@ -44,7 +48,7 @@ export class C_StatsDebug extends C_Drawable {
         }
 
         const currentTime = performance.now();
-        let text = `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>\n\n`;
+        let text = `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>\n`;
 
         text += this.#buildTraceText(stats.traces, 0, '', currentTime);
 
@@ -130,7 +134,9 @@ interface BoundingBoxDebugOptions extends C_DrawableOptions {
     sceneEntityName: string;
 }
 
-export class C_BoundingBoxDebug extends C_Drawable {
+export class C_BoundingBoxDebug<
+    TEngine extends Engine = Engine,
+> extends C_Drawable<TEngine> {
     #sceneEntityName: string;
 
     constructor(options: BoundingBoxDebugOptions) {
@@ -161,7 +167,7 @@ export class C_BoundingBoxDebug extends C_Drawable {
     }
 
     #drawEntityBoundingBox(
-        entity: Readonly<Entity>,
+        entity: Readonly<Entity<TEngine>>,
         stream: RenderCommandStream,
         level = 0,
     ): void {
@@ -210,21 +216,29 @@ export class C_BoundingBoxDebug extends C_Drawable {
     }
 }
 
-export class DebugOverlayScene extends Scene {
+export class DebugOverlayScene<
+    TEngine extends Engine = Engine,
+> extends Scene<TEngine> {
     override create(): void {
-        this.add(Entity, {
+        /*
+        this.createEntity({
             name: 'boundingBoxEntity',
             cull: 'none',
-        }).addComponents(C_BoundingBoxDebug, {
+        }).addComponents({
+            type: 'boundingBoxDebug',
             sceneEntityName: this.rootEntity.name,
         });
 
-        this.add(Entity, {
+        this.createEntities({
             name: 'statsEntity',
             cull: 'none',
             positionRelativeToCamera: { x: 'end', y: 'end' },
             scaleRelativeToCamera: true,
             position: -24,
-        }).addComponents(C_StatsDebug, { name: 'statsDebug' });
+        }).addComponents({
+            type: 'statsDebug',
+            name: 'statsDebug',
+        });
+        */
     }
 }

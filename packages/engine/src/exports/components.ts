@@ -1,7 +1,13 @@
-export * from '../components';
-export * from '../components/transforms';
-export * from '../components/Image';
-export * from '../components/Text';
-export * from '../components/Shape';
-export * from '../components/PointerTarget';
-export * from '../components/Lerp';
+export { Component, type ComponentOptions } from '../components';
+export {
+    type ComponentJSON,
+    createComponentFromJSON,
+} from '../components/factory';
+
+export { C_Transform } from '../components/transforms';
+export { C_PointerTarget } from '../components/pointerTarget';
+export { C_Lerp } from '../components/lerp';
+
+export { C_Text } from '../objects/text';
+export { C_Image } from '../objects/image';
+export { C_Shape } from '../objects/shape';

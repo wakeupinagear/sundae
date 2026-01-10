@@ -1,4 +1,4 @@
-import type { Component, ComponentOptions } from '../components';
+import { type Component, type ComponentJSON } from '../components/factory';
 import { C_Transform } from '../components/transforms';
 import type { Engine } from '../engine';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
@@ -10,9 +10,11 @@ import type {
     Renderable,
 } from '../types';
 import { boundingBoxesIntersect, zoomToScale } from '../utils';
+import type { EntityJSON } from './factory';
 
 type CullMode = 'components' | 'children' | 'all' | 'none';
 type PositionRelativeToCamera = OneAxisAlignment | 'none';
+
 export interface EntityOptions {
     name?: string;
     enabled?: boolean;
@@ -24,13 +26,14 @@ export interface EntityOptions {
     positionRelativeToCamera?: VectorConstructor<PositionRelativeToCamera>;
     scaleRelativeToCamera?: VectorConstructor<boolean>;
     scene?: string;
-    components?: Component[];
-    children?: Entity[];
+    components?: ComponentJSON[];
+    children?: EntityJSON[];
 }
 
-interface InternalEntityOptions<TEngine extends Engine = Engine>
+export interface InternalEntityOptions<TEngine extends Engine = Engine>
     extends EntityOptions {
     engine: TEngine;
+    parent: Entity<TEngine> | null;
 }
 
 export class Entity<TEngine extends Engine = Engine> implements Renderable {
@@ -43,18 +46,18 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     protected _enabled: boolean;
     protected _zIndex: number;
 
-    protected _transform: C_Transform;
+    protected _transform: C_Transform<TEngine>;
     protected _positionRelativeToCamera: IVector<PositionRelativeToCamera>;
     protected _scaleRelativeToCamera: IVector<boolean>;
     protected _cull: CullMode;
 
     protected _updated: boolean = false;
-    protected _parent: Entity | null = null;
+    protected _parent: Entity<TEngine> | null = null;
 
-    protected _children: Entity[];
+    protected _children: Entity<TEngine>[] = [];
     #childrenZIndexDirty: boolean = false;
 
-    protected _components: Component[];
+    protected _components: Component<TEngine>[] = [];
     #componentsZIndexDirty: boolean = false;
 
     protected _cachedComponentsInTree: Record<string, Component[]> = {};
@@ -63,10 +66,16 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         const {
             name = `entity-${this._id}`,
             engine,
+            parent,
             ...rest
         } = options as InternalEntityOptions<TEngine>;
         this._name = name;
         this._engine = engine;
+        this._parent = parent ?? null;
+        if (parent) {
+            parent.registerChild(this);
+        }
+
         this._enabled = rest?.enabled ?? true;
         this._zIndex = rest?.zIndex ?? 0;
 
@@ -88,18 +97,20 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             : { x: false, y: false };
 
         this._cull = rest?.cull ?? 'all';
-        this._components = rest?.components ?? [];
-        this._children = rest?.children ?? [];
 
-        this._transform = this.addComponents(C_Transform, {
+        if (rest.components) {
+            this.addComponents(...rest.components);
+        }
+        if (rest.children) {
+            this.addChildren(...rest.children);
+        }
+
+        this._transform = this.addComponent<C_Transform<TEngine>>({
+            type: 'transform',
             position: rest?.position ?? 0,
             rotation: rest?.rotation ?? 0,
             scale: rest?.scale ?? 1,
         });
-
-        for (const child of this._children) {
-            child.parent = this;
-        }
     }
 
     get id(): string {
@@ -162,94 +173,76 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this._components as Component<TEngine>[];
     }
 
-    get parent(): Readonly<Entity> | null {
+    get parent(): Readonly<Entity<TEngine>> | null {
         return this._parent;
-    }
-
-    set parent(parent: Entity | null) {
-        if (parent) {
-            parent.registerChild(this);
-            if (this.parent !== parent) {
-                parent.childrenZIndexDirty = true;
-            }
-        }
-        this._parent = parent;
     }
 
     get children(): ReadonlyArray<Entity<TEngine>> {
         return this._children as Entity<TEngine>[];
     }
 
-    addEntities<
-        T extends Entity,
-        TOptions extends EntityOptions = EntityOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        options: Omit<TOptions, 'engine'> & { scene?: string },
-    ): T;
-    addEntities<
-        T extends Entity,
-        TOptions extends EntityOptions = EntityOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        ...optionObjs: (Omit<TOptions, 'engine'> & { scene?: string })[]
-    ): T[];
-    addEntities<
-        T extends Entity,
-        TOptions extends EntityOptions = EntityOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        ...optionObjs: (Omit<TOptions, 'engine'> & { scene?: string })[]
-    ): T | T[] {
-        const instances = optionObjs.map((option) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const entity = new ctor({ ...option, engine: this._engine } as any);
-            entity.parent = this;
-            return entity;
+    addChild<IEntity extends Entity<TEngine>>(child: EntityJSON): IEntity {
+        const createdEntity = this._engine.createEntityFromJSON({
+            engine: this._engine,
+            parent: this,
+            ...child,
         });
-        return instances.length === 1 ? instances[0] : instances;
+        this._children.push(createdEntity);
+
+        return createdEntity as IEntity;
     }
 
-    addComponents<
-        T extends Component,
-        TOptions extends ComponentOptions = ComponentOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        options: Omit<TOptions, 'engine' | 'entity'>,
-    ): T;
-    addComponents<
-        T extends Component,
-        TOptions extends ComponentOptions = ComponentOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        ...optionObjs: Omit<TOptions, 'engine' | 'entity'>[]
-    ): T[];
-    addComponents<
-        T extends Component,
-        TOptions extends ComponentOptions = ComponentOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        ...optionObjs: Omit<TOptions, 'engine' | 'entity'>[]
-    ): T | T[] {
-        const components = optionObjs.map((option) => {
-            const component = new ctor({
-                ...option,
+    addChildren<IEntities extends Entity<TEngine>[]>(
+        ...children: EntityJSON[]
+    ): IEntities {
+        const createdEntities = [];
+        for (const childJSON of children) {
+            const entity = this._engine.createEntityFromJSON({
+                engine: this._engine,
+                parent: this,
+                ...childJSON,
+            });
+            createdEntities.push(entity);
+        }
+
+        return createdEntities as IEntities;
+    }
+
+    addComponent<IComponent extends Component<TEngine>>(
+        component: ComponentJSON,
+    ): IComponent {
+        const createdComponent = this._engine.createComponentFromJSON({
+            engine: this._engine,
+            entity: this,
+            ...component,
+        });
+        this._components.push(createdComponent);
+
+        return createdComponent as IComponent;
+    }
+
+    addComponents<IComponents extends Component<TEngine>[]>(
+        ...components: ComponentJSON[]
+    ): IComponents {
+        const createdComponents = [];
+        for (const componentJSON of components) {
+            const createdComponent = this._engine.createComponentFromJSON({
                 engine: this._engine,
                 entity: this,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any) as T;
-            this._components.push(component);
-            return component;
-        });
+                ...componentJSON,
+            });
+            createdComponents.push(createdComponent);
+            this._components.push(createdComponent);
+        }
 
-        return components.length === 1 ? components[0] : components;
+        return createdComponents as IComponents;
     }
 
-    registerChild(child: Entity): void {
+    registerChild(child: Entity<TEngine>): void {
         this._children.push(child);
     }
 
-    getComponentsInTree<T extends Component>(typeString: string): T[] {
+    getComponentsInTree<T extends Component<TEngine>>(typeString: string): T[] {
         if (typeString in this._cachedComponentsInTree) {
             return this._cachedComponentsInTree[typeString] as T[];
         }
@@ -290,9 +283,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    update(_deltaTime: number): boolean {
-        return false;
-    }
+    update(_deltaTime: number): boolean | void {}
 
     destroy(): void {
         if (this._parent)
@@ -404,11 +395,11 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this;
     }
 
-    hasComponent(component: Component): boolean {
+    hasComponent(component: Component<TEngine>): boolean {
         return this._components.includes(component);
     }
 
-    getComponent(typeString: string): Component | null {
+    getComponent(typeString: string): Component<TEngine> | null {
         return this._components.find((c) => c.name === typeString) ?? null;
     }
 
@@ -595,7 +586,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         this._components.sort(this.#sortByZIndex);
     }
 
-    #getComponentsInTree<T extends Component>(
+    #getComponentsInTree<T extends Component<TEngine>>(
         typeString: string,
         out: T[],
     ): void {

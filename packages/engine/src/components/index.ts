@@ -1,10 +1,7 @@
 import type { Engine } from '../engine';
-import type { Entity } from '../entities';
-import { Vector, type VectorConstructor } from '../math/vector';
+import { Entity } from '../entities';
 import type { RenderCommandStream } from '../systems/render/command';
-import type { RenderStyle } from '../systems/render/style';
 import type { BoundingBox, Camera, Renderable } from '../types';
-import { OPACITY_THRESHOLD } from '../utils';
 
 export interface ComponentOptions {
     name?: string;
@@ -12,10 +9,10 @@ export interface ComponentOptions {
     zIndex?: number;
 }
 
-interface InternalComponentOptions<TEngine extends Engine = Engine>
+export interface InternalComponentOptions<TEngine extends Engine = Engine>
     extends ComponentOptions {
     engine: TEngine;
-    entity: Entity;
+    entity: Entity<TEngine>;
 }
 
 export abstract class Component<TEngine extends Engine = Engine>
@@ -96,17 +93,16 @@ export abstract class Component<TEngine extends Engine = Engine>
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    update(_deltaTime: number): boolean {
-        return false;
-    }
+    update(_deltaTime: number): boolean | void {}
 
     destroy(): void {
         this._entity?.onChildComponentsOfTypeChanged(this.typeString);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     queueRenderCommands(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _stream: RenderCommandStream,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _camera: Camera,
     ): boolean {
         return false;
@@ -135,97 +131,5 @@ export abstract class Component<TEngine extends Engine = Engine>
 
     protected _computeBoundingBox(): void {
         this._boundingBox = { x1: 0, x2: 0, y1: 0, y2: 0 };
-    }
-}
-
-export interface C_DrawableOptions extends ComponentOptions {
-    origin?: VectorConstructor;
-    scale?: VectorConstructor;
-    style?: RenderStyle;
-    opacity?: number;
-}
-
-export abstract class C_Drawable extends Component {
-    protected _origin: Vector;
-    protected _scale: Vector;
-    protected _style: RenderStyle;
-    protected _opacity: number;
-
-    constructor(options: C_DrawableOptions) {
-        const { name = 'drawable', ...rest } = options;
-        super({ name, ...rest });
-
-        this._origin = new Vector(options.origin ?? 0.5);
-        this._scale = new Vector(options.scale ?? 1);
-        this._style = options.style ?? {};
-        this._opacity = rest?.opacity ?? 1;
-    }
-
-    get style(): RenderStyle {
-        return this._style;
-    }
-
-    setStyle(style: RenderStyle): this {
-        this._style = { ...this._style, ...style };
-        return this;
-    }
-
-    get origin(): Readonly<Vector> {
-        return this._origin;
-    }
-
-    setOrigin(origin: VectorConstructor): this {
-        if (this._origin.set(origin)) {
-            this._markBoundingBoxDirty();
-        }
-
-        return this;
-    }
-
-    get scale(): Readonly<Vector> {
-        return this._scale;
-    }
-
-    setScale(scale: VectorConstructor): this {
-        if (this._scale.set(scale)) {
-            this._markBoundingBoxDirty();
-        }
-
-        return this;
-    }
-
-    get opacity(): number {
-        return this._opacity;
-    }
-
-    setOpacity(opacity: number): this {
-        if (this._opacity !== opacity) {
-            this._opacity = opacity;
-            if (this._entity) {
-                this._entity.onChildComponentsOfTypeChanged(this.typeString);
-            }
-        }
-
-        return this;
-    }
-
-    public override queueRenderCommands(stream: RenderCommandStream): boolean {
-        if (this._opacity >= OPACITY_THRESHOLD) {
-            stream.setOpacity(this._opacity);
-            stream.setStyle(this._style);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    protected override _computeBoundingBox(): void {
-        this._boundingBox = {
-            x1: -this._origin.x * this._scale.x,
-            x2: this._origin.x * this._scale.x,
-            y1: -this._origin.y * this._scale.y,
-            y2: this._origin.y * this._scale.y,
-        };
     }
 }

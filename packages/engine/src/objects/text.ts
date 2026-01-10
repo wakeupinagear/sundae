@@ -1,10 +1,12 @@
-import { C_Drawable, type C_DrawableOptions } from '.';
+import { C_Drawable, C_DrawableOptions } from '../components/drawable';
+import type { Engine } from '../engine';
+import { Entity, EntityOptions } from '../entities';
 import { Vector } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { TwoAxisAlignment } from '../types';
 
 const MONOSPACE_WIDTH_RATIO = 0.6;
-const MONOSPACE_HEIGHT_RATIO = 1.2;
+const MONOSPACE_HEIGHT_RATIO = 0.8;
 
 const TagKeys = {
     COLOR: 'color',
@@ -76,7 +78,13 @@ interface C_TextOptions extends C_DrawableOptions {
     endTagDelim?: string;
 }
 
-export class C_Text extends C_Drawable {
+export interface C_TextJSON extends C_TextOptions {
+    type: 'text';
+}
+
+export class C_Text<
+    TEngine extends Engine = Engine,
+> extends C_Drawable<TEngine> {
     #text: string;
     #fontSize: number;
     #fontFamily: FontFamily;
@@ -310,6 +318,7 @@ export class C_Text extends C_Drawable {
             bold: this.#bold,
             italic: this.#italic,
         };
+        this.#drawActions.push({ type: 'setStyle', ...currentStyle });
 
         for (const node of nodes) {
             if (node.type === 'style') {
@@ -848,5 +857,33 @@ export class C_Text extends C_Drawable {
             prevNode = { type: 'style', style: { ...currentStyle } };
             nodes.push(prevNode);
         }
+    }
+}
+
+export interface E_TextOptions extends EntityOptions, C_TextOptions {}
+
+export interface E_TextJSON extends E_TextOptions {
+    type: 'text';
+}
+
+export class E_Text<TEngine extends Engine = Engine> extends Entity<TEngine> {
+    #text: C_Text;
+
+    constructor(options: E_TextOptions) {
+        super(options);
+
+        this.#text = this.addComponent<C_Text<TEngine>>({
+            type: 'text',
+            ...options,
+            name: 'Text',
+        });
+    }
+
+    get text(): string {
+        return this.#text.text;
+    }
+
+    set text(text: string) {
+        this.#text.text = text;
     }
 }

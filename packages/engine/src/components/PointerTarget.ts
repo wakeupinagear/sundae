@@ -1,4 +1,5 @@
 import { Component, type ComponentOptions } from '.';
+import { Engine } from '../engine';
 import { Vector } from '../math/vector';
 import type { CursorType } from '../systems/pointer';
 import type { BoundingBox } from '../types';
@@ -11,7 +12,13 @@ export interface C_PointerTargetOptions extends ComponentOptions {
     cursorPriority?: number;
 }
 
-export class C_PointerTarget extends Component {
+export interface C_PointerTargetJSON extends C_PointerTargetOptions {
+    type: 'pointerTarget';
+}
+
+export class C_PointerTarget<
+    TEngine extends Engine = Engine,
+> extends Component<TEngine> {
     #onPointerEnter?: C_PointerTargetOptions['onPointerEnter'];
     #onPointerLeave?: C_PointerTargetOptions['onPointerLeave'];
     #cursorOnHover?: CursorType;

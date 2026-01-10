@@ -64,7 +64,11 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
     }
 
     useEffect(() => {
-        if (!canvasRef.current || !engineRef.current || initializedRef.current) {
+        if (
+            !canvasRef.current ||
+            !engineRef.current ||
+            initializedRef.current
+        ) {
             return;
         }
 
@@ -76,6 +80,8 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
         if (!canvasRef.current || !engineRef.current) {
             return;
         }
+
+        engineRef.current.options = { ...engineOptions };
 
         const localCanvas = canvasRef.current;
         engineRef.current.canvas = localCanvas;
@@ -227,7 +233,7 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
             localCanvas.removeEventListener('dragover', onDragOver);
             localCanvas.removeEventListener('drop', onDrop);
         };
-    }, [dpr, engineRef, scrollDirection, scrollSensitivity]);
+    }, [dpr, engineRef, scrollDirection, scrollSensitivity, engineOptions]);
 
     return (
         <canvas

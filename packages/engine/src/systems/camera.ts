@@ -10,6 +10,19 @@ import {
     zoomToScale,
 } from '../utils';
 
+const clampStep = (
+    from: number,
+    to: number,
+    factor: number,
+    minStep: number,
+) => {
+    const lerped = lerp(from, to, factor);
+    if (Math.abs(lerped - from) < minStep && Math.abs(to - from) > minStep) {
+        return from + Math.sign(to - from) * minStep;
+    }
+    return lerped;
+};
+
 export class CameraSystem extends System {
     #camera: Required<Camera>;
     #cameraTarget: CameraData | null = null;
@@ -149,22 +162,6 @@ export class CameraSystem extends System {
                     1 - this._engine.options.cameraTargetLerpSpeed,
                     deltaTime * 100,
                 );
-
-            function clampStep(
-                from: number,
-                to: number,
-                factor: number,
-                minStep: number,
-            ) {
-                const lerped = lerp(from, to, factor);
-                if (
-                    Math.abs(lerped - from) < minStep &&
-                    Math.abs(to - from) > minStep
-                ) {
-                    return from + Math.sign(to - from) * minStep;
-                }
-                return lerped;
-            }
 
             const posX = clampStep(pos.x, tgtPos.x, lerpFactor, MIN_POS_DELTA);
             const posY = clampStep(pos.y, tgtPos.y, lerpFactor, MIN_POS_DELTA);

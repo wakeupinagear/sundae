@@ -1,8 +1,13 @@
 import { System } from '.';
 import type { Engine } from '../engine';
-import { Entity, type EntityOptions } from '../entities';
+import { Entity } from '../entities';
+import { type BaseEntityJSON, type EntityJSON } from '../entities/factory';
 
-const DEFAULT_SCENE_NAME = 'default-scene';
+type TypedEntityJSON = Extract<EntityJSON, { type: string }>;
+type BaseEntityInput = BaseEntityJSON &
+    Partial<
+        Record<Exclude<keyof TypedEntityJSON, keyof BaseEntityJSON>, never>
+    >;
 
 export interface SceneOptions<TEngine extends Engine = Engine> {
     engine: TEngine;
@@ -16,7 +21,7 @@ export class Scene<TEngine extends Engine = Engine> {
     protected readonly _name: string;
 
     protected _engine: TEngine;
-    #rootEntity!: Entity;
+    #rootEntity!: Entity<TEngine>;
     #zIndex: number = 0;
 
     constructor(options: SceneOptions<TEngine>) {
@@ -50,54 +55,37 @@ export class Scene<TEngine extends Engine = Engine> {
         return this._engine;
     }
 
-    get rootEntity(): Readonly<Entity> {
+    get rootEntity(): Readonly<Entity<TEngine>> {
         return this.#rootEntity;
     }
 
-    set rootEntity(rootEntity: Entity) {
+    set rootEntity(rootEntity: Entity<TEngine>) {
         this.#rootEntity = rootEntity;
     }
 
-    add<
-        T extends Entity<TEngine>,
-        TOptions extends EntityOptions = EntityOptions,
-    >(ctor: new (options: TOptions) => T, options: Omit<TOptions, 'engine'>): T;
-    add<
-        T extends Entity<TEngine>,
-        TOptions extends EntityOptions = EntityOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        ...optionObjs: Omit<TOptions, 'engine'>[]
-    ): T[];
-    add<
-        T extends Entity<TEngine>,
-        TOptions extends EntityOptions = EntityOptions,
-    >(
-        ctor: new (options: TOptions) => T,
-        ...optionObjs: Omit<TOptions, 'engine'>[]
-    ): T | T[] {
-        const instances = (optionObjs.length > 0 ? optionObjs : [{}]).map(
-            (option) => {
-                const entity = new ctor({
-                    ...option,
-                    engine: this._engine,
-                    scene: this.name,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any);
-                this.engine?.sceneSystem.registerEntities(this.name, entity);
-                return entity;
-            },
+    createEntity(entity: BaseEntityInput): Entity<TEngine>;
+    createEntity(entity: TypedEntityJSON): Entity<TEngine>;
+    createEntity(entity: EntityJSON): Entity<TEngine> {
+        return this._engine.createEntitiesWithParent(
+            [entity],
+            this.#rootEntity,
+        )[0];
+    }
+
+    createEntities(...entities: BaseEntityInput[]): Entity<TEngine>[];
+    createEntities(...entities: TypedEntityJSON[]): Entity<TEngine>[];
+    createEntities(...entities: EntityJSON[]): Entity<TEngine>[] {
+        return this._engine.createEntitiesWithParent(
+            entities,
+            this.#rootEntity,
         );
-        return instances.length === 1 ? instances[0] : instances;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     create(_engine: TEngine): void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    update(_deltaTime: number): boolean {
-        return false;
-    }
+    update(_deltaTime: number): boolean | void {}
 
     destroy(): void {}
 }
@@ -119,13 +107,10 @@ export class SceneSystem<
     #queuedDestroyedScenes: Scene<TEngine>[] = [];
     #isLoadingQueuedScenes: boolean = false;
 
-    #worldRootEntity: Entity<TEngine>;
     #sceneRootEntities: Map<number, Entity<TEngine>> = new Map();
 
-    constructor(engine: TEngine, worldRootEntity: Entity<TEngine>) {
+    constructor(engine: TEngine) {
         super(engine);
-
-        this.#worldRootEntity = worldRootEntity;
     }
 
     get queuedActionsExist(): boolean {
@@ -169,36 +154,6 @@ export class SceneSystem<
         this.#queuedDestroyedScenes.push(sceneObject);
     }
 
-    registerEntities(
-        scene: SceneIdentifier<TEngine>,
-        ...entities: Entity<TEngine>[]
-    ): void {
-        if (this.queuedActionsExist && !this.#isLoadingQueuedScenes) {
-            this.#performQueuedUpdate();
-        }
-
-        let sceneObject = this.#findScene(scene);
-        if (!sceneObject) {
-            this.#defaultScene = new Scene({
-                engine: this._engine,
-                name: DEFAULT_SCENE_NAME,
-            });
-            this.#makeSceneActive(this.#defaultScene);
-            sceneObject = this.#defaultScene;
-        }
-
-        const rootEntity = this.#sceneRootEntities.get(sceneObject.id);
-        if (!rootEntity) {
-            throw new Error(
-                `Scene root entity for ${sceneObject.name} not found`,
-            );
-        }
-
-        for (const entity of entities) {
-            entity.parent = rootEntity;
-        }
-    }
-
     #findScene(scene: SceneIdentifier<TEngine>): Scene<TEngine> | null {
         if (this.queuedActionsExist && !this.#isLoadingQueuedScenes) {
             this.#performQueuedUpdate();
@@ -219,11 +174,12 @@ export class SceneSystem<
         this.#activeScenesByID.set(scene.id, scene);
         this.#activeScenesByName.set(scene.name, scene);
 
-        const rootEntity = this.#worldRootEntity.addEntities(Entity<TEngine>, {
+        const rootEntity = this._engine.createEntities({
+            type: 'entity',
             name: `scene-root-${scene.name}-${scene.id}`,
             zIndex: scene.zIndex,
             cull: 'none',
-        });
+        })[0];
         this.#sceneRootEntities.set(scene.id, rootEntity);
         if (!this.#defaultScene) {
             this.#defaultScene = scene;

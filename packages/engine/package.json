@@ -3,7 +3,8 @@
     "type": "module",
     "scripts": {
         "dev": "tsc --watch",
-        "build": "tsc"
+        "build": "tsc",
+        "lint": "eslint \"src/**/*.ts\""
     },
     "exports": {
         ".": {
@@ -15,6 +16,11 @@
             "types": "./src/exports/components.ts",
             "import": "./src/exports/components.ts",
             "default": "./dist/exports/components.js"
+        },
+        "./entities": {
+            "types": "./src/exports/entities.ts",
+            "import": "./src/exports/entities.ts",
+            "default": "./dist/exports/entities.js"
         },
         "./image": {
             "types": "./src/exports/image.ts",
@@ -53,7 +59,9 @@
         }
     },
     "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
+        "eslint": "^8.57.0",
         "typescript": "latest"
     }
 }

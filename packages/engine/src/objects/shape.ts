@@ -1,6 +1,8 @@
+import { C_Drawable, C_DrawableOptions } from '../components/drawable';
+import type { Engine } from '../engine';
+import { Entity, EntityOptions } from '../entities';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
-import { C_Drawable, type C_DrawableOptions } from './index';
 
 const DEFAULT_ARROW_LENGTH = 1;
 const DEFAULT_ARROW_ANGLE = 45;
@@ -25,7 +27,13 @@ export interface C_ShapeOptions extends C_DrawableOptions {
     endTip?: Tip;
 }
 
-export class C_Shape extends C_Drawable {
+export interface C_ShapeJSON extends C_ShapeOptions {
+    type: 'shape';
+}
+
+export class C_Shape<
+    TEngine extends Engine = Engine,
+> extends C_Drawable<TEngine> {
     #shape: Shape;
     #repeat: Vector;
     #gap: Vector;
@@ -66,11 +74,6 @@ export class C_Shape extends C_Drawable {
 
     set shape(shape: Shape) {
         this.#shape = shape;
-        if (shape === 'ELLIPSE') {
-            this.setOrigin(0);
-        } else if (shape === 'RECT') {
-            this.setOrigin(0.5);
-        }
     }
 
     get repeat(): Vector {
@@ -165,10 +168,10 @@ export class C_Shape extends C_Drawable {
             }
             case 'RECT': {
                 stream.drawRect(
-                    (-1 - (this._scale.x - 1)) * this._origin.x,
-                    (-1 - (this._scale.y - 1)) * this._origin.y,
-                    this._scale.x,
-                    this._scale.y,
+                    (-1 - (this._size.x - 1)) * this._origin.x,
+                    (-1 - (this._size.y - 1)) * this._origin.y,
+                    this._size.x,
+                    this._size.y,
                     this.#repeat?.x,
                     this.#repeat?.y,
                     this.#gap?.x,
@@ -178,11 +181,21 @@ export class C_Shape extends C_Drawable {
                 break;
             }
             case 'ELLIPSE': {
+                const centerX =
+                    (-1 - (this._size.x - 1)) * this._origin.x +
+                    this._size.x / 2;
+                const centerY =
+                    (-1 - (this._size.y - 1)) * this._origin.y +
+                    this._size.y / 2;
+                const x1 = centerX;
+                const y1 = centerY;
+                const x2 = centerX + this._size.x;
+                const y2 = centerY + this._size.y;
                 stream.drawEllipse(
-                    (-1 - (this._scale.x - 1)) * this._origin.x,
-                    (-1 - (this._scale.y - 1)) * this._origin.y,
-                    this._scale.x,
-                    this._scale.y,
+                    x1,
+                    y1,
+                    x2,
+                    y2,
                     this.#repeat?.x,
                     this.#repeat?.y,
                     this.#gap?.x,
@@ -245,5 +258,29 @@ export class C_Shape extends C_Drawable {
                 this.#gap?.y,
             );
         }
+    }
+}
+
+export interface E_ShapeOptions extends EntityOptions, C_ShapeOptions {}
+
+export interface E_ShapeJSON extends E_ShapeOptions {
+    type: 'shape';
+}
+
+export class E_Shape<TEngine extends Engine = Engine> extends Entity<TEngine> {
+    #shape: C_Shape<TEngine>;
+
+    constructor(options: E_ShapeOptions) {
+        super(options);
+
+        this.#shape = this.addComponent<C_Shape<TEngine>>({
+            type: 'shape',
+            ...options,
+            name: 'Shape',
+        });
+    }
+
+    get shape(): Shape {
+        return this.#shape.shape;
     }
 }

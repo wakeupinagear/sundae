@@ -1,6 +1,7 @@
 import { System } from '..';
 import { DynamicNumberArray } from '../../dynamicNumberArray';
-import type { Entity } from '../../entities';
+import { Engine } from '../../engine';
+import { Entity } from '../../entities';
 import { HashFactory } from '../../hashFactory';
 import { ItemCache } from '../../itemCache';
 import { Matrix2D } from '../../math/matrix';
@@ -22,7 +23,9 @@ interface CanvasStyle extends RenderStyle {
     globalAlpha?: number;
 }
 
-export class RenderSystem extends System {
+export class RenderSystem<
+    TEngine extends Engine = Engine,
+> extends System<TEngine> {
     #stream: RenderCommandStream | null = null;
     #cameraTransform: Matrix2D = new Matrix2D();
 
@@ -66,7 +69,11 @@ export class RenderSystem extends System {
         return this.#stream?.stats ?? null;
     }
 
-    render(ctx: ICanvasRenderingContext2D, rootEntity: Entity, camera: Camera) {
+    render(
+        ctx: ICanvasRenderingContext2D,
+        rootEntity: Entity<TEngine>,
+        camera: Camera,
+    ) {
         if (!this.#stream) {
             this.#stream = new RenderCommandStream(
                 this.#hashedMaterials,
