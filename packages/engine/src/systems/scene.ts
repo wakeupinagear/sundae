@@ -1,13 +1,22 @@
 import { System } from '.';
 import type { Engine } from '../engine';
 import { Entity } from '../entities';
-import { type BaseEntityJSON, type EntityJSON } from '../entities/factory';
+import {
+    type BaseEntityJSON,
+    type CustomEntityJSON,
+    type EntityConstructor,
+    type EntityJSON,
+    type StringEntityJSON,
+} from '../entities/factory';
 
-type TypedEntityJSON = Extract<EntityJSON, { type: string }>;
-type BaseEntityInput = BaseEntityJSON &
-    Partial<
-        Record<Exclude<keyof TypedEntityJSON, keyof BaseEntityJSON>, never>
-    >;
+type TypedEntityJSON = Extract<StringEntityJSON, { type: string }>;
+// Utility to get all keys from all members of a union.
+// (Plain `keyof (A | B)` gives you the intersection of keys, which is too weak
+// for enforcing "no typed-only keys unless `type` is provided".)
+type UnionKeys<T> = T extends unknown ? keyof T : never;
+type BaseEntityInput = BaseEntityJSON & {
+    [K in Exclude<UnionKeys<TypedEntityJSON>, keyof BaseEntityJSON>]?: never;
+};
 
 export interface SceneOptions<TEngine extends Engine = Engine> {
     engine: TEngine;
@@ -65,7 +74,12 @@ export class Scene<TEngine extends Engine = Engine> {
 
     createEntity(entity: BaseEntityInput): Entity<TEngine>;
     createEntity(entity: TypedEntityJSON): Entity<TEngine>;
-    createEntity(entity: EntityJSON): Entity<TEngine> {
+    createEntity<TCtor extends EntityConstructor>(
+        entity: CustomEntityJSON<TCtor>,
+    ): InstanceType<TCtor>;
+    createEntity(
+        entity: EntityJSON | CustomEntityJSON<EntityConstructor>,
+    ): Entity<TEngine> {
         return this._engine.createEntitiesWithParent(
             [entity],
             this.#rootEntity,
@@ -74,7 +88,12 @@ export class Scene<TEngine extends Engine = Engine> {
 
     createEntities(...entities: BaseEntityInput[]): Entity<TEngine>[];
     createEntities(...entities: TypedEntityJSON[]): Entity<TEngine>[];
-    createEntities(...entities: EntityJSON[]): Entity<TEngine>[] {
+    createEntities<TCtor extends EntityConstructor>(
+        ...entities: CustomEntityJSON<TCtor>[]
+    ): InstanceType<TCtor>[];
+    createEntities(
+        ...entities: Array<EntityJSON | CustomEntityJSON<EntityConstructor>>
+    ): Entity<TEngine>[] {
         return this._engine.createEntitiesWithParent(
             entities,
             this.#rootEntity,

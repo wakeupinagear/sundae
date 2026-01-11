@@ -1,6 +1,8 @@
 export { Component, type ComponentOptions } from '../components';
 export {
+    type ComponentConstructor,
     type ComponentJSON,
+    type CustomComponentJSON,
     createComponentFromJSON,
 } from '../components/factory';
 

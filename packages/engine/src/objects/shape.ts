@@ -274,8 +274,8 @@ export class E_Shape<TEngine extends Engine = Engine> extends Entity<TEngine> {
         super(options);
 
         this.#shape = this.addComponent<C_Shape<TEngine>>({
-            type: 'shape',
             ...options,
+            type: 'shape',
             name: 'Shape',
         });
     }

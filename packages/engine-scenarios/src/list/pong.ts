@@ -51,7 +51,8 @@ class E_Ball extends Entity {
 
     constructor(options: E_BallOptions) {
         super(options);
-        this.addComponents({
+        this.#colliders = options.colliders;
+        this.addComponent({
             type: 'shape',
             shape: 'ELLIPSE',
             style: {
@@ -73,11 +74,9 @@ class E_Ball extends Entity {
 }
 
 class PongScene extends Scene {
-    /*
-    #paddle1!: Entity;
-    #paddle2!: Entity;
+    #paddle1!: E_Paddle;
+    #paddle2!: E_Paddle;
     #ball!: E_Ball;
-    */
     #scoreText!: E_Text;
 
     #score1 = 0;
@@ -96,34 +95,51 @@ class PongScene extends Scene {
             zIndex: -1,
         }) as E_Text;
 
+        this.#paddle1 = this.createEntity({
+            type: E_Paddle,
+            inputAxis: PLAYER_1_INPUT_AXIS,
+            name: 'Paddle 1',
+            position: { x: -350, y: 0 },
+            scale: { x: 20, y: 150 },
+        });
+
+        this.#paddle2 = this.createEntity({
+            type: E_Paddle,
+            inputAxis: PLAYER_2_INPUT_AXIS,
+            name: 'Paddle 2',
+            position: { x: 350, y: 0 },
+            scale: { x: 20, y: 150 },
+        });
+
+        this.#ball = this.createEntity({
+            type: E_Ball,
+            colliders: [this.#paddle1, this.#paddle2],
+            name: 'Ball',
+            scale: { x: 20, y: 20 },
+        });
+
+        const wallOptions: EntityOptions = {
+            scale: { x: 1000, y: 100 },
+            components: [
+                {
+                    type: 'shape',
+                    shape: 'RECT',
+                    style: {
+                        fillStyle: '#BBBBBB',
+                    },
+                },
+            ],
+        };
         this.createEntities(
             {
                 name: 'Top Wall',
                 position: { x: 0, y: -300 },
-                scale: { x: 1000, y: 100 },
-                components: [
-                    {
-                        type: 'shape',
-                        shape: 'RECT',
-                        style: {
-                            fillStyle: 'white',
-                        },
-                    },
-                ],
+                ...wallOptions,
             },
             {
                 name: 'Bottom Wall',
                 position: { x: 0, y: 300 },
-                scale: { x: 1000, y: 100 },
-                components: [
-                    {
-                        type: 'shape',
-                        shape: 'RECT',
-                        style: {
-                            fillStyle: 'white',
-                        },
-                    },
-                ],
+                ...wallOptions,
             },
         );
     }

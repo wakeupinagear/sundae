@@ -1,14 +1,19 @@
 import type { Component } from './components';
 import type { InternalComponentOptions } from './components';
 import {
+    type ComponentConstructor,
     type ComponentJSON,
+    type CustomComponentJSON,
     createComponentFromJSON,
 } from './components/factory';
 import { Entity } from './entities';
 import type { InternalEntityOptions } from './entities';
 import {
     type BaseEntityJSON,
+    type CustomEntityJSON,
+    type EntityConstructor,
     type EntityJSON,
+    type StringEntityJSON,
     createEntityFromJSON,
 } from './entities/factory';
 import { Matrix2D } from './math/matrix';
@@ -96,11 +101,14 @@ type BrowserEventHandler<T extends BrowserEvent> = (
     data: BrowserEventMap[T],
 ) => void | boolean;
 
-type TypedEntityJSON = Extract<EntityJSON, { type: string }>;
-type BaseEntityInput = BaseEntityJSON &
-    Partial<
-        Record<Exclude<keyof TypedEntityJSON, keyof BaseEntityJSON>, never>
-    >;
+type TypedEntityJSON = Extract<StringEntityJSON, { type: string }>;
+// Utility to get all keys from all members of a union.
+// (Plain `keyof (A | B)` gives you the intersection of keys, which is too weak
+// for enforcing "no typed-only keys unless `type` is provided".)
+type UnionKeys<T> = T extends unknown ? keyof T : never;
+type BaseEntityInput = BaseEntityJSON & {
+    [K in Exclude<UnionKeys<TypedEntityJSON>, keyof BaseEntityJSON>]?: never;
+};
 
 export type SceneConstructor<
     T extends Scene = Scene,
@@ -283,13 +291,19 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     }
 
     createEntityFromJSON(
-        json: EntityJSON & InternalEntityOptions<this>,
+        json:
+            | (EntityJSON & InternalEntityOptions<this>)
+            | (CustomEntityJSON<EntityConstructor> &
+                  InternalEntityOptions<this>),
     ): Entity<this> {
         return createEntityFromJSON<this>(json);
     }
 
     createComponentFromJSON(
-        json: ComponentJSON & InternalComponentOptions<this>,
+        json:
+            | (ComponentJSON & InternalComponentOptions<this>)
+            | (CustomComponentJSON<ComponentConstructor> &
+                  InternalComponentOptions<this>),
     ): Component<this> {
         return createComponentFromJSON<this>(json);
     }
@@ -394,22 +408,28 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     createEntities(...entities: BaseEntityInput[]): Entity<this>[];
     createEntities(...entities: TypedEntityJSON[]): Entity<this>[];
-    createEntities(...entities: EntityJSON[]): Entity<this>[] {
+    createEntities<TCtor extends EntityConstructor>(
+        ...entities: CustomEntityJSON<TCtor>[]
+    ): InstanceType<TCtor>[];
+    createEntities(
+        ...entities: Array<EntityJSON | CustomEntityJSON<EntityConstructor>>
+    ): Entity<this>[] {
         return this.createEntitiesWithParent(entities, this._rootEntity);
     }
 
     createEntitiesWithParent(
-        entities: EntityJSON[],
+        entities: Array<EntityJSON | CustomEntityJSON<EntityConstructor>>,
         parent: Entity<this>,
     ): Entity<this>[] {
         const createdEntities: Entity<this>[] = [];
         for (const entityJSON of entities) {
-            const fullJSON: EntityJSON & InternalEntityOptions<this> = {
+            const fullJSON: (EntityJSON | CustomEntityJSON<EntityConstructor>) &
+                InternalEntityOptions<this> = {
                 engine: this,
                 parent: parent,
                 ...entityJSON,
             };
-            const createdEntity = createEntityFromJSON(fullJSON);
+            const createdEntity = createEntityFromJSON<this>(fullJSON);
             createdEntities.push(createdEntity);
         }
 

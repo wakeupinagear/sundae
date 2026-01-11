@@ -867,14 +867,14 @@ export interface E_TextJSON extends E_TextOptions {
 }
 
 export class E_Text<TEngine extends Engine = Engine> extends Entity<TEngine> {
-    #text: C_Text;
+    #text: C_Text<TEngine>;
 
     constructor(options: E_TextOptions) {
         super(options);
 
         this.#text = this.addComponent<C_Text<TEngine>>({
-            type: 'text',
             ...options,
+            type: 'text',
             name: 'Text',
         });
     }

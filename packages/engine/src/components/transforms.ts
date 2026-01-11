@@ -243,8 +243,13 @@ export class C_Transform<
     #markLocalDirty() {
         this.#localMatrixDirty = true;
         this.markBoundingBoxDirty();
-        for (const child of this.entity.children) {
+
+        const entity = this.entity;
+        for (const child of entity.children) {
             child.transform.#markWorldDirty();
+        }
+        if (entity.isVisual()) {
+            this._engine.forceRender();
         }
     }
 

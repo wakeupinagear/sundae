@@ -1,12 +1,15 @@
 import { C_Drawable, C_DrawableOptions } from '../components/drawable';
 import { Engine } from '../engine';
 import { Entity } from '../entities';
-import { C_Text } from '../objects/text';
-import type { RenderCommandStream } from '../systems/render/command';
+import { E_Text, E_TextOptions } from '../objects/text';
+import type {
+    RenderCommandStats,
+    RenderCommandStream,
+} from '../systems/render/command';
 import type { RenderStyle } from '../systems/render/style';
 import { Scene } from '../systems/scene';
 import type { TraceFrame } from '../systems/stats';
-import type { BoundingBox, CacheStats } from '../types';
+import type { BoundingBox, CacheStats, Camera } from '../types';
 import { zoomToScale } from '../utils';
 
 const IMPORTANT_TRACE_THRESHOLD = 0.2;
@@ -15,62 +18,43 @@ const IMPORTANT_TRACE_STALE_TIME = 5000;
 const HEADER_SIZE = 16;
 const LABEL_COLOR = '#CCCCCC';
 
-export class C_StatsDebug<
+export class E_StatsDebug<
     TEngine extends Engine = Engine,
-> extends C_Drawable<TEngine> {
-    #text: C_Text<TEngine>;
+> extends E_Text<TEngine> {
     #importantTraces: Map<string, number> = new Map();
 
-    constructor(options: C_DrawableOptions) {
-        const {
-            name = 'statsDebug',
-            style = {
-                fillStyle: 'white',
-                font: '12px monospace',
-            },
-            ...rest
-        } = options;
-        super({ name, style, ...rest });
-
-        this.#text = this.entity.addComponent({
-            type: 'text',
+    constructor(options: E_TextOptions) {
+        super({
+            ...options,
             text: '',
-            fontSize: 12,
-            textAlign: 'top-left',
-            trim: 'ends',
         });
     }
 
-    override queueRenderCommands(stream: RenderCommandStream): boolean {
+    override update(): boolean {
+        // Force render loop while this entity exists
+        return true;
+    }
+
+    override queueRenderCommands(stream: RenderCommandStream, camera: Camera) {
         const stats = this._engine.stats;
         if (!stats) {
             return false;
         }
 
         const currentTime = performance.now();
-        let text = `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>\n`;
+        let text = `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>`;
 
-        text += this.#buildTraceText(stats.traces, 0, '', currentTime);
-
-        if (stats.renderCommands) {
-            text += '\n';
-            const renderStats = stats.renderCommands;
-            text += this.#buildCacheText('transform', renderStats.transform);
-            text += this.#buildCacheText('setStyle', renderStats.setStyle);
-            text += this.#buildCacheText('setOpacity', renderStats.setOpacity);
-            text += this.#buildCacheText('drawRect', renderStats.drawRect);
-            text += this.#buildCacheText(
-                'drawEllipse',
-                renderStats.drawEllipse,
-            );
-            text += this.#buildCacheText('drawLine', renderStats.drawLine);
-            text += this.#buildCacheText('drawImage', renderStats.drawImage);
-            text += this.#buildCacheText('drawText', renderStats.drawText);
+        if (stats.traces.length > 0) {
+            text += this.#buildTraceText(stats.traces, 0, '', currentTime);
         }
 
-        this.#text.text = text;
+        if (stats.renderCommands) {
+            text += this.#buildCacheText(stats.renderCommands);
+        }
 
-        return super.queueRenderCommands(stream);
+        this.text = text;
+
+        super.queueRenderCommands(stream, camera);
     }
 
     #buildTraceText(
@@ -120,7 +104,24 @@ export class C_StatsDebug<
         return text;
     }
 
-    #buildCacheText(name: string, stats: CacheStats): string {
+    #buildCacheText(stats: Readonly<RenderCommandStats>) {
+        let text = '';
+        text += this.#buildCacheTextEntry('transform', stats.transform);
+        text += this.#buildCacheTextEntry('setStyle', stats.setStyle);
+        text += this.#buildCacheTextEntry('setOpacity', stats.setOpacity);
+        text += this.#buildCacheTextEntry('drawRect', stats.drawRect);
+        text += this.#buildCacheTextEntry('drawEllipse', stats.drawEllipse);
+        text += this.#buildCacheTextEntry('drawLine', stats.drawLine);
+        text += this.#buildCacheTextEntry('drawImage', stats.drawImage);
+        text += this.#buildCacheTextEntry('drawText', stats.drawText);
+        if (text) {
+            text = `\n\n${text}`;
+        }
+
+        return text;
+    }
+
+    #buildCacheTextEntry(name: string, stats: CacheStats): string {
         if (stats.total === 0) return '';
         const cachedPercent =
             stats.cached > 0
@@ -220,25 +221,22 @@ export class DebugOverlayScene<
     TEngine extends Engine = Engine,
 > extends Scene<TEngine> {
     override create(): void {
-        /*
         this.createEntity({
             name: 'boundingBoxEntity',
             cull: 'none',
         }).addComponents({
-            type: 'boundingBoxDebug',
+            type: C_BoundingBoxDebug,
             sceneEntityName: this.rootEntity.name,
         });
 
-        this.createEntities({
-            name: 'statsEntity',
+        this.createEntity({
+            type: E_StatsDebug,
+            name: 'Stats Debug',
             cull: 'none',
             positionRelativeToCamera: { x: 'end', y: 'end' },
             scaleRelativeToCamera: true,
             position: -24,
-        }).addComponents({
-            type: 'statsDebug',
-            name: 'statsDebug',
+            trim: 'ends',
         });
-        */
     }
 }

@@ -91,6 +91,10 @@ export abstract class C_Drawable<
         return false;
     }
 
+    public override isVisual(): boolean {
+        return true;
+    }
+
     protected override _computeBoundingBox(): void {
         this._boundingBox = {
             x1: -this._origin.x * this._size.x,

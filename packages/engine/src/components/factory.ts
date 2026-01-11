@@ -23,7 +23,30 @@ import { C_Transform, C_TransformJSON } from './transforms';
 export { Component };
 export type { ComponentOptions };
 
-export type ComponentJSON =
+// Type for component constructors
+export type ComponentConstructor<T extends Component = Component> = new (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    options: any,
+) => T;
+
+type IfAny<T, TIfAny, TIfNotAny> = 0 extends 1 & T ? TIfAny : TIfNotAny;
+
+// Extract constructor options from a component class
+type ExtractComponentOptions<TCtor extends ComponentConstructor> =
+    TCtor extends new (
+        options: infer TOptions extends ComponentOptions,
+    ) => Component
+        ? IfAny<TOptions, ComponentOptions, TOptions>
+        : never;
+
+// Custom component JSON type for class constructors
+export type CustomComponentJSON<TCtor extends ComponentConstructor> =
+    ExtractComponentOptions<TCtor> & {
+        type: TCtor;
+    };
+
+// String-based component types
+export type StringComponentJSON =
     | C_TransformJSON
     | C_TextJSON
     | C_ShapeJSON
@@ -35,9 +58,25 @@ export type ComponentJSON =
     | C_LerpRotationJSON
     | C_LerpRotationJSON;
 
+// Combined component JSON type supporting both strings and class constructors
+// Note: When using class constructors, use the function overloads directly
+export type ComponentJSON = StringComponentJSON;
+
 export function createComponentFromJSON<TEngine extends Engine = Engine>(
-    json: ComponentJSON & InternalComponentOptions<TEngine>,
+    json:
+        | (ComponentJSON & InternalComponentOptions<TEngine>)
+        | (CustomComponentJSON<ComponentConstructor> &
+              InternalComponentOptions<TEngine>),
 ): Component<TEngine> {
+    // Check if type is a constructor function
+    if (typeof json.type === 'function') {
+        const Constructor = json.type as ComponentConstructor<
+            Component<TEngine>
+        >;
+        return new Constructor(json);
+    }
+
+    // Handle string-based types
     switch (json.type) {
         case 'text':
             return new C_Text<TEngine>(json);

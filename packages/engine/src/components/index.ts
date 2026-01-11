@@ -95,9 +95,7 @@ export abstract class Component<TEngine extends Engine = Engine>
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update(_deltaTime: number): boolean | void {}
 
-    destroy(): void {
-        this._entity?.onChildComponentsOfTypeChanged(this.typeString);
-    }
+    destroy(): void {}
 
     queueRenderCommands(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -105,6 +103,10 @@ export abstract class Component<TEngine extends Engine = Engine>
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _camera: Camera,
     ): boolean {
+        return false;
+    }
+
+    isVisual(): boolean {
         return false;
     }
 

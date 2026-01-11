@@ -6,15 +6,51 @@ import { E_Text, E_TextJSON } from '../objects/text';
 
 export type BaseEntityJSON = EntityOptions & { type?: 'entity' };
 
-export type EntityJSON =
+// Type for entity constructors
+export type EntityConstructor<T extends Entity = Entity> = new (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    options: any,
+) => T;
+
+type IfAny<T, TIfAny, TIfNotAny> = 0 extends 1 & T ? TIfAny : TIfNotAny;
+
+// Extract constructor options from an entity class
+type ExtractEntityOptions<TCtor extends EntityConstructor> = TCtor extends new (
+    options: infer TOptions extends EntityOptions,
+) => Entity
+    ? IfAny<TOptions, EntityOptions, TOptions>
+    : never;
+
+// Custom entity JSON type for class constructors
+export type CustomEntityJSON<TCtor extends EntityConstructor> =
+    ExtractEntityOptions<TCtor> & {
+        type: TCtor;
+    };
+
+// String-based entity types
+export type StringEntityJSON =
     | E_TextJSON
     | E_ShapeJSON
     | E_ImageJSON
     | BaseEntityJSON;
 
+// Combined entity JSON type supporting both strings and class constructors
+// Note: When using class constructors, use the function overloads directly
+export type EntityJSON = StringEntityJSON;
+
 export function createEntityFromJSON<TEngine extends Engine = Engine>(
-    json: EntityJSON & InternalEntityOptions<TEngine>,
+    json:
+        | (EntityJSON & InternalEntityOptions<TEngine>)
+        | (CustomEntityJSON<EntityConstructor> &
+              InternalEntityOptions<TEngine>),
 ): Entity<TEngine> {
+    // Check if type is a constructor function
+    if (typeof json.type === 'function') {
+        const Constructor = json.type as EntityConstructor<Entity<TEngine>>;
+        return new Constructor(json);
+    }
+
+    // Handle string-based types
     switch (json.type) {
         case 'entity':
             return new Entity<TEngine>(json);

@@ -1,4 +1,9 @@
-import { type Component, type ComponentJSON } from '../components/factory';
+import {
+    type Component,
+    type ComponentConstructor,
+    type ComponentJSON,
+    type CustomComponentJSON,
+} from '../components/factory';
 import { C_Transform } from '../components/transforms';
 import type { Engine } from '../engine';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
@@ -10,7 +15,11 @@ import type {
     Renderable,
 } from '../types';
 import { boundingBoxesIntersect, zoomToScale } from '../utils';
-import type { EntityJSON } from './factory';
+import type {
+    CustomEntityJSON,
+    EntityConstructor,
+    EntityJSON,
+} from './factory';
 
 type CullMode = 'components' | 'children' | 'all' | 'none';
 type PositionRelativeToCamera = OneAxisAlignment | 'none';
@@ -58,6 +67,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     #childrenZIndexDirty: boolean = false;
 
     protected _components: Component<TEngine>[] = [];
+    protected _visualComponents: Component<TEngine>[] = [];
     #componentsZIndexDirty: boolean = false;
 
     protected _cachedComponentsInTree: Record<string, Component[]> = {};
@@ -181,6 +191,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this._children as Entity<TEngine>[];
     }
 
+    addChild<TCtor extends EntityConstructor>(
+        child: CustomEntityJSON<TCtor>,
+    ): InstanceType<TCtor>;
+    addChild<IEntity extends Entity<TEngine>>(child: EntityJSON): IEntity;
     addChild<IEntity extends Entity<TEngine>>(child: EntityJSON): IEntity {
         const createdEntity = this._engine.createEntityFromJSON({
             engine: this._engine,
@@ -192,6 +206,12 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return createdEntity as IEntity;
     }
 
+    addChildren<TCtor extends EntityConstructor>(
+        ...children: CustomEntityJSON<TCtor>[]
+    ): InstanceType<TCtor>[];
+    addChildren<IEntities extends Entity<TEngine>[]>(
+        ...children: EntityJSON[]
+    ): IEntities;
     addChildren<IEntities extends Entity<TEngine>[]>(
         ...children: EntityJSON[]
     ): IEntities {
@@ -208,6 +228,12 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return createdEntities as IEntities;
     }
 
+    addComponent<TCtor extends ComponentConstructor>(
+        component: CustomComponentJSON<TCtor>,
+    ): InstanceType<TCtor>;
+    addComponent<IComponent extends Component<TEngine>>(
+        component: ComponentJSON,
+    ): IComponent;
     addComponent<IComponent extends Component<TEngine>>(
         component: ComponentJSON,
     ): IComponent {
@@ -216,11 +242,17 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             entity: this,
             ...component,
         });
-        this._components.push(createdComponent);
+        this.#addComponent(createdComponent);
 
         return createdComponent as IComponent;
     }
 
+    addComponents<TCtor extends ComponentConstructor>(
+        ...components: CustomComponentJSON<TCtor>[]
+    ): InstanceType<TCtor>[];
+    addComponents<IComponents extends Component<TEngine>[]>(
+        ...components: ComponentJSON[]
+    ): IComponents;
     addComponents<IComponents extends Component<TEngine>[]>(
         ...components: ComponentJSON[]
     ): IComponents {
@@ -232,7 +264,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                 ...componentJSON,
             });
             createdComponents.push(createdComponent);
-            this._components.push(createdComponent);
+            this.#addComponent(createdComponent);
         }
 
         return createdComponents as IComponents;
@@ -240,6 +272,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     registerChild(child: Entity<TEngine>): void {
         this._children.push(child);
+        this.#childrenZIndexDirty = true;
     }
 
     getComponentsInTree<T extends Component<TEngine>>(typeString: string): T[] {
@@ -388,10 +421,24 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this;
     }
 
-    removeComponents(...components: Component[]): this {
-        this._components = this._components.filter((c) =>
-            components.every((ic) => c.id !== ic.id),
-        );
+    removeComponents(...components: Component<TEngine>[]): this {
+        for (const component of components) {
+            const componentIndex = this._components.indexOf(component);
+            if (componentIndex !== -1) {
+                this._components.splice(componentIndex, 1);
+            }
+
+            if (component.isVisual()) {
+                const visualIndex = this._visualComponents.indexOf(component);
+                if (visualIndex !== -1) {
+                    this._visualComponents.splice(visualIndex, 1);
+                }
+            }
+
+            component.destroy();
+            this.onChildComponentsOfTypeChanged(component.typeString);
+        }
+
         return this;
     }
 
@@ -550,6 +597,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         );
     }
 
+    isVisual(): boolean {
+        return this._visualComponents.length > 0;
+    }
+
     #destroy(): void {
         for (const child of this._children) {
             child.#destroy();
@@ -580,6 +631,14 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         for (const child of this._children) {
             child.#sortChildren();
         }
+    }
+
+    #addComponent(component: Component<TEngine>): void {
+        this._components.push(component);
+        if (component.isVisual()) {
+            this._visualComponents.push(component);
+        }
+        this.onChildComponentsOfTypeChanged(component.typeString);
     }
 
     #sortComponents(): void {

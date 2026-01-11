@@ -8,6 +8,10 @@ import { WebHarness } from './harness';
 import { useAppStore } from './store';
 import './style.css';
 
+const SCENARIOS = Object.fromEntries(
+    Object.entries(scenarios).filter(([_, { hideInDemos }]) => !hideInDemos),
+);
+
 const DEFAULT_SCENARIO = 'renderChaos';
 
 export function App() {
@@ -30,7 +34,7 @@ export function App() {
         window.history.replaceState({}, '', newUrl);
     }, [scenarioId]);
 
-    const scenario = scenarioId ? scenarios[scenarioId] : null;
+    const scenario = scenarioId ? SCENARIOS[scenarioId] : null;
 
     const handleScenarioChange = (id: string) => {
         setScenarioId(id || null);
@@ -80,7 +84,7 @@ export function App() {
                                 handleScenarioChange(e.target.value)
                             }
                         >
-                            {Object.entries(scenarios).map(([id, { name }]) => (
+                            {Object.entries(SCENARIOS).map(([id, { name }]) => (
                                 <option key={id} value={id}>
                                     {name}
                                 </option>

@@ -85,8 +85,8 @@ export class E_Image<TEngine extends Engine = Engine> extends Entity<TEngine> {
         this.#imageName = options.imageName;
 
         this.#image = this.addComponent<C_Image<TEngine>>({
-            type: 'image',
             ...options,
+            type: 'image',
             name: 'Image',
         });
     }
