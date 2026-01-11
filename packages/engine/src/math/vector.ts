@@ -411,3 +411,22 @@ export class Vector implements IVector<number> {
         return `Vector(${this.x}, ${this.y})`;
     }
 }
+
+export type ImmutableVector = Readonly<
+    Omit<
+        Vector,
+        | 'set'
+        | 'setMut'
+        | 'addMut'
+        | 'subMut'
+        | 'mulMut'
+        | 'divMut'
+        | 'scaleMut'
+        | 'normalizeMut'
+        | 'negateMut'
+        | 'floorMut'
+        | 'roundMut'
+        | 'ceilMut'
+        | 'absMut'
+    >
+>;

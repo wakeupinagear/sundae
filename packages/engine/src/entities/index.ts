@@ -6,7 +6,12 @@ import {
 } from '../components/factory';
 import { C_Transform } from '../components/transforms';
 import type { Engine } from '../engine';
-import { type IVector, Vector, type VectorConstructor } from '../math/vector';
+import {
+    type IVector,
+    ImmutableVector,
+    Vector,
+    type VectorConstructor,
+} from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 import type {
     BoundingBox,
@@ -147,15 +152,15 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this._transform;
     }
 
-    get position(): Readonly<Vector> {
+    get position(): ImmutableVector {
         return this._transform.position;
     }
 
-    get worldPosition(): Readonly<Vector> {
+    get worldPosition(): ImmutableVector {
         return this._transform.worldPosition;
     }
 
-    get scale(): Readonly<Vector> {
+    get scale(): ImmutableVector {
         return this._transform.scale;
     }
 
@@ -349,6 +354,12 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     setPosition(newPosition: number | IVector<number> | Vector): this {
         this._transform.setPosition(newPosition);
+
+        return this;
+    }
+
+    move(delta: Vector): this {
+        this._transform.translate(delta);
 
         return this;
     }

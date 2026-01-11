@@ -36,7 +36,7 @@ class E_Paddle extends Entity {
     }
 
     reset() {
-        this.position.set({ x: 0, y: this.position.y });
+        this.setPosition({ x: this.position.x, y: 0 });
     }
 }
 
@@ -47,7 +47,7 @@ interface E_BallOptions extends EntityOptions {
 class E_Ball extends Entity {
     #colliders: Entity[] = [];
     #direction: Vector = new Vector(0, 0);
-    #speed: number = 1000;
+    #speed: number = 100;
 
     constructor(options: E_BallOptions) {
         super(options);
@@ -63,13 +63,13 @@ class E_Ball extends Entity {
         this.reset();
     }
 
-    override update() {
-        this.position.addMut({ x: 1, y: 1 });
+    override update(deltaTime: number) {
+        this.move(this.#direction.mul(this.#speed * deltaTime));
     }
 
     reset() {
-        this.position.set({ x: 0, y: 0 });
-        this.#direction.set(Vector.fromAngle(Math.random() * 360));
+        this.setPosition(0);
+        this.#direction.set(Vector.fromAngle(this.engine.random() * 360));
     }
 }
 
@@ -111,13 +111,6 @@ class PongScene extends Scene {
             scale: { x: 20, y: 150 },
         });
 
-        this.#ball = this.createEntity({
-            type: E_Ball,
-            colliders: [this.#paddle1, this.#paddle2],
-            name: 'Ball',
-            scale: { x: 20, y: 20 },
-        });
-
         const wallOptions: EntityOptions = {
             scale: { x: 1000, y: 100 },
             components: [
@@ -130,7 +123,7 @@ class PongScene extends Scene {
                 },
             ],
         };
-        this.createEntities(
+        const walls = this.createEntities(
             {
                 name: 'Top Wall',
                 position: { x: 0, y: -300 },
@@ -142,6 +135,13 @@ class PongScene extends Scene {
                 ...wallOptions,
             },
         );
+
+        this.#ball = this.createEntity({
+            type: E_Ball,
+            colliders: [this.#paddle1, this.#paddle2, ...walls],
+            name: 'Ball',
+            scale: { x: 20, y: 20 },
+        });
     }
 
     override update() {

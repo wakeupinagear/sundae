@@ -17,6 +17,7 @@ import {
     createEntityFromJSON,
 } from './entities/factory';
 import { Matrix2D } from './math/matrix';
+import { generatePRNG } from './math/random';
 import { type IVector } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
@@ -146,6 +147,8 @@ export interface EngineOptions {
     engineTracesEnabled: boolean;
     debugOverlayEnabled: boolean;
     logOutput: LogOutput | null | undefined;
+
+    randomSeed: number;
 }
 
 const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
@@ -183,6 +186,8 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     engineTracesEnabled: false,
     debugOverlayEnabled: false,
     logOutput: console,
+
+    randomSeed: 0,
 };
 
 export class Engine<TOptions extends EngineOptions = EngineOptions>
@@ -219,6 +224,8 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     > = {};
 
     #frameCount: number = 0;
+
+    #prng!: () => number;
 
     constructor(options: Partial<TOptions> = {}) {
         this._rootEntity = createEntityFromJSON({
@@ -621,6 +628,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     errorBeforeFrame: I_Logging['errorBeforeFrame'] = (n, ...args) =>
         this._logSystem.errorBeforeFrame(n, ...args);
 
+    random(): number {
+        return this.#prng();
+    }
+
     #engineUpdate(deltaTime: number): boolean {
         if (!this._rootEntity.enabled) {
             return false;
@@ -817,6 +828,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
         if (newOptions.devicePixelRatio !== undefined) {
             this._devicePixelRatio = newOptions.devicePixelRatio;
+        }
+
+        if (newOptions.randomSeed !== undefined) {
+            this.#prng = generatePRNG(newOptions.randomSeed);
         }
     }
 }
