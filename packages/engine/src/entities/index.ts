@@ -188,6 +188,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this._components as Component<TEngine>[];
     }
 
+    get visualComponents(): ReadonlyArray<Component<TEngine>> {
+        return this._visualComponents as Component<TEngine>[];
+    }
+
     get parent(): Readonly<Entity<TEngine>> | null {
         return this._parent;
     }

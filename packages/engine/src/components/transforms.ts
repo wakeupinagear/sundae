@@ -207,7 +207,7 @@ export class C_Transform<
         let minY = Infinity;
         let maxY = -Infinity;
 
-        for (const comp of this.entity.components) {
+        for (const comp of this.entity.visualComponents) {
             if (comp === this) continue;
 
             const compBB = comp.boundingBox;
