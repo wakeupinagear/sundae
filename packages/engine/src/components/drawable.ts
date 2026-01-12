@@ -47,7 +47,7 @@ export abstract class C_Drawable<
 
     setOrigin(origin: VectorConstructor): this {
         if (this._origin.set(origin)) {
-            this._markBoundingBoxDirty();
+            this._markBoundsDirty();
         }
 
         return this;
@@ -59,7 +59,7 @@ export abstract class C_Drawable<
 
     setSize(size: VectorConstructor): this {
         if (this._size.set(size)) {
-            this._markBoundingBoxDirty();
+            this._markBoundsDirty();
         }
 
         return this;

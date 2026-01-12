@@ -396,11 +396,6 @@ export class Vector implements IVector<number> {
 
     // ==================== Conversion Methods ====================
 
-    /** Converts to a plain object */
-    toObject(): { x: number; y: number } {
-        return { x: this.x, y: this.y };
-    }
-
     /** Converts to an array [x, y] */
     toArray(): [number, number] {
         return [this.x, this.y];

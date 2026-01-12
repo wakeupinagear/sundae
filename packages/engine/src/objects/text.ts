@@ -125,6 +125,10 @@ export class C_Text<
         this.#opacity = options.opacity ?? 1;
     }
 
+    override get typeString(): string {
+        return 'C_Text';
+    }
+
     get text(): string {
         return this.#text;
     }
@@ -580,7 +584,7 @@ export class C_Text<
         }
 
         this.#textSize.set({ x: overallWidth, y: overallHeight });
-        this._markBoundingBoxDirty();
+        this._markBoundsDirty();
     }
 
     #parseTextLines(text: string): TextNode[] {

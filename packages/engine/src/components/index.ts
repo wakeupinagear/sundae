@@ -2,6 +2,8 @@ import type { Engine } from '../engine';
 import { Entity } from '../entities';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { BoundingBox, Camera, Renderable } from '../types';
+import { C_Collider } from './colliders';
+import { ComponentJSON } from './factory';
 
 export interface ComponentOptions {
     name?: string;
@@ -51,7 +53,7 @@ export abstract class Component<TEngine extends Engine = Engine>
     }
 
     get typeString(): string {
-        return this.constructor.name;
+        return 'Component';
     }
 
     get name(): string {
@@ -83,12 +85,10 @@ export abstract class Component<TEngine extends Engine = Engine>
         return this._boundingBox!;
     }
 
-    protected _markBoundingBoxDirty(): void {
+    protected _markBoundsDirty(): void {
         if (!this._boundingBoxDirty) {
             this._boundingBoxDirty = true;
-            if (this._entity) {
-                this._entity.transform.markBoundingBoxDirty();
-            }
+            this._entity.markBoundsDirty();
         }
     }
 

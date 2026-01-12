@@ -170,6 +170,10 @@ export class C_Lerp<TEngine extends Engine = Engine> extends C_LerpBase<
     constructor(options: C_LerpOptions<number>) {
         super(options);
     }
+
+    override get typeString(): string {
+        return 'C_Lerp';
+    }
 }
 
 interface C_LerpOpacityOptions
@@ -199,6 +203,10 @@ export class C_LerpOpacity<TEngine extends Engine = Engine> extends C_LerpBase<
             },
             ...rest,
         });
+    }
+
+    override get typeString(): string {
+        return 'C_LerpOpacity';
     }
 }
 
@@ -237,6 +245,10 @@ export class C_LerpPosition<
             ...rest,
         });
     }
+
+    override get typeString(): string {
+        return 'C_LerpPosition';
+    }
 }
 
 interface C_RotationLerpOptions
@@ -272,5 +284,9 @@ export class C_LerpRotation<TEngine extends Engine = Engine> extends C_LerpBase<
             variant,
             ...rest,
         });
+    }
+
+    override get typeString(): string {
+        return 'C_LerpRotation';
     }
 }

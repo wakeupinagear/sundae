@@ -1,3 +1,4 @@
+import { C_Collider } from '../components/colliders';
 import {
     type Component,
     type ComponentConstructor,
@@ -61,6 +62,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     protected _zIndex: number;
 
     protected _transform: C_Transform<TEngine>;
+    protected _collider: C_Collider<TEngine> | null = null;
+
     protected _positionRelativeToCamera: IVector<PositionRelativeToCamera>;
     protected _scaleRelativeToCamera: IVector<boolean>;
     protected _cull: CullMode;
@@ -132,10 +135,6 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this._id;
     }
 
-    get typeString(): string {
-        return this.constructor.name;
-    }
-
     get name(): string {
         return this._name;
     }
@@ -148,8 +147,12 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this._enabled;
     }
 
-    get transform(): C_Transform {
+    get transform(): C_Transform<TEngine> {
         return this._transform;
+    }
+
+    get collider(): C_Collider<TEngine> | null {
+        return this._collider;
     }
 
     get position(): ImmutableVector {
@@ -277,6 +280,34 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
 
         return createdComponents as IComponents;
+    }
+
+    setCollider<TCollider extends C_Collider<TEngine>>(
+        colliderOptions: ComponentJSON | null,
+    ): TCollider | null {
+        if (this._collider) {
+            this._collider.destroy();
+            this._collider = null;
+        }
+
+        if (colliderOptions) {
+            const collider = this.addComponent<TCollider>(colliderOptions);
+            this._collider = collider;
+
+            return collider;
+        }
+
+        return null;
+    }
+
+    markBoundsDirty(): void {
+        this.transform.markBoundsDirty();
+        if (this._collider) {
+            this._collider.markCollisionBoundsDirty();
+        }
+        if (this.parent) {
+            this.parent.markBoundsDirty();
+        }
     }
 
     registerChild(child: Entity<TEngine>): void {

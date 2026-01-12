@@ -32,13 +32,13 @@ export class C_Transform<
     #worldPosition: Vector = new Vector(0);
 
     #boundingBox: BoundingBox = { x1: 0, x2: 0, y1: 0, y2: 0 };
-    #boundingBoxDirty: boolean = true;
     #corners: [Vector, Vector, Vector, Vector] = [
         new Vector(0),
         new Vector(0),
         new Vector(0),
         new Vector(0),
     ];
+    #boundsDirty: boolean = true;
 
     constructor(options: C_TransformOptions) {
         const { name = 'transform', ...rest } = options;
@@ -49,6 +49,10 @@ export class C_Transform<
         this.#position = new Vector(options.position);
         this.#rotation = options.rotation;
         this.#scale = new Vector(options.scale);
+    }
+
+    override get typeString(): string {
+        return 'C_Transform';
     }
 
     get position(): Readonly<Vector> {
@@ -91,19 +95,28 @@ export class C_Transform<
     get worldMatrix(): Readonly<Matrix2D> {
         if (this.#worldMatrixDirty) {
             this.#computeWorldMatrix();
-            this.#boundingBoxDirty = true;
+            this.#boundsDirty = true;
         }
 
         return this.#worldMatrix;
     }
 
     get boundingBox(): Readonly<BoundingBox> {
-        if (this.#boundingBoxDirty) {
+        if (this.#boundsDirty) {
             this.#computeBoundingBox();
-            this.#boundingBoxDirty = false;
+            this.#boundsDirty = false;
         }
 
         return this.#boundingBox;
+    }
+
+    get corners(): Readonly<[Vector, Vector, Vector, Vector]> {
+        if (this.#boundsDirty) {
+            this.#computeBoundingBox();
+            this.#boundsDirty = false;
+        }
+
+        return this.#corners;
     }
 
     setPosition(position: VectorConstructor): void {
@@ -171,6 +184,13 @@ export class C_Transform<
         this.setScale(this.#scale.mul(delta));
     }
 
+    markBoundsDirty() {
+        if (!this.#boundsDirty) {
+            this.#boundsDirty = true;
+            this.entity.markBoundsDirty();
+        }
+    }
+
     #computeLocalMatrix() {
         const localMatrix = this.#localMatrix;
         localMatrix.identity();
@@ -198,7 +218,7 @@ export class C_Transform<
             this.#worldMatrix = this.localMatrix.clone();
         }
 
-        this.#boundingBoxDirty = true;
+        this.#boundsDirty = true;
     }
 
     #computeBoundingBox() {
@@ -208,8 +228,6 @@ export class C_Transform<
         let maxY = -Infinity;
 
         for (const comp of this.entity.visualComponents) {
-            if (comp === this) continue;
-
             const compBB = comp.boundingBox;
 
             this.#corners[0].set({ x: compBB.x1, y: compBB.y1 });
@@ -217,12 +235,13 @@ export class C_Transform<
             this.#corners[2].set({ x: compBB.x2, y: compBB.y2 });
             this.#corners[3].set({ x: compBB.x1, y: compBB.y2 });
 
-            for (const corner of this.#corners) {
-                const worldCorner = this.worldMatrix.transformPoint(corner);
-                minX = Math.min(minX, worldCorner.x);
-                maxX = Math.max(maxX, worldCorner.x);
-                minY = Math.min(minY, worldCorner.y);
-                maxY = Math.max(maxY, worldCorner.y);
+            for (let i = 0; i < 4; i++) {
+                const corner = this.#corners[i];
+                corner.set(this.worldMatrix.transformPoint(corner));
+                minX = Math.min(minX, corner.x);
+                maxX = Math.max(maxX, corner.x);
+                minY = Math.min(minY, corner.y);
+                maxY = Math.max(maxY, corner.y);
             }
         }
 
@@ -242,7 +261,7 @@ export class C_Transform<
 
     #markLocalDirty() {
         this.#localMatrixDirty = true;
-        this.markBoundingBoxDirty();
+        this.markBoundsDirty();
 
         const entity = this.entity;
         for (const child of entity.children) {
@@ -255,18 +274,9 @@ export class C_Transform<
 
     #markWorldDirty() {
         this.#worldMatrixDirty = true;
-        this.markBoundingBoxDirty();
+        this.markBoundsDirty();
         for (const child of this.entity.children) {
             child.transform.#markWorldDirty();
-        }
-    }
-
-    markBoundingBoxDirty() {
-        if (!this.#boundingBoxDirty) {
-            this.#boundingBoxDirty = true;
-            if (this.entity.parent) {
-                this.entity.parent.transform.markBoundingBoxDirty();
-            }
         }
     }
 }

@@ -1,3 +1,5 @@
+import { C_CircleCollider } from '../components/colliders/CircleCollider';
+import { C_RectangleCollider } from '../components/colliders/RectangleCollider';
 import { C_Drawable, C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
 import { Entity, EntityOptions } from '../entities';
@@ -25,6 +27,7 @@ export interface C_ShapeOptions extends C_DrawableOptions {
     end?: VectorConstructor;
     startTip?: Tip;
     endTip?: Tip;
+    collision?: boolean;
 }
 
 export interface C_ShapeJSON extends C_ShapeOptions {
@@ -45,27 +48,37 @@ export class C_Shape<
     #endTip: Tip | null = null;
 
     constructor(options: C_ShapeOptions) {
-        const {
-            name = 'shape',
-            shape,
-            repeat,
-            gap,
-            start,
-            end,
-            startTip,
-            endTip,
-            ...rest
-        } = options;
+        const { name = 'shape', ...rest } = options;
         super({ name, ...rest });
 
-        this.#shape = shape;
-        this.#repeat = new Vector(repeat ?? 1);
-        this.#gap = new Vector(gap ?? 1);
+        this.#shape = options.shape;
+        this.#repeat = new Vector(options.repeat ?? 1);
+        this.#gap = new Vector(options.gap ?? 1);
 
-        if (start) this.#start = new Vector(start);
-        if (end) this.#end = new Vector(end);
-        this.#startTip = startTip ?? null;
-        this.#endTip = endTip ?? null;
+        if (options.start) this.#start = new Vector(options.start);
+        if (options.end) this.#end = new Vector(options.end);
+        this.#startTip = options.startTip ?? null;
+        this.#endTip = options.endTip ?? null;
+
+        if (options.collision) {
+            if (options.shape === 'RECT') {
+                this.entity.setCollider<C_RectangleCollider<TEngine>>({
+                    type: 'rectangleCollider',
+                });
+            } else if (options.shape === 'ELLIPSE') {
+                this.entity.setCollider<C_CircleCollider<TEngine>>({
+                    type: 'circleCollider',
+                });
+            } else {
+                this._engine.warn(
+                    `Collision not supported for shape '${this.shape}'`,
+                );
+            }
+        }
+    }
+
+    override get typeString(): string {
+        return 'C_Shape';
     }
 
     get shape(): Shape {

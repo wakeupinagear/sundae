@@ -1,7 +1,9 @@
 import { Vector } from '@repo/engine';
 import { EngineScenario } from '@repo/engine-scenarios';
-import { E_Text, Entity, EntityOptions } from '@repo/engine/entities';
+import { E_Shape, E_Text, EntityOptions } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
+
+import { E_ShapeOptions } from '../../../engine/src/objects/shape';
 
 const PLAYER_1_INPUT_AXIS = 'player1';
 const PLAYER_2_INPUT_AXIS = 'player2';
@@ -10,18 +12,16 @@ interface E_PaddleOptions extends EntityOptions {
     inputAxis: string;
 }
 
-class E_Paddle extends Entity {
+class E_Paddle extends E_Shape {
     #inputAxis: string;
     #speed: number = 1000;
 
     constructor(options: E_PaddleOptions) {
-        super(options);
-        this.addComponent({
-            type: 'shape',
+        super({
+            ...options,
             shape: 'RECT',
-            style: {
-                fillStyle: 'white',
-            },
+            style: { fillStyle: 'white' },
+            collision: true,
         });
 
         this.#inputAxis = options.inputAxis;
@@ -40,24 +40,16 @@ class E_Paddle extends Entity {
     }
 }
 
-interface E_BallOptions extends EntityOptions {
-    colliders: Entity[];
-}
-
-class E_Ball extends Entity {
-    #colliders: Entity[] = [];
+class E_Ball extends E_Shape {
     #direction: Vector = new Vector(0, 0);
     #speed: number = 100;
 
-    constructor(options: E_BallOptions) {
-        super(options);
-        this.#colliders = options.colliders;
-        this.addComponent({
-            type: 'shape',
+    constructor(options: EntityOptions) {
+        super({
+            ...options,
             shape: 'ELLIPSE',
-            style: {
-                fillStyle: 'white',
-            },
+            style: { fillStyle: 'white' },
+            collision: true,
         });
 
         this.reset();
@@ -111,25 +103,24 @@ class PongScene extends Scene {
             scale: { x: 20, y: 150 },
         });
 
-        const wallOptions: EntityOptions = {
+        const wallOptions: E_ShapeOptions = {
+            shape: 'RECT',
             scale: { x: 1000, y: 100 },
-            components: [
-                {
-                    type: 'shape',
-                    shape: 'RECT',
-                    style: {
-                        fillStyle: '#BBBBBB',
-                    },
-                },
-            ],
+            style: {
+                fillStyle: '#BBBBBB',
+            },
+            collision: true,
         };
-        const walls = this.createEntities(
+
+        this.createEntities(
             {
+                type: 'shape',
                 name: 'Top Wall',
                 position: { x: 0, y: -300 },
                 ...wallOptions,
             },
             {
+                type: 'shape',
                 name: 'Bottom Wall',
                 position: { x: 0, y: 300 },
                 ...wallOptions,
@@ -138,7 +129,6 @@ class PongScene extends Scene {
 
         this.#ball = this.createEntity({
             type: E_Ball,
-            colliders: [this.#paddle1, this.#paddle2, ...walls],
             name: 'Ball',
             scale: { x: 20, y: 20 },
         });

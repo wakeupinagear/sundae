@@ -150,21 +150,10 @@ class ChaosScene extends Scene {
             const x = startX + col * cellWidth + cellWidth / 2;
             const y = startY + row * cellHeight + cellHeight / 2;
 
-            const textEntity = this.createEntities({
+            const textEntity = this.createEntity({
                 name: `textAlign_${textAlignments[i]}`,
-                zIndex: 1000,
-            })[0];
-            textEntity.transform.position.set({ x, y });
-
-            textEntity.addComponents({
-                type: 'shape',
-                shape: 'ELLIPSE',
-                style: {
-                    fillStyle: 'blue',
-                },
-                size: 10,
+                position: { x, y },
             });
-
             textEntity.addComponents({
                 type: 'text',
                 text: `${debugText}\n(${textAlignments[i]})`,

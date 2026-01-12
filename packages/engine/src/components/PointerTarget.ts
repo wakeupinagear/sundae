@@ -36,6 +36,10 @@ export class C_PointerTarget<
         this.#cursorPriority = options.cursorPriority ?? 5;
     }
 
+    override get typeString(): string {
+        return 'C_PointerTarget';
+    }
+
     get isPointerHovered(): boolean {
         return this.#isPointerHovered;
     }

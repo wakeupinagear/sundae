@@ -1,3 +1,4 @@
+import { C_RectangleCollider } from '../components/colliders/RectangleCollider';
 import { C_Drawable, C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
 import { Entity, EntityOptions } from '../entities';
@@ -22,9 +23,12 @@ export class C_Image<
     constructor(options: C_ImageOptions) {
         super(options);
 
-        const { imageName, repeat } = options;
-        this.#imageName = imageName;
-        this.#repeat = new Vector(repeat ?? 1);
+        this.#imageName = options.imageName;
+        this.#repeat = new Vector(options.repeat ?? 1);
+    }
+
+    override get typeString(): string {
+        return 'C_Image';
     }
 
     get imageName(): string {
@@ -68,35 +72,37 @@ export class C_Image<
     }
 }
 
-export interface E_ImageOptions extends EntityOptions, C_ImageOptions {}
+export interface E_ImageOptions extends EntityOptions, C_ImageOptions {
+    collision?: boolean;
+}
 
 export interface E_ImageJSON extends E_ImageOptions {
     type: 'image';
 }
 
 export class E_Image<TEngine extends Engine = Engine> extends Entity<TEngine> {
-    #imageName: string;
-
     #image: C_Image<TEngine>;
 
     constructor(options: E_ImageOptions) {
         super(options);
-
-        this.#imageName = options.imageName;
 
         this.#image = this.addComponent<C_Image<TEngine>>({
             ...options,
             type: 'image',
             name: 'Image',
         });
+        if (options.collision) {
+            this._collider = this.addComponent<C_RectangleCollider<TEngine>>({
+                type: 'rectangleCollider',
+            });
+        }
     }
 
     get imageName(): string {
-        return this.#imageName;
+        return this.#image.imageName;
     }
 
     set imageName(imageName: string) {
-        this.#imageName = imageName;
         this.#image.imageName = imageName;
     }
 

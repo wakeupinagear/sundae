@@ -8,6 +8,14 @@ import { C_Image, C_ImageJSON } from '../objects/image';
 import { C_Shape, C_ShapeJSON } from '../objects/shape';
 import { C_Text, C_TextJSON } from '../objects/text';
 import {
+    C_CircleCollider,
+    C_CircleColliderJSON,
+} from './colliders/CircleCollider';
+import {
+    C_RectangleCollider,
+    C_RectangleColliderJSON,
+} from './colliders/RectangleCollider';
+import {
     C_Lerp,
     C_LerpJSON,
     C_LerpOpacity,
@@ -56,7 +64,8 @@ export type StringComponentJSON =
     | C_LerpPositionJSON
     | C_LerpOpacityJSON
     | C_LerpRotationJSON
-    | C_LerpRotationJSON;
+    | C_CircleColliderJSON
+    | C_RectangleColliderJSON;
 
 // Combined component JSON type supporting both strings and class constructors
 // Note: When using class constructors, use the function overloads directly
@@ -94,6 +103,10 @@ export function createComponentFromJSON<TEngine extends Engine = Engine>(
             return new C_LerpRotation<TEngine>(json);
         case 'pointerTarget':
             return new C_PointerTarget<TEngine>(json);
+        case 'circleCollider':
+            return new C_CircleCollider<TEngine>(json);
+        case 'rectangleCollider':
+            return new C_RectangleCollider<TEngine>(json);
         case 'transform':
             return new C_Transform<TEngine>(json);
         default:

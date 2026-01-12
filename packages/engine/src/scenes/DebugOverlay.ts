@@ -217,16 +217,133 @@ export class C_BoundingBoxDebug<
     }
 }
 
+interface ColliderDebugOptions extends C_DrawableOptions {
+    sceneEntityName: string;
+}
+
+export class C_ColliderDebug<
+    TEngine extends Engine = Engine,
+> extends C_Drawable<TEngine> {
+    #sceneEntityName: string;
+
+    constructor(options: ColliderDebugOptions) {
+        const { name = 'colliderDebug', ...rest } = options;
+        super({ name, ...rest });
+
+        const { sceneEntityName } = options;
+        this.#sceneEntityName = sceneEntityName;
+    }
+
+    override queueRenderCommands(stream: RenderCommandStream): boolean {
+        if (!super.queueRenderCommands(stream)) {
+            return false;
+        }
+
+        stream.pushTransform(this._entity.transform.worldMatrix.inverse());
+        for (const child of this._engine.rootEntity.children) {
+            this.#drawEntityCollider(child, stream);
+        }
+        stream.popTransform();
+
+        return true;
+    }
+
+    #drawEntityCollider(
+        entity: Readonly<Entity<TEngine>>,
+        stream: RenderCommandStream,
+    ): void {
+        if (!entity.enabled || entity.name === this.#sceneEntityName) return;
+
+        const culled =
+            entity.cull !== 'none' &&
+            entity.isCulled(this._engine.camera.cullBoundingBox);
+        if (culled && entity.cull === 'all') {
+            return;
+        }
+
+        if (!culled && entity.collider) {
+            const collider = entity.collider;
+            const bbox = entity.transform.boundingBox;
+
+            stream.setOpacity(1);
+            stream.setStyle({
+                strokeStyle: 'lime',
+                lineWidth: 8 / zoomToScale(this.engine.camera.zoom),
+            });
+
+            if (collider.type === 'circle') {
+                const width = bbox.x2 - bbox.x1;
+                const height = bbox.y2 - bbox.y1;
+                const centerX = (bbox.x1 + bbox.x2) / 2;
+                const centerY = (bbox.y1 + bbox.y2) / 2;
+                stream.drawEllipse(
+                    centerX,
+                    centerY,
+                    centerX + width,
+                    centerY + height,
+                    1,
+                    1,
+                    1,
+                    1,
+                );
+            } else if (collider.type === 'rectangle') {
+                stream.drawRect(
+                    bbox.x1,
+                    bbox.y1,
+                    bbox.x2 - bbox.x1,
+                    bbox.y2 - bbox.y1,
+                    1,
+                    1,
+                    1,
+                    1,
+                );
+            }
+
+            stream.setStyle({
+                fillStyle: 'blue',
+            });
+
+            const bounds = collider.collisionBounds;
+            for (const bound of bounds) {
+                stream.drawEllipse(
+                    bound.x,
+                    bound.y,
+                    bound.x + 10,
+                    bound.y + 10,
+                    1,
+                    1,
+                    1,
+                    1,
+                );
+            }
+        }
+
+        const cullChildren = culled && entity.cull === 'components';
+        if (!cullChildren) {
+            for (const child of entity.children) {
+                this.#drawEntityCollider(child, stream);
+            }
+        }
+    }
+}
+
 export class DebugOverlayScene<
     TEngine extends Engine = Engine,
 > extends Scene<TEngine> {
     override create(): void {
-        this.createEntity({
-            name: 'boundingBoxEntity',
+        const sceneEntityName = this.rootEntity.name;
+
+        const visualDebug = this.createEntity({
+            name: 'visualDebug',
             cull: 'none',
-        }).addComponents({
+        });
+        visualDebug.addComponent({
+            type: C_ColliderDebug,
+            sceneEntityName: sceneEntityName,
+        });
+        visualDebug.addComponent({
             type: C_BoundingBoxDebug,
-            sceneEntityName: this.rootEntity.name,
+            sceneEntityName: sceneEntityName,
         });
 
         this.createEntity({

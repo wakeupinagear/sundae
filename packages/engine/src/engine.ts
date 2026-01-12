@@ -32,6 +32,7 @@ import {
     type KeyboardKeyState,
 } from './systems/input';
 import { type I_Logging, type LogOutput, LogSystem } from './systems/log';
+import { PhysicsSystem } from './systems/physics';
 import {
     type CameraScrollMode,
     type CursorType,
@@ -208,6 +209,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     protected _pointerSystem: PointerSystem;
     protected _imageSystem: ImageSystem;
     protected _cameraSystem: CameraSystem;
+    protected _physicsSystem: PhysicsSystem;
     protected _statsSystem: StatsSystem;
     protected _logSystem: LogSystem;
 
@@ -242,6 +244,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._sceneSystem = new SceneSystem(this);
         this._imageSystem = new ImageSystem(this);
         this._cameraSystem = new CameraSystem(this, this._options.cameraStart);
+        this._physicsSystem = new PhysicsSystem(this);
 
         // Order isn't important since systems are manually updated
         this._statsSystem = new StatsSystem(this);

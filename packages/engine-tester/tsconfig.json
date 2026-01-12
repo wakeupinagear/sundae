@@ -1,8 +1,13 @@
 {
     "extends": "@repo/typescript-config/base.json",
     "compilerOptions": {
-      "outDir": "dist"
+      "outDir": "dist",
+      "rootDir": "src"
     },
-    "include": ["src", "../engine-scenarios/src/list/pong.ts"],
-    "exclude": ["node_modules", "dist"]
+    "include": ["src"],
+    "exclude": ["node_modules", "dist"],
+    "references": [
+      { "path": "../engine" },
+      { "path": "../engine-scenarios" }
+    ]
   }
