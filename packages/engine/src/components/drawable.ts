@@ -36,13 +36,25 @@ export abstract class C_Drawable<
         return this._style;
     }
 
+    get origin(): Readonly<Vector> {
+        return this._origin;
+    }
+
+    get size(): Readonly<Vector> {
+        return this._size;
+    }
+
+    get opacity(): number {
+        return this._opacity;
+    }
+
+    override isVisual(): boolean {
+        return true;
+    }
+
     setStyle(style: RenderStyle): this {
         this._style = { ...this._style, ...style };
         return this;
-    }
-
-    get origin(): Readonly<Vector> {
-        return this._origin;
     }
 
     setOrigin(origin: VectorConstructor): this {
@@ -53,20 +65,12 @@ export abstract class C_Drawable<
         return this;
     }
 
-    get size(): Readonly<Vector> {
-        return this._size;
-    }
-
     setSize(size: VectorConstructor): this {
         if (this._size.set(size)) {
             this._markBoundsDirty();
         }
 
         return this;
-    }
-
-    get opacity(): number {
-        return this._opacity;
     }
 
     setOpacity(opacity: number): this {
@@ -89,10 +93,6 @@ export abstract class C_Drawable<
         }
 
         return false;
-    }
-
-    public override isVisual(): boolean {
-        return true;
     }
 
     protected override _computeBoundingBox(): void {

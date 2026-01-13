@@ -2,8 +2,6 @@ import type { Engine } from '../engine';
 import { Entity } from '../entities';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { BoundingBox, Camera, Renderable } from '../types';
-import { C_Collider } from './colliders';
-import { ComponentJSON } from './factory';
 
 export interface ComponentOptions {
     name?: string;
@@ -85,6 +83,10 @@ export abstract class Component<TEngine extends Engine = Engine>
         return this._boundingBox!;
     }
 
+    isVisual(): boolean {
+        return false;
+    }
+
     protected _markBoundsDirty(): void {
         if (!this._boundingBoxDirty) {
             this._boundingBoxDirty = true;
@@ -103,10 +105,6 @@ export abstract class Component<TEngine extends Engine = Engine>
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _camera: Camera,
     ): boolean {
-        return false;
-    }
-
-    isVisual(): boolean {
         return false;
     }
 

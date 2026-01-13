@@ -49,7 +49,11 @@ class E_Ball extends E_Shape {
             ...options,
             shape: 'ELLIPSE',
             style: { fillStyle: 'white' },
-            collision: true,
+            components: [
+                {
+                    type: 'rectangleCollider',
+                },
+            ],
         });
 
         this.reset();

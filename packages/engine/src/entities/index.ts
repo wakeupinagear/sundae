@@ -72,6 +72,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     protected _parent: Entity<TEngine> | null = null;
 
     protected _children: Entity<TEngine>[] = [];
+    #childColliderCount: number = 0;
     #childrenZIndexDirty: boolean = false;
 
     protected _components: Component<TEngine>[] = [];
@@ -153,6 +154,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     get collider(): C_Collider<TEngine> | null {
         return this._collider;
+    }
+
+    get childColliderCount(): number {
+        return this.#childColliderCount;
     }
 
     get position(): ImmutableVector {
@@ -270,6 +275,12 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     ): IComponents {
         const createdComponents = [];
         for (const componentJSON of components) {
+            const type = componentJSON.type;
+            if (type === 'circleCollider' || type === 'rectangleCollider') {
+                this.setCollider(componentJSON);
+                continue;
+            }
+
             const createdComponent = this._engine.createComponentFromJSON({
                 engine: this._engine,
                 entity: this,
@@ -285,6 +296,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     setCollider<TCollider extends C_Collider<TEngine>>(
         colliderOptions: ComponentJSON | null,
     ): TCollider | null {
+        const hasCollider = !!this._collider;
         if (this._collider) {
             this._collider.destroy();
             this._collider = null;
@@ -293,11 +305,24 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         if (colliderOptions) {
             const collider = this.addComponent<TCollider>(colliderOptions);
             this._collider = collider;
-
-            return collider;
         }
 
-        return null;
+        if (hasCollider && !this._collider) {
+            this.parent?.childColliderChanged(false);
+        } else if (!hasCollider && this._collider) {
+            this.parent?.childColliderChanged(true);
+        }
+
+        return this._collider as TCollider | null;
+    }
+
+    childColliderChanged(added: boolean): void {
+        if (added) {
+            this.#childColliderCount++;
+        } else {
+            this.#childColliderCount--;
+        }
+        this._parent?.childColliderChanged(added);
     }
 
     markBoundsDirty(): void {

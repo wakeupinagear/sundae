@@ -1,3 +1,4 @@
+import { C_CircleCollider } from '../components/colliders/CircleCollider';
 import { C_Drawable, C_DrawableOptions } from '../components/drawable';
 import { Engine } from '../engine';
 import { Entity } from '../entities';
@@ -272,15 +273,15 @@ export class C_ColliderDebug<
             });
 
             if (collider.type === 'circle') {
-                const width = bbox.x2 - bbox.x1;
-                const height = bbox.y2 - bbox.y1;
+                const circleCollider = collider as C_CircleCollider<TEngine>;
+                const radius = circleCollider.radius;
                 const centerX = (bbox.x1 + bbox.x2) / 2;
                 const centerY = (bbox.y1 + bbox.y2) / 2;
                 stream.drawEllipse(
                     centerX,
                     centerY,
-                    centerX + width,
-                    centerY + height,
+                    centerX + radius * 2,
+                    centerY + radius * 2,
                     1,
                     1,
                     1,
