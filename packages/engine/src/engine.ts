@@ -188,7 +188,7 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     debugOverlayEnabled: false,
     logOutput: console,
 
-    randomSeed: 0,
+    randomSeed: 1234567890,
 };
 
 export class Engine<TOptions extends EngineOptions = EngineOptions>
@@ -289,6 +289,8 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                 data.alt,
             ),
         );
+
+        this.#setRandomSeed(DEFAULT_ENGINE_OPTIONS.randomSeed);
 
         this._options = { ...DEFAULT_ENGINE_OPTIONS, ...options } as TOptions;
         this.#applyOptions(this._options);
@@ -834,7 +836,11 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         }
 
         if (newOptions.randomSeed !== undefined) {
-            this.#prng = generatePRNG(newOptions.randomSeed);
+            this.#setRandomSeed(newOptions.randomSeed);
         }
+    }
+
+    #setRandomSeed(seed: number): void {
+        this.#prng = generatePRNG(seed);
     }
 }

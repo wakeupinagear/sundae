@@ -2,17 +2,10 @@ import { System } from '.';
 import { C_Collider } from '../components/colliders';
 import type { Engine } from '../engine';
 import { Entity, boundingBoxesIntersect } from '../exports';
+import type { CollisionContact } from '../types';
 
-const MAX_NARROW_PHASE_ITERATIONS = 10;
-
-/*
-contactNormal (unit)
-
-penetrationDepth
-
-point (for friction later)
-*/
-export interface CollisionContact {}
+const MAX_NARROW_PHASE_ITERATIONS = 5;
+const INV_MASS_EPSILON = 1e-6;
 
 export class PhysicsSystem<
     TEngine extends Engine = Engine,
@@ -32,16 +25,16 @@ export class PhysicsSystem<
     }
 
     #broadPhaseRecurse(entity: Readonly<Entity<TEngine>>) {
-        for (const child of entity.children) {
-            for (const otherChild of entity.children) {
+        const children = entity.children;
+        for (let i = 0; i < children.length; i++) {
+            for (let j = i + 1; j < children.length; j++) {
                 if (
-                    otherChild !== child &&
                     boundingBoxesIntersect(
-                        child.transform.boundingBox,
-                        otherChild.transform.boundingBox,
+                        children[i].transform.boundingBox,
+                        children[j].transform.boundingBox,
                     )
                 ) {
-                    this.#broadPhaseDescend(child, otherChild);
+                    this.#broadPhaseDescend(children[i], children[j]);
                 }
             }
         }
@@ -87,21 +80,71 @@ export class PhysicsSystem<
     }
 
     #narrowPhase() {
-        const contacts: CollisionContact[] = [];
-        if (this.#pairs.length > 0) {
-            console.log(this.#pairs);
-        }
-        for (const [collA, collB] of this.#pairs) {
-            const contact = collA.resolveCollision(collB);
-            if (contact) {
-                contacts.push(contact);
+        for (let i = 0; i < MAX_NARROW_PHASE_ITERATIONS; i++) {
+            let resolvedAny = false;
+            for (const [collA, collB] of this.#pairs) {
+                const contact = collA.resolveCollision(collB);
+                if (contact) {
+                    this.#resolveContact(contact);
+                    resolvedAny = true;
+                    if (i === 0) {
+                        collA.entity.onCollision?.(contact);
+                        for (const component of collA.entity.components) {
+                            component.onCollision?.(contact);
+                        }
+
+                        const flippedContact: CollisionContact<TEngine> = {
+                            ...contact,
+                            contactNormal: contact.contactNormal.negate(),
+                            collA: contact.collB,
+                            collB: contact.collA,
+                        };
+                        collB.entity.onCollision?.(flippedContact);
+                        for (const component of collB.entity.components) {
+                            component.onCollision?.(flippedContact);
+                        }
+                    }
+                }
+            }
+
+            if (!resolvedAny) {
+                break;
             }
         }
+    }
 
-        if (contacts.length > 0) {
-            console.log(contacts);
+    #resolveContact({
+        contactNormal,
+        penetrationDepth,
+        collA,
+        collB,
+    }: CollisionContact<TEngine>) {
+        const collARigidbody = collA.rigidbody;
+        const collBRigidbody = collB.rigidbody;
+        const invMassA = collARigidbody ? collARigidbody.invMass : 0;
+        const invMassB = collBRigidbody ? collBRigidbody.invMass : 0;
+        const totalInvMass = invMassA + invMassB;
+        if (totalInvMass === 0) {
+            return;
         }
 
-        for (let i = 0; i < MAX_NARROW_PHASE_ITERATIONS; i++) {}
+        let ratioA = invMassA / totalInvMass;
+        let ratioB = invMassB / totalInvMass;
+        if (ratioA < INV_MASS_EPSILON) {
+            ratioA = 0;
+            ratioB = 1;
+        } else if (ratioB < INV_MASS_EPSILON) {
+            ratioA = 1;
+            ratioB = 0;
+        }
+
+        if (ratioA > 0) {
+            collA.entity.move(contactNormal.scaleBy(penetrationDepth * ratioA));
+        }
+        if (ratioB > 0) {
+            collB.entity.move(
+                contactNormal.scaleBy(penetrationDepth * -ratioB),
+            );
+        }
     }
 }

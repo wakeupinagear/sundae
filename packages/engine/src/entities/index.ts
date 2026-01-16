@@ -5,6 +5,7 @@ import {
     type ComponentJSON,
     type CustomComponentJSON,
 } from '../components/factory';
+import { C_Rigidbody } from '../components/rigidbody';
 import { C_Transform } from '../components/transforms';
 import type { Engine } from '../engine';
 import {
@@ -17,6 +18,7 @@ import type { RenderCommandStream } from '../systems/render/command';
 import type {
     BoundingBox,
     Camera,
+    CollisionContact,
     OneAxisAlignment,
     Renderable,
 } from '../types';
@@ -43,6 +45,9 @@ export interface EntityOptions {
     scene?: string;
     components?: ComponentJSON[];
     children?: EntityJSON[];
+    rigidbody?: boolean;
+    mass?: number;
+    kinematic?: boolean;
 }
 
 export interface InternalEntityOptions<TEngine extends Engine = Engine>
@@ -63,6 +68,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     protected _transform: C_Transform<TEngine>;
     protected _collider: C_Collider<TEngine> | null = null;
+    protected _rigidbody: C_Rigidbody<TEngine> | null = null;
 
     protected _positionRelativeToCamera: IVector<PositionRelativeToCamera>;
     protected _scaleRelativeToCamera: IVector<boolean>;
@@ -86,6 +92,9 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             name = `entity-${this._id}`,
             engine,
             parent,
+            rigidbody,
+            mass,
+            kinematic,
             ...rest
         } = options as InternalEntityOptions<TEngine>;
         this._name = name;
@@ -130,6 +139,18 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             rotation: rest?.rotation ?? 0,
             scale: rest?.scale ?? 1,
         });
+
+        if (
+            options.rigidbody ||
+            mass !== undefined ||
+            kinematic !== undefined
+        ) {
+            this.setRigidbody({
+                type: 'rigidbody',
+                mass,
+                kinematic,
+            });
+        }
     }
 
     get id(): string {
@@ -154,6 +175,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     get collider(): C_Collider<TEngine> | null {
         return this._collider;
+    }
+
+    get rigidbody(): C_Rigidbody<TEngine> | null {
+        return this._rigidbody;
     }
 
     get childColliderCount(): number {
@@ -305,6 +330,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         if (colliderOptions) {
             const collider = this.addComponent<TCollider>(colliderOptions);
             this._collider = collider;
+            collider.rigidbody = this._rigidbody;
         }
 
         if (hasCollider && !this._collider) {
@@ -314,6 +340,27 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
 
         return this._collider as TCollider | null;
+    }
+
+    setRigidbody(
+        rigidbodyOptions: ComponentJSON | null,
+    ): C_Rigidbody<TEngine> | null {
+        if (this._rigidbody) {
+            this._rigidbody.destroy();
+            this._rigidbody = null;
+        }
+
+        if (rigidbodyOptions) {
+            const rigidbody =
+                this.addComponent<C_Rigidbody<TEngine>>(rigidbodyOptions);
+            this._rigidbody = rigidbody;
+        }
+
+        if (this._collider) {
+            this._collider.rigidbody = this._rigidbody;
+        }
+
+        return this._rigidbody as C_Rigidbody<TEngine> | null;
     }
 
     childColliderChanged(added: boolean): void {
@@ -383,6 +430,9 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update(_deltaTime: number): boolean | void {}
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onCollision(contact: CollisionContact<TEngine>): void {}
+
     destroy(): void {
         if (this._parent)
             this._parent._children = this._parent._children.filter(
@@ -418,7 +468,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this;
     }
 
-    move(delta: Vector): this {
+    move(delta: VectorConstructor): this {
         this._transform.translate(delta);
 
         return this;
@@ -436,13 +486,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this;
     }
 
-    translate(delta: Vector): this {
-        this._transform.translate(delta);
-
-        return this;
-    }
-
-    scaleBy(delta: Vector): this {
+    scaleBy(delta: VectorConstructor): this {
         this._transform.scaleBy(delta);
 
         return this;

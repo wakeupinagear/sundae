@@ -1,4 +1,6 @@
-import type { IVector } from './math/vector';
+import { C_Collider } from './components/colliders';
+import { Engine } from './engine';
+import type { IVector, Vector } from './math/vector';
 import type { RenderCommandStream } from './systems/render/command';
 
 export interface BoundingBox {
@@ -110,6 +112,14 @@ export interface CameraMetadata {
 }
 
 export interface Camera extends CameraData, CameraMetadata {}
+
+export interface CollisionContact<TEngine extends Engine = Engine> {
+    contactNormal: Vector;
+    penetrationDepth: number;
+    point: Vector;
+    collA: C_Collider<TEngine>;
+    collB: C_Collider<TEngine>;
+}
 
 export interface Renderable {
     queueRenderCommands(stream: RenderCommandStream, camera: Camera): void;

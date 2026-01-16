@@ -16,7 +16,6 @@ export class C_CircleCollider<
         super(options);
 
         this._type = 'circle';
-        this._collisionBounds = [this.entity.position.extract()];
     }
 
     override get typeString(): string {
@@ -28,7 +27,12 @@ export class C_CircleCollider<
     }
 
     override _computeCollisionBounds(): void {
-        this._collisionBounds[0] = this.entity.position.extract();
-        this.#radius = Math.min(this.entity.scale.x, this.entity.scale.y) / 2;
+        if (this._collisionBounds.length === 0) {
+            this._collisionBounds = [this.entity.position.clone()];
+        } else {
+            this._collisionBounds[0].set(this.entity.position);
+            this.#radius =
+                Math.min(this.entity.scale.x, this.entity.scale.y) / 2;
+        }
     }
 }

@@ -11,7 +11,10 @@ export function generatePRNG(a: number) {
         t = Math.imul(t, 0x21f0aaad);
         t = t ^ (t >>> 15);
         t = Math.imul(t, 0x735a2d97);
+        t = t ^ (t >>> 15);
 
-        return ((t = t ^ (t >>> 15)) >>> 0) / 4294967296;
+        const result = (t >>> 0) / 4294967296;
+
+        return result;
     };
 }

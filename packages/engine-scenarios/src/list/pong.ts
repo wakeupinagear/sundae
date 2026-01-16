@@ -1,4 +1,5 @@
 import { Vector } from '@repo/engine';
+import { CollisionContact } from '@repo/engine';
 import { EngineScenario } from '@repo/engine-scenarios';
 import { E_Shape, E_Text, EntityOptions } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
@@ -22,6 +23,7 @@ class E_Paddle extends E_Shape {
             shape: 'RECT',
             style: { fillStyle: 'white' },
             collision: true,
+            mass: 1e6,
         });
 
         this.#inputAxis = options.inputAxis;
@@ -40,38 +42,60 @@ class E_Paddle extends E_Shape {
     }
 }
 
-class E_Ball extends E_Shape {
-    #direction: Vector = new Vector(0, 0);
-    #speed: number = 100;
+interface E_BallOptions extends EntityOptions {
+    pongScene: PongScene;
+}
 
-    constructor(options: EntityOptions) {
+class E_Ball extends E_Shape {
+    #scene: PongScene;
+
+    #direction: Vector = new Vector(0, 0);
+    #speed: number = 500;
+
+    constructor(options: E_BallOptions) {
         super({
             ...options,
             shape: 'ELLIPSE',
             style: { fillStyle: 'white' },
-            components: [
-                {
-                    type: 'rectangleCollider',
-                },
-            ],
+            collision: true,
+            rigidbody: true,
         });
 
+        this.#scene = options.pongScene;
         this.reset();
     }
 
     override update(deltaTime: number) {
         this.move(this.#direction.mul(this.#speed * deltaTime));
+
+        const canvasSize = this.engine.canvasSize;
+        if (canvasSize) {
+            if (this.position.x < -canvasSize.x / 2) {
+                this.#scene.score('player2');
+                this.reset();
+            }
+            if (this.position.x > canvasSize.x / 2) {
+                this.#scene.score('player1');
+                this.reset();
+            }
+        }
+    }
+
+    override onCollision(contact: CollisionContact) {
+        const dot = this.#direction.dot(contact.contactNormal);
+        this.#direction.subMut(contact.contactNormal.scaleBy(2 * dot));
     }
 
     reset() {
         this.setPosition(0);
-        this.#direction.set(Vector.fromAngle(this.engine.random() * 360));
+        const side = this.engine.random() > 0.5 ? 0 : 180;
+        const angleDeg = side + (this.engine.random() * 90 - 45);
+        const angleRad = (angleDeg * Math.PI) / 180;
+        this.#direction.set(Vector.fromAngle(angleRad));
     }
 }
 
 class PongScene extends Scene {
-    #paddle1!: E_Paddle;
-    #paddle2!: E_Paddle;
     #ball!: E_Ball;
     #scoreText!: E_Text;
 
@@ -91,21 +115,22 @@ class PongScene extends Scene {
             zIndex: -1,
         }) as E_Text;
 
-        this.#paddle1 = this.createEntity({
-            type: E_Paddle,
-            inputAxis: PLAYER_1_INPUT_AXIS,
-            name: 'Paddle 1',
-            position: { x: -350, y: 0 },
-            scale: { x: 20, y: 150 },
-        });
-
-        this.#paddle2 = this.createEntity({
-            type: E_Paddle,
-            inputAxis: PLAYER_2_INPUT_AXIS,
-            name: 'Paddle 2',
-            position: { x: 350, y: 0 },
-            scale: { x: 20, y: 150 },
-        });
+        this.createEntities(
+            {
+                type: E_Paddle,
+                inputAxis: PLAYER_1_INPUT_AXIS,
+                name: 'Paddle 1',
+                position: { x: -350, y: 0 },
+                scale: { x: 20, y: 150 },
+            },
+            {
+                type: E_Paddle,
+                inputAxis: PLAYER_2_INPUT_AXIS,
+                name: 'Paddle 2',
+                position: { x: 350, y: 0 },
+                scale: { x: 20, y: 150 },
+            },
+        );
 
         const wallOptions: E_ShapeOptions = {
             shape: 'RECT',
@@ -114,6 +139,7 @@ class PongScene extends Scene {
                 fillStyle: '#BBBBBB',
             },
             collision: true,
+            kinematic: true,
         };
 
         this.createEntities(
@@ -135,11 +161,22 @@ class PongScene extends Scene {
             type: E_Ball,
             name: 'Ball',
             scale: { x: 20, y: 20 },
+            pongScene: this,
         });
     }
 
     override update() {
         this.#scoreText.text = `${this.#score1}-${this.#score2}`;
+    }
+
+    score(winner: 'player1' | 'player2') {
+        if (winner === 'player1') {
+            this.#score1++;
+        } else {
+            this.#score2++;
+        }
+
+        this.#ball.reset();
     }
 }
 

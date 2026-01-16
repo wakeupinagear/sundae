@@ -173,15 +173,30 @@ export class C_Transform<
     }
 
     translate(delta: VectorConstructor): void {
-        this.setPosition(this.#position.add(delta));
+        const x = typeof delta === 'number' ? delta : delta.x;
+        const y = typeof delta === 'number' ? delta : delta.y;
+        if (x !== 0 || y !== 0) {
+            this.#position.x += x;
+            this.#position.y += y;
+            this.#markLocalDirty();
+        }
     }
 
     rotate(delta: number): void {
-        this.setRotation(this.#rotation + delta);
+        if (delta !== 0) {
+            this.#rotation += delta;
+            this.#markLocalDirty();
+        }
     }
 
     scaleBy(delta: VectorConstructor): void {
-        this.setScale(this.#scale.mul(delta));
+        const x = typeof delta === 'number' ? delta : delta.x;
+        const y = typeof delta === 'number' ? delta : delta.y;
+        if (x !== 0 || y !== 0) {
+            this.#scale.x *= x;
+            this.#scale.y *= y;
+            this.#markLocalDirty();
+        }
     }
 
     markBoundsDirty() {

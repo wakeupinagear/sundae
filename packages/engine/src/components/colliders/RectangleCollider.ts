@@ -23,11 +23,18 @@ export class C_RectangleCollider<
 
     override _computeCollisionBounds(): void {
         const corners = this.entity.transform.corners;
-        this._collisionBounds = [
-            corners[0].extract(),
-            corners[1].extract(),
-            corners[2].extract(),
-            corners[3].extract(),
-        ];
+        if (this._collisionBounds.length !== 4) {
+            this._collisionBounds = [
+                corners[0].clone(),
+                corners[1].clone(),
+                corners[2].clone(),
+                corners[3].clone(),
+            ];
+        } else {
+            this._collisionBounds[0].set(corners[0]);
+            this._collisionBounds[1].set(corners[1]);
+            this._collisionBounds[2].set(corners[2]);
+            this._collisionBounds[3].set(corners[3]);
+        }
     }
 }

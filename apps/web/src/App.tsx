@@ -17,6 +17,8 @@ const DEFAULT_SCENARIO = 'renderChaos';
 export function App() {
     const debugMode = useAppStore((state) => state.debugMode);
     const setDebugMode = useAppStore((state) => state.setDebugMode);
+    const trueRandom = useAppStore((state) => state.trueRandom);
+    const setTrueRandom = useAppStore((state) => state.setTrueRandom);
 
     const [scenarioId, setScenarioId] = useState<string | null>(() => {
         const params = new URLSearchParams(window.location.search);
@@ -43,8 +45,11 @@ export function App() {
     const engineOptions = useMemo<Partial<EngineOptions>>(() => {
         return {
             debugOverlayEnabled: debugMode,
+            randomSeed: trueRandom
+                ? (Math.random() * 2 ** 32) >>> 0
+                : undefined,
         };
-    }, [debugMode]);
+    }, [debugMode, trueRandom]);
 
     // Callback to run the scenario when engine is ready
     const onEngineReady = useMemo(() => {
@@ -91,16 +96,31 @@ export function App() {
                             ))}
                         </select>
                     </div>
-                    <div className="flex gap-2 items-center">
-                        <label htmlFor="debug" className="font-medium">
-                            Debug Mode
-                        </label>
-                        <input
-                            type="checkbox"
-                            id="debug"
-                            checked={debugMode}
-                            onChange={(e) => setDebugMode(e.target.checked)}
-                        />
+                    <div className="flex gap-8 items-center">
+                        <div className="flex gap-2 items-center">
+                            <label htmlFor="debug" className="font-medium">
+                                Debug Mode
+                            </label>
+                            <input
+                                type="checkbox"
+                                id="debug"
+                                checked={debugMode}
+                                onChange={(e) => setDebugMode(e.target.checked)}
+                            />
+                        </div>
+                        <div className="flex gap-2 items-center">
+                            <label htmlFor="trueRandom" className="font-medium">
+                                True Random
+                            </label>
+                            <input
+                                type="checkbox"
+                                id="trueRandom"
+                                checked={trueRandom}
+                                onChange={(e) =>
+                                    setTrueRandom(e.target.checked)
+                                }
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
