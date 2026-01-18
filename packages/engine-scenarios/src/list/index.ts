@@ -2,6 +2,7 @@ import { EngineScenario } from '..';
 import { ballPit } from './ball-pit';
 import { pong } from './pong';
 import { renderChaos } from './render-chaos';
+import { superSundaeBros } from './super-sundae-bros';
 import { typeErrors } from './type-errors';
 
 interface ScenarioMetadata {
@@ -22,6 +23,11 @@ export const scenarios: Record<string, ScenarioMetadata> = {
         name: 'Ball Pit',
         description: 'So many balls',
         scenario: ballPit,
+    },
+    superSundaeBros: {
+        name: 'Super Sundae Bros',
+        description: 'A simple platformer game',
+        scenario: superSundaeBros,
     },
     renderChaos: {
         name: 'Render Chaos',

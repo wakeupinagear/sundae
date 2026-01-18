@@ -87,7 +87,7 @@ export class RenderSystem<
         const cameraTransform = this.#cameraTransform;
         cameraTransform.identity();
         cameraTransform
-            .translateSelf(camera.position.x, camera.position.y)
+            .translateSelf(-camera.position.x, -camera.position.y)
             .rotateSelf(camera.rotation)
             .scaleSelf(zoomToScale(camera.zoom));
 

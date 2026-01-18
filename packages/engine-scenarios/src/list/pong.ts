@@ -1,9 +1,7 @@
 import { Vector } from '@repo/engine';
 import { EngineScenario } from '@repo/engine-scenarios';
-import { E_Shape, E_Text, EntityOptions } from '@repo/engine/entities';
+import { E_Shape, E_ShapeOptions, E_Text, EntityOptions } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
-
-import { E_ShapeOptions } from '../../../engine/src/objects/shape';
 
 const PLAYER_1_INPUT_AXIS = 'player1';
 const PLAYER_2_INPUT_AXIS = 'player2';

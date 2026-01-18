@@ -106,7 +106,7 @@ export class CameraSystem extends System {
         const newScale = zoomToScale(this.#camera.zoom);
 
         if (focalPoint) {
-            const scaleDelta = oldScale - newScale;
+            const scaleDelta = newScale - oldScale;
             const rotationRad = (this.#camera.rotation * Math.PI) / 180;
             const rotatedFocalPoint = new Vector(focalPoint).rotate(
                 rotationRad,
@@ -228,8 +228,8 @@ export class CameraSystem extends System {
                 y: this._engine.canvasSize.y / scale,
             };
             const worldCenterOffset = {
-                x: -this.#camera.position.x / scale,
-                y: -this.#camera.position.y / scale,
+                x: this.#camera.position.x / scale,
+                y: this.#camera.position.y / scale,
             };
 
             const rotationRad = (-this.#camera.rotation * Math.PI) / 180;
@@ -276,7 +276,7 @@ export class CameraSystem extends System {
                 this._engine.canvasSize.x / 2,
                 this._engine.canvasSize.y / 2,
             )
-            .translateSelf(this.#camera.position.x, this.#camera.position.y)
+            .translateSelf(-this.#camera.position.x, -this.#camera.position.y)
             .rotateSelf(this.#camera.rotation)
             .scaleSelf(scale, scale);
         this.#inverseWorldToScreenMatrix = this.#worldToScreenMatrix.inverse();

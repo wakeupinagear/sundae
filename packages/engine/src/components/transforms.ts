@@ -25,6 +25,7 @@ export class C_Transform<
 
     #positionOffset: Vector = new Vector(0);
     #scaleMult: Vector = new Vector(1);
+    #rotationOffset: number = 0;
 
     #localMatrix: Matrix2D = new Matrix2D();
     #localMatrixDirty: boolean = true;
@@ -174,6 +175,13 @@ export class C_Transform<
         }
     }
 
+    setRotationOffset(rotationOffset: number): void {
+        if (rotationOffset !== this.#rotationOffset) {
+            this.#rotationOffset = rotationOffset;
+            this.#markLocalDirty();
+        }
+    }
+
     translate(delta: VectorConstructor): void {
         const x = typeof delta === 'number' ? delta : delta.x;
         const y = typeof delta === 'number' ? delta : delta.y;
@@ -216,7 +224,7 @@ export class C_Transform<
             this.#position.x + this.#positionOffset.x,
             this.#position.y + this.#positionOffset.y,
         );
-        localMatrix.rotateSelf(this.#rotation);
+        localMatrix.rotateSelf(this.#rotation + this.#rotationOffset);
         localMatrix.scaleSelf(
             this.#scale.x * this.#scaleMult.x,
             this.#scale.y * this.#scaleMult.y,

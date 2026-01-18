@@ -3,6 +3,7 @@ import { C_PointerTarget } from '../components/pointerTarget';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { BoundingBox, ICanvas } from '../types';
 import type { ButtonState } from './input';
+import { zoomToScale } from '../utils';
 
 const MAX_DISTANCE_DURING_CLICK = 10;
 const DRAG_CURSOR_PRIORITY = 100;
@@ -370,8 +371,15 @@ export class PointerSystem extends System {
                 const screenDelta = this._engine.pointerState.position.sub(
                     this.#dragStartMousePosition,
                 );
+                const scale = zoomToScale(this._engine.camera.zoom);
+                // Convert screen delta to world delta (accounting for zoom)
+                const worldDelta = screenDelta.scaleBy(1 / scale);
+                // Account for camera rotation
+                const rotationRad = (-this._engine.camera.rotation * Math.PI) / 180;
+                const rotatedDelta = worldDelta.rotate(rotationRad);
+                // Subtract because dragging content right means camera moves left
                 this._engine.setCameraPosition(
-                    new Vector(this.#dragStartCameraPosition).add(screenDelta),
+                    new Vector(this.#dragStartCameraPosition).sub(rotatedDelta),
                 );
                 this._engine.cameraTarget = null;
             }

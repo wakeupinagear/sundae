@@ -1,7 +1,7 @@
 import { Scene } from "@repo/engine/scene";
 import { EngineScenario } from "..";
 import { Engine, EngineOptions } from "@repo/engine";
-import { E_ShapeJSON } from "../../../engine/src/objects/shape";
+import { type E_ShapeJSON } from "@repo/engine/entities";
 
 const BALL_COLORS = ['red', 'blue', 'cyan', 'yellow', 'orange', 'green']
 
@@ -47,5 +47,8 @@ class PitScene extends Scene {
 }
 
 export const ballPit:EngineScenario = (harness) => {
+    harness.engine.options = {
+        physicsPerSecond: 120,
+    }
     harness.engine.openScene(PitScene)
 }

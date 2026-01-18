@@ -353,8 +353,17 @@ export class DebugOverlayScene<
             cull: 'none',
             positionRelativeToCamera: { x: 'end', y: 'end' },
             scaleRelativeToCamera: true,
-            position: -24,
             trim: 'ends',
+            padding: 12,
+            components: [
+                {
+                    type: 'shape',
+                    shape: 'RECT',
+                    style: { fillStyle: 'black' },
+                    opacity: 0.7,
+                    fill: true,
+                }
+            ]
         });
     }
 }

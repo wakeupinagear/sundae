@@ -5,7 +5,7 @@ import { Entity, EntityOptions } from '../entities';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 
-interface C_ImageOptions extends C_DrawableOptions {
+export interface C_ImageOptions extends C_DrawableOptions {
     imageName: string;
     repeat?: VectorConstructor;
 }

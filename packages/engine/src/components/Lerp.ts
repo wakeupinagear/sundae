@@ -7,7 +7,7 @@ const BASELINE_RATE = 1e-3;
 
 export type LerpValueType = number | IVector<number>;
 
-interface C_LerpOptions<T extends LerpValueType> extends ComponentOptions {
+export interface C_LerpOptions<T extends LerpValueType> extends ComponentOptions {
     get: () => T;
     set: (value: T) => void;
     speed: number;

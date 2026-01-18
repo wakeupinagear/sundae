@@ -3,7 +3,7 @@ import type { Engine } from '../engine';
 import { Entity, EntityOptions } from '../entities';
 import { Vector } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
-import type { TwoAxisAlignment } from '../types';
+import type { BoundingBox, TwoAxisAlignment } from '../types';
 
 const MONOSPACE_WIDTH_RATIO = 0.6;
 const MONOSPACE_HEIGHT_RATIO = 0.8;
@@ -64,7 +64,9 @@ type TextNode =
           type: 'newline';
       };
 
-interface C_TextOptions extends C_DrawableOptions {
+type Padding = BoundingBox | Vector | number;
+
+export interface C_TextOptions extends C_DrawableOptions {
     text?: string;
     fontSize?: number;
     fontFamily?: FontFamily;
@@ -76,6 +78,7 @@ interface C_TextOptions extends C_DrawableOptions {
     opacity?: number;
     startTagDelim?: string;
     endTagDelim?: string;
+    padding?: Padding;
 }
 
 export interface C_TextJSON extends C_TextOptions {
@@ -98,6 +101,7 @@ export class C_Text<
     #italic: boolean;
     #bold: boolean;
     #opacity: number;
+    #padding!: BoundingBox;
 
     #textDirty: boolean = true;
     #drawActions: TextDrawAction[] = [];
@@ -105,19 +109,18 @@ export class C_Text<
     #textSize: Vector = new Vector(0);
 
     constructor(options: C_TextOptions) {
-        const { style, ...rest } = options;
         super({
+            ...options,
             style: {
                 fillStyle: 'white',
-                ...style,
+                ...options.style,
             },
-            ...rest,
         });
 
         this.#text = options.text ?? '';
         this.#fontSize = options.fontSize ?? 12;
         this.#fontFamily = options.fontFamily ?? 'monospace';
-        this.#lineGap = options.lineGap ?? Math.round(this.#fontSize * 0.25);
+        this.#lineGap = options.lineGap ?? Math.round(this.#fontSize * 0.5);
         this.#textAlign = options.textAlign ?? 'top-left';
         this.#trim = options.trim ?? 'all';
         this.#startTagDelim = options.startTagDelim ?? '<';
@@ -125,6 +128,8 @@ export class C_Text<
         this.#italic = options.italic ?? false;
         this.#bold = options.bold ?? false;
         this.#opacity = options.opacity ?? 1;
+    
+        this.#setPadding(options.padding ?? 0);
     }
 
     override get typeString(): string {
@@ -138,7 +143,7 @@ export class C_Text<
     set text(text: string) {
         if (text != this.#text) {
             this.#text = text;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -149,7 +154,7 @@ export class C_Text<
     set fontSize(fontSize: number) {
         if (fontSize != this.#fontSize) {
             this.#fontSize = fontSize;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -160,7 +165,7 @@ export class C_Text<
     set fontFamily(fontFamily: FontFamily) {
         if (fontFamily != this.#fontFamily) {
             this.#fontFamily = fontFamily;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -171,7 +176,7 @@ export class C_Text<
     set lineGap(lineGap: number) {
         if (lineGap != this.#lineGap) {
             this.#lineGap = lineGap;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -182,7 +187,7 @@ export class C_Text<
     set textAlign(textAlign: TwoAxisAlignment) {
         if (textAlign != this.#textAlign) {
             this.#textAlign = textAlign;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -193,7 +198,7 @@ export class C_Text<
     set trim(trim: Trim) {
         if (trim != this.#trim) {
             this.#trim = trim;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -204,7 +209,7 @@ export class C_Text<
     set italic(italic: boolean) {
         if (italic != this.#italic) {
             this.#italic = italic;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -215,7 +220,7 @@ export class C_Text<
     set bold(bold: boolean) {
         if (bold != this.#bold) {
             this.#bold = bold;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -226,7 +231,7 @@ export class C_Text<
     set opacity(opacity: number) {
         if (opacity != this.#opacity) {
             this.#opacity = opacity;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -237,7 +242,7 @@ export class C_Text<
     set startTagDelim(startTagDelim: string) {
         if (startTagDelim != this.#startTagDelim) {
             this.#startTagDelim = startTagDelim;
-            this.#textDirty = true;
+            this.#markTextDirty();
         }
     }
 
@@ -248,7 +253,18 @@ export class C_Text<
     set endTagDelim(endTagDelim: string) {
         if (endTagDelim != this.#endTagDelim) {
             this.#endTagDelim = endTagDelim;
-            this.#textDirty = true;
+            this.#markTextDirty();
+        }
+    }
+
+    get padding(): BoundingBox {
+        return this.#padding;
+    }
+
+    set padding(padding: Padding) {
+        if (padding != this.#padding) {
+            this.#setPadding(padding);
+            this._markBoundsDirty();
         }
     }
 
@@ -449,7 +465,7 @@ export class C_Text<
             case 'top-left':
             case 'left':
             case 'bottom-left':
-                this.#textPosition.x = baseX - overallWidth;
+                this.#textPosition.x = baseX - overallWidth - this.#padding.x2;
                 break;
             case 'top-center':
             case 'center':
@@ -459,7 +475,7 @@ export class C_Text<
             case 'top-right':
             case 'right':
             case 'bottom-right':
-                this.#textPosition.x = baseX;
+                this.#textPosition.x = baseX + this.#padding.x1;
                 break;
         }
 
@@ -468,7 +484,7 @@ export class C_Text<
             case 'top-left':
             case 'top-center':
             case 'top-right':
-                this.#textPosition.y = baseY - overallHeight;
+                this.#textPosition.y = baseY - overallHeight - this.#padding.y2;
                 break;
             case 'left':
             case 'center':
@@ -478,7 +494,7 @@ export class C_Text<
             case 'bottom-left':
             case 'bottom-center':
             case 'bottom-right':
-                this.#textPosition.y = baseY;
+                this.#textPosition.y = baseY + this.#padding.y1;
                 break;
         }
 
@@ -585,7 +601,7 @@ export class C_Text<
             this.#drawActions.pop();
         }
 
-        this.#textSize.set({ x: overallWidth, y: overallHeight });
+        this.#textSize.set({ x: overallWidth + this.#padding.x1 + this.#padding.x2, y: overallHeight + this.#padding.y1 + this.#padding.y2 });
         this._markBoundsDirty();
     }
 
@@ -863,6 +879,21 @@ export class C_Text<
             prevNode = { type: 'style', style: { ...currentStyle } };
             nodes.push(prevNode);
         }
+    }
+
+    #setPadding(padding: Padding) {
+        if (typeof padding === 'number') {
+            this.#padding = { x1: padding, x2: padding, y1: padding, y2: padding };
+        } else if ('x' in padding) {
+            this.#padding = { x1: padding.x, x2: padding.x, y1: padding.y, y2: padding.y };
+        } else {
+            this.#padding = padding;
+        }
+    }
+
+    #markTextDirty() {
+        this.#textDirty = true;
+        this._markBoundsDirty();
     }
 }
 

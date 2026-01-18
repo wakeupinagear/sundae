@@ -152,19 +152,16 @@ const resolveCircleRectangleCollision = <TEngine extends Engine = Engine>(
 
     const distance = Math.sqrt(minDistanceSquared);
     const radius = circleColl.radius;
-
-    // Check if there's a collision
     if (distance > radius) {
         return null;
     }
 
-    // Calculate collision data
     const contactNormal =
         distance > 0
             ? circleCenter.sub(closestPoint).normalize()
             : circleCenter.sub(rectangleColl.entity.position).normalize();
-
     const penetrationDepth = radius - distance;
+    
     const point = closestPoint.clone();
 
     return {

@@ -50,8 +50,7 @@ export class C_Shape<
     #endTip: Tip | null = null;
 
     constructor(options: C_ShapeOptions) {
-        const { name = 'shape', ...rest } = options;
-        super({ name, ...rest });
+        super({ name: 'shape', ...options });
 
         this.#shape = options.shape;
         this.#repeat = new Vector(options.repeat ?? 1);

@@ -42,6 +42,7 @@ export interface EntityOptions {
     rotation?: number;
     positionRelativeToCamera?: VectorConstructor<PositionRelativeToCamera>;
     scaleRelativeToCamera?: VectorConstructor<boolean>;
+    rotateRelativeToCamera?: boolean;
     scene?: string;
     components?: ComponentJSON[];
     children?: EntityJSON[];
@@ -77,6 +78,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     protected _positionRelativeToCamera: IVector<PositionRelativeToCamera>;
     protected _scaleRelativeToCamera: IVector<boolean>;
+    protected _rotateRelativeToCamera: boolean;
     protected _cull: CullMode;
 
     protected _updated: boolean = false;
@@ -125,6 +127,9 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                   }
                 : rest.scaleRelativeToCamera
             : { x: false, y: false };
+        this._rotateRelativeToCamera = rest?.rotateRelativeToCamera !== undefined 
+            ? Boolean(rest.rotateRelativeToCamera) 
+            : Boolean(this._scaleRelativeToCamera.x || this._scaleRelativeToCamera.y);
 
         this._cull = rest?.cull ?? 'all';
 
@@ -542,6 +547,14 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this;
     }
 
+    setRotateRelativeToCamera(
+        rotateRelativeToCamera: VectorConstructor<PositionRelativeToCamera>,
+    ): this {
+        this._rotateRelativeToCamera = Boolean(rotateRelativeToCamera);
+
+        return this;
+    }
+
     setCull(cull: CullMode): this {
         this._cull = cull;
         return this;
@@ -604,8 +617,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
             // Calculate world center of the camera viewport
             const worldCenterOffset = {
-                x: -camera.position.x / scale,
-                y: -camera.position.y / scale,
+                x: camera.position.x / scale,
+                y: camera.position.y / scale,
             };
 
             // Account for camera rotation
@@ -664,6 +677,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                           this.position.y * this.transform.scaleMult.y
                         : 0,
             });
+        }
+
+        if (this._rotateRelativeToCamera) {
+            this.transform.setRotationOffset(-camera.rotation);
         }
 
         const culled =
