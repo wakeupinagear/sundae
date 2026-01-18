@@ -30,8 +30,8 @@ const resolveCircleCircleCollision = <TEngine extends Engine = Engine>(
         contactNormal,
         penetrationDepth,
         point,
-        collA: circleCollA,
-        collB: circleCollB,
+        self: circleCollA,
+        other: circleCollB,
     };
 };
 
@@ -107,8 +107,8 @@ const resolveRectangleRectangleCollision = <TEngine extends Engine = Engine>(
         contactNormal,
         penetrationDepth: minOverlap,
         point,
-        collA: rectangleCollA,
-        collB: rectangleCollB,
+        self: rectangleCollA,
+        other: rectangleCollB,
     };
 };
 
@@ -168,8 +168,8 @@ const resolveCircleRectangleCollision = <TEngine extends Engine = Engine>(
         contactNormal,
         penetrationDepth,
         point,
-        collA: circleColl,
-        collB: rectangleColl,
+        self: circleColl,
+        other: rectangleColl,
     };
 };
 

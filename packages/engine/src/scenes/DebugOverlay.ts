@@ -3,6 +3,7 @@ import { C_Drawable, C_DrawableOptions } from '../components/drawable';
 import { Engine } from '../engine';
 import { Entity } from '../entities';
 import { E_Text, E_TextOptions } from '../objects/text';
+import { Raycast } from '../systems/physics';
 import type {
     RenderCommandStats,
     RenderCommandStream,
@@ -45,12 +46,15 @@ export class E_StatsDebug<
         const currentTime = performance.now();
         let text = `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>`;
 
+        let textContent = '';
         if (stats.traces.length > 0) {
-            text += this.#buildTraceText(stats.traces, 0, '', currentTime);
+            textContent += this.#buildTraceText(stats.traces, 0, '', currentTime);
         }
-
         if (stats.renderCommands) {
-            text += this.#buildCacheText(stats.renderCommands);
+            textContent += this.#buildCacheText(stats.renderCommands);
+        }
+        if (textContent) {
+            text += `\n${textContent}`;
         }
 
         this.text = text;
@@ -102,6 +106,10 @@ export class E_StatsDebug<
             }
         }
 
+        if (text && depth === 0) {
+            text = `\n${text}`;
+        }
+
         return text;
     }
 
@@ -116,7 +124,7 @@ export class E_StatsDebug<
         text += this.#buildCacheTextEntry('drawImage', stats.drawImage);
         text += this.#buildCacheTextEntry('drawText', stats.drawText);
         if (text) {
-            text = `\n\n${text}`;
+            text = `\n${text}`;
         }
 
         return text;
@@ -309,8 +317,8 @@ export class C_ColliderDebug<
                 stream.drawEllipse(
                     bound.x,
                     bound.y,
-                    bound.x + 10,
-                    bound.y + 10,
+                    bound.x + 8,
+                    bound.y + 8,
                     1,
                     1,
                     1,
@@ -328,6 +336,62 @@ export class C_ColliderDebug<
     }
 }
 
+class C_RaycastDebug<
+    TEngine extends Engine = Engine,
+> extends C_Drawable<TEngine> {
+    constructor(options: C_DrawableOptions) {
+        const { name = 'raycastDebug', ...rest } = options;
+        super({ name, ...rest });
+    }
+
+
+    override queueRenderCommands(stream: RenderCommandStream): boolean {
+        if (!super.queueRenderCommands(stream)) {
+            return false;
+        }
+
+        const raycasts = this._engine.physicsSystem.raycastsThisFrame;
+        if (raycasts.length) {
+            stream.setOpacity(1);
+            for (const raycast of raycasts) {
+                stream.setStyle({
+                    strokeStyle: 'red',
+                    lineWidth: 2,
+                });
+                stream.drawLine(
+                    raycast.request.origin.x,
+                    raycast.request.origin.y,
+                    raycast.request.origin.x + raycast.request.direction.x * raycast.request.maxDistance,
+                    raycast.request.origin.y + raycast.request.direction.y * raycast.request.maxDistance,
+                    1,
+                    1,
+                    1,
+                    1,
+                );
+
+                if (raycast.result) {
+                    stream.setStyle({
+                        fillStyle: 'yellow',
+                        strokeStyle: 'green',
+                        lineWidth: 2,
+                    });
+                    stream.drawEllipse(
+                        raycast.result.point.x,
+                        raycast.result.point.y,
+                        raycast.result.point.x + 10,
+                        raycast.result.point.y + 10,
+                        1,
+                        1,
+                        1,
+                        1,
+                    );
+                }
+            }
+        }
+
+        return true;
+    }
+}
 export class DebugOverlayScene<
     TEngine extends Engine = Engine,
 > extends Scene<TEngine> {
@@ -345,6 +409,9 @@ export class DebugOverlayScene<
         visualDebug.addComponent({
             type: C_BoundingBoxDebug,
             sceneEntityName: sceneEntityName,
+        });
+        visualDebug.addComponent({
+            type: C_RaycastDebug,
         });
 
         this.createEntity({

@@ -14,6 +14,11 @@ export class Vector implements IVector<number> {
     x: number;
     y: number;
 
+    static UP = new Vector(0, -1);
+    static DOWN = new Vector(0, 1);
+    static LEFT = new Vector(-1, 0);
+    static RIGHT = new Vector(1, 0);
+
     constructor(x: VectorConstructor, y?: number) {
         if (typeof x === 'number' && typeof y === 'number') {
             this.x = x;

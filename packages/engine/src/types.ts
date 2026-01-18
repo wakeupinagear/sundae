@@ -117,8 +117,8 @@ export interface CollisionContact<TEngine extends Engine = Engine> {
     contactNormal: Vector;
     penetrationDepth: number;
     point: Vector;
-    collA: C_Collider<TEngine>;
-    collB: C_Collider<TEngine>;
+    self: C_Collider<TEngine>;
+    other: C_Collider<TEngine>;
 }
 
 export interface Renderable {

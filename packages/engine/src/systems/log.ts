@@ -23,12 +23,8 @@ export interface LogOutput {
     error: (...args: LogArgs) => void;
 }
 
-export class LogSystem extends System implements I_Logging {
+export class LogSystem<TEngine extends Engine = Engine> extends System<TEngine> implements I_Logging {
     #logOutput: LogOutput | null = null;
-
-    constructor(engine: Engine) {
-        super(engine);
-    }
 
     set logOutput(logOutput: LogOutput | null | undefined) {
         this.#logOutput = logOutput ?? null;

@@ -45,6 +45,7 @@ export function App() {
     const engineOptions = useMemo<Partial<EngineOptions>>(() => {
         return {
             debugOverlayEnabled: debugMode,
+            engineTracesEnabled: debugMode,
             randomSeed: trueRandom
                 ? (Math.random() * 2 ** 32) >>> 0
                 : undefined,

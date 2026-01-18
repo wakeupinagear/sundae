@@ -4,6 +4,7 @@ import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { BoundingBox, ICanvas } from '../types';
 import type { ButtonState } from './input';
 import { zoomToScale } from '../utils';
+import { Engine } from '../exports';
 
 const MAX_DISTANCE_DURING_CLICK = 10;
 const DRAG_CURSOR_PRIORITY = 100;
@@ -55,7 +56,7 @@ export type CameraScrollMode = 'none' | 'all' | 'meta' | 'no-meta';
 
 const SCROLL_DELTA_PER_STEP = 120;
 
-export class PointerSystem extends System {
+export class PointerSystem<TEngine extends Engine = Engine> extends System<TEngine> {
     #pointerState: PointerState = {
         scrollDelta: 0,
         justMoved: false,
@@ -282,7 +283,7 @@ export class PointerSystem extends System {
     }
 
     #getAllPointerTargets(): C_PointerTarget[] {
-        return this._engine.rootEntity.getComponentsInTree<C_PointerTarget>(
+        return this._engine.rootEntity.getComponentsInTree<C_PointerTarget<TEngine>>(
             C_PointerTarget.name,
         );
     }

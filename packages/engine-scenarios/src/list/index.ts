@@ -1,8 +1,8 @@
 import { EngineScenario } from '..';
-import { ballPit } from './ball-pit';
+import { ballPit } from './ballPit';
 import { pong } from './pong';
-import { renderChaos } from './render-chaos';
-import { superSundaeBros } from './super-sundae-bros';
+import { renderChaos } from './renderChaos';
+import { superSundaeBros } from './superSundaeBros';
 import { typeErrors } from './type-errors';
 
 interface ScenarioMetadata {

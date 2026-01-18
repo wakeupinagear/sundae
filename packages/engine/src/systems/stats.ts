@@ -24,7 +24,7 @@ const createEmptyStats = (fps: number = 0): Stats => ({
     renderCommands: null,
 });
 
-export class StatsSystem extends System<Engine> {
+export class StatsSystem<TEngine extends Engine = Engine> extends System<TEngine> {
     #lastFrameStats: Stats[] = [];
     #currentFrameStats: Stats = createEmptyStats();
 
@@ -33,7 +33,7 @@ export class StatsSystem extends System<Engine> {
     #frameCount: number = 0;
     #fpsTimeAccumulator: number = 0;
 
-    constructor(engine: Engine) {
+    constructor(engine: TEngine) {
         super(engine);
 
         this.#currentFrameStats = this.#syncTraces();

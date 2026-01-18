@@ -23,7 +23,7 @@ const clampStep = (
     return lerped;
 };
 
-export class CameraSystem extends System {
+export class CameraSystem<TEngine extends Engine = Engine> extends System<TEngine> {
     #camera: Required<Camera>;
     #cameraTarget: CameraData | null = null;
 
@@ -33,7 +33,7 @@ export class CameraSystem extends System {
     #inverseWorldToScreenMatrix: Matrix2D | null = null;
     #worldToScreenMatrixDirty: boolean = true;
 
-    constructor(engine: Engine, cameraStart: CameraData) {
+    constructor(engine: TEngine, cameraStart: CameraData) {
         super(engine);
         this.#camera = { ...DEFAULT_CAMERA_OPTIONS, ...cameraStart };
     }

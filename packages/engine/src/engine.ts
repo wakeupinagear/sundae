@@ -32,7 +32,7 @@ import {
     type KeyboardKeyState,
 } from './systems/input';
 import { type I_Logging, type LogOutput, LogSystem } from './systems/log';
-import { PhysicsSystem } from './systems/physics';
+import { PhysicsSystem, Raycast, RaycastRequest } from './systems/physics';
 import {
     type CameraScrollMode,
     type CursorType,
@@ -213,15 +213,15 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     protected _rootEntity: Entity<this>;
 
-    protected _renderSystem: RenderSystem;
-    protected _sceneSystem: SceneSystem;
-    protected _inputSystem: InputSystem;
-    protected _pointerSystem: PointerSystem;
-    protected _imageSystem: ImageSystem;
-    protected _cameraSystem: CameraSystem;
-    protected _physicsSystem: PhysicsSystem;
-    protected _statsSystem: StatsSystem;
-    protected _logSystem: LogSystem;
+    protected _renderSystem: RenderSystem<this>;
+    protected _sceneSystem: SceneSystem<this>;
+    protected _inputSystem: InputSystem<this>;
+    protected _pointerSystem: PointerSystem<this>;
+    protected _imageSystem: ImageSystem<this>;
+    protected _cameraSystem: CameraSystem<this>;
+    protected _physicsSystem: PhysicsSystem<this>;
+    protected _statsSystem: StatsSystem<this>;
+    protected _logSystem: LogSystem<this>;
 
     protected _systems: System[] = [];
 
@@ -466,13 +466,13 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         sceneCtor: SceneConstructor<T, this>,
         options?: Omit<SceneOptions<this>, 'engine'>,
     ): T {
-        const scene = new sceneCtor({ engine: this, ...options });
-        this._sceneSystem.openScene(scene);
+        const scene = new sceneCtor({ engine: this, ...options })
+        this._sceneSystem.openScene(scene as unknown as Scene<this>);
 
         return scene;
     }
 
-    destroyScene(scene: SceneIdentifier): void {
+    destroyScene(scene: SceneIdentifier<this>): void {
         this._sceneSystem.closeScene(scene);
     }
 
@@ -554,6 +554,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     getImage(name: string): Readonly<LoadedImage> | null {
         return this._imageSystem.getImage(name);
+    }
+
+    raycast(request: RaycastRequest<this>): Raycast<this>['result'] {
+        return this._physicsSystem.raycast(request);
     }
 
     addBrowserEventHandler<T extends BrowserEvent>(

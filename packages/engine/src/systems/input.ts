@@ -1,4 +1,5 @@
 import { System } from '.';
+import { Engine } from '../exports';
 import { Vector } from '../math/vector';
 import type { WebKey } from '../types';
 
@@ -72,7 +73,7 @@ const DEFAULT_AXIS_STATE: AxisState = {
     changed: false,
 };
 
-export class InputSystem extends System {
+export class InputSystem<TEngine extends Engine = Engine> extends System<TEngine> {
     #keyStates: Partial<
         Record<
             WebKey,

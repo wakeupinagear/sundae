@@ -1,5 +1,5 @@
-import { IVector } from '@repo/engine';
-import { E_Shape, E_ShapeOptions } from '@repo/engine/entities';
+import { CollisionContact, Engine, EngineOptions, IVector, Vector } from '@repo/engine';
+import { E_Shape, E_ShapeOptions, E_Text } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
 import { EngineScenario } from '..';
@@ -18,21 +18,20 @@ const TILE_METADATA: Record<
     }
 > = {
     P: { name: 'Player', color: 'white', borderColor: 'black' },
-    C: { name: 'Question Block', color: 'white', borderColor: 'black' },
+    C: { name: 'Question Block', color: 'yellow', borderColor: 'black' },
     B: { name: 'Block', color: 'white', borderColor: 'black' },
-    Y: { name: 'Goomba', color: 'tan', borderColor: 'black' },
-    A: { name: 'Ground', color: 'brown', borderColor: 'black' },
-    F: { name: 'Pipe Top Left', color: 'green', borderColor: 'black' },
-    G: { name: 'Pipe Top Right', color: 'green', borderColor: 'black' },
-    H: { name: 'Pipe Left', color: 'forestgreen', borderColor: 'black' },
-    I: { name: 'Pipe Right', color: 'forestgreen', borderColor: 'black' },
+    Y: { name: 'Goomba', color: '#684632', borderColor: 'white' },
+    A: { name: 'Ground', color: '#954b0c', borderColor: 'black' },
+    F: { name: 'Pipe Top Left', color: '#138200', borderColor: 'black' },
+    G: { name: 'Pipe Top Right', color: '#138200', borderColor: 'black' },
+    H: { name: 'Pipe Left', color: '#138200', borderColor: 'black' },
+    I: { name: 'Pipe Right', color: '#138200', borderColor: 'black' },
 };
 
 const PLAYER_MOVEMENT_AXIS = 'move';
 const PLAYER_JUMP_INPUT = 'jump';
 
 const LEVEL_1 = `
-....................................................................................................................................................................................................................
 ....................................................................................................................................................................................................................
 ....................................................................................................................................................................................................................
 ....................................................................................Y..Y............................................................................................................................
@@ -54,24 +53,65 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..AAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..AAAAAAAAAAAAAAA...AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 `;
 
+interface E_PlayerOptions extends E_ShapeOptions {
+    levelScene: LevelScene;
+}
+
 class E_Player extends E_Shape {
-    constructor(options: E_ShapeOptions) {
+    #levelScene!: LevelScene;
+
+    constructor(options: E_PlayerOptions) {
         super({
             ...options,
             mass: 5,
             components: [{ type: 'rectangleCollider' }],
         });
+
+        this.#levelScene = options.levelScene;
     }
 
-    update(_deltaTime: number): boolean | void {
+    update(): boolean | void {
         const input = this.engine.getAxis(PLAYER_MOVEMENT_AXIS);
         this.rigidbody?.addForce({ x: input.value.x * 10000, y: 0 });
 
-        if (this.engine.getButton(PLAYER_JUMP_INPUT).pressed) {
-
-        
-                this.rigidbody?.addForce({ x: 0, y: -250000 });
+        const raycastResult = this._engine.raycast({
+            origin: { x: this.position.x + this.scale.x * 0.5, y: this.position.y + this.scale.y * 0.5 },
+            direction: Vector.DOWN,
+            maxDistance: 25,
+            ignoreEntity: this,
+        });
+        if (this.engine.getButton(PLAYER_JUMP_INPUT).pressed && raycastResult) {
+            this.jump();
         }
+    }
+
+    onCollision(contact: CollisionContact<Engine<EngineOptions>>): void {
+        if (contact.other.entity.name === 'Question Block' && contact.contactNormal.dot(Vector.UP) < 0) {
+            contact.other.entity.destroy();
+            this.#levelScene.addScore(100);
+        } else if (contact.other.entity.name === 'Goomba') {
+            if (contact.contactNormal.dot(Vector.UP) > 0) {
+                contact.other.entity.destroy();
+                this.#levelScene.addScore(50);
+
+                const downTime = this.engine.getButton(PLAYER_JUMP_INPUT).downTime;
+                if (downTime > 0 && downTime < 0.5) {
+                    this.jump();
+                } else {
+                    this.bounce();
+                }
+            } else {
+                this.destroy();
+            }
+        }
+    }
+
+    jump(): void {
+        this.rigidbody?.addForce({ x: 0, y: -250000 });
+    }
+
+    bounce(): void {
+        this.rigidbody?.addForce({ x: 0, y: -100000 });
     }
 }
 
@@ -79,8 +119,7 @@ class E_Goomba extends E_Shape {
     constructor(options: E_ShapeOptions) {
         super({
             ...options,
-            style: { fillStyle: 'tan' },
-            mass: 5,
+            mass: 1e6,
             components: [{ type: 'rectangleCollider' }],
         });
     }
@@ -88,6 +127,9 @@ class E_Goomba extends E_Shape {
 
 class LevelScene extends Scene {
     #player!: E_Player;
+    #uiText!: E_Text;
+
+    #score = 0;
 
     create() {
         const tiles = LEVEL_1.split('\n').map((row) => row.split(''));
@@ -95,9 +137,9 @@ class LevelScene extends Scene {
             for (let x = 0; x < tiles[y].length; x++) {
                 const tile = tiles[y][x];
                 if (tile in TILE_METADATA) {
-                    let lastWallStartX: number | null = null;
-                    const { color } = TILE_METADATA[tile as Tile];
+                    const { name, color } = TILE_METADATA[tile as Tile];
                     const properties = {
+                        name,
                         shape: 'RECT',
                         style: { fillStyle: color },
                         position: {
@@ -108,22 +150,13 @@ class LevelScene extends Scene {
                         origin: { x: 0, y: 0 },
                     };
 
-                    if (lastWallStartX !== null && x !== tiles[y].length - 1) {
-                        this.createEntity({
-                            ...properties,
-                            type: 'shape',
-                            shape: 'RECT',
-                            collision: true,
-                            scale: { x: (x - lastWallStartX) * TILE_SIZE, y: TILE_SIZE },
-                        });
-                    }
-
                     switch (tile) {
                         case 'P':
                             this.#player = this.createEntity({
                                 ...properties,
                                 type: E_Player,
                                 shape: 'ELLIPSE',
+                                levelScene: this,
                             }) as E_Player;
                             break;
                         case 'Y':
@@ -145,6 +178,17 @@ class LevelScene extends Scene {
                 }
             }
         }
+
+        this.#uiText = this.createEntity({
+            type: 'text',
+            name: 'Score Text',
+            fontSize: 24,
+            textAlign: 'bottom-left',
+            padding: 24,
+            bold: true,
+            positionRelativeToCamera: { x: 'end', y: 'start' }
+        }) as E_Text;
+        this.#computeScoreText();
     }
 
     update(): boolean | void {
@@ -159,6 +203,15 @@ class LevelScene extends Scene {
             zoom: this._engine.camera.zoom,
             rotation: this._engine.camera.rotation,
         });
+    }
+    
+    addScore(score: number): void {
+        this.#score += score;
+        this.#computeScoreText();
+    }
+
+    #computeScoreText(): void {
+        this.#uiText.text = `Score: ${this.#score}`;
     }
 }
 
@@ -177,7 +230,8 @@ export const superSundaeBros: EngineScenario = async (harness) => {
                 down: ['ArrowDown', 's'],
             },
         },
+        clearColor: '#6185f8',
         gravityScale: 2000,
     };
-    const scene = harness.engine.openScene(LevelScene);
+    harness.engine.openScene(LevelScene);
 };
