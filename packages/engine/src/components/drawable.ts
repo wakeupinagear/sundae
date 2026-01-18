@@ -105,30 +105,8 @@ export abstract class C_Drawable<
             stream.setStyle(this._style);
 
             if (this._fill) {
-                if (!this.#fillBB) {
-                    this.#fillBB = {
-                        x1: 0,
-                        x2: 0,
-                        y1: 0,
-                        y2: 0,
-                    };
-                } else {
-                    this.#fillBB.x1 = 0;
-                    this.#fillBB.x2 = 0;
-                    this.#fillBB.y1 = 0;
-                    this.#fillBB.y2 = 0;
-                }
-
-                for (const comp of this._entity.components) {
-                    if (comp.id !== this.id && comp.isVisual()) {
-                        this.#fillBB.x1 = Math.min(this.#fillBB.x1, comp.boundingBox.x1);
-                        this.#fillBB.x2 = Math.max(this.#fillBB.x2, comp.boundingBox.x2);
-                        this.#fillBB.y1 = Math.min(this.#fillBB.y1, comp.boundingBox.y1);
-                        this.#fillBB.y2 = Math.max(this.#fillBB.y2, comp.boundingBox.y2);
-                    }
-                }
-
-                this._size.set({ x: this.#fillBB.x2 - this.#fillBB.x1, y: this.#fillBB.y2 - this.#fillBB.y1 });
+                const parentBB = this._entity.transform.boundingBox;
+                this._size.set({ x: parentBB.x2 - parentBB.x1, y: parentBB.y2 - parentBB.y1 });
                 this._origin.set(1);
             }
 

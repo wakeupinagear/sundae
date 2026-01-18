@@ -1,6 +1,7 @@
 import { C_Drawable, C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
 import { Entity, EntityOptions } from '../entities';
+import { C_Shape, C_ShapeOptions } from '../exports/components';
 import { Vector } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { BoundingBox, TwoAxisAlignment } from '../types';
@@ -66,6 +67,8 @@ type TextNode =
 
 type Padding = BoundingBox | Vector | number;
 
+type BackgroundOptions = boolean | Partial<C_ShapeOptions>;
+
 export interface C_TextOptions extends C_DrawableOptions {
     text?: string;
     fontSize?: number;
@@ -79,6 +82,7 @@ export interface C_TextOptions extends C_DrawableOptions {
     startTagDelim?: string;
     endTagDelim?: string;
     padding?: Padding;
+    background?: BackgroundOptions;
 }
 
 export interface C_TextJSON extends C_TextOptions {
@@ -107,6 +111,7 @@ export class C_Text<
     #drawActions: TextDrawAction[] = [];
     #textPosition: Vector = new Vector(0);
     #textSize: Vector = new Vector(0);
+    #bgShape: C_Shape<TEngine> | null = null;
 
     constructor(options: C_TextOptions) {
         super({
@@ -130,6 +135,7 @@ export class C_Text<
         this.#opacity = options.opacity ?? 1;
     
         this.#setPadding(options.padding ?? 0);
+        this.#setBackground(options.background ?? null);
     }
 
     override get typeString(): string {
@@ -266,6 +272,10 @@ export class C_Text<
             this.#setPadding(padding);
             this._markBoundsDirty();
         }
+    }
+
+    set background(background: BackgroundOptions | null) {
+        this.#setBackground(background);
     }
 
     override queueRenderCommands(stream: RenderCommandStream): boolean {
@@ -888,6 +898,28 @@ export class C_Text<
             this.#padding = { x1: padding.x, x2: padding.x, y1: padding.y, y2: padding.y };
         } else {
             this.#padding = padding;
+        }
+    }
+
+    #setBackground(background: BackgroundOptions | null) {
+        if (background) {
+            if (this.#bgShape) {
+                this.#bgShape.destroy();
+                this.#bgShape = null;
+            }
+
+            // Re-create because there's not an easy way to re-initialize the shape with the constructor props
+            this.#bgShape = this.entity.addComponent<C_Shape<TEngine>>({
+                type: 'shape',
+                shape: 'RECT',
+                opacity: 0.5,
+                style: { fillStyle: 'black' },
+                ...(typeof background === 'object' ? background : {}),
+                fill: true
+            });
+        } else if (this.#bgShape) {
+            this.#bgShape.destroy();
+            this.#bgShape = null;
         }
     }
 
