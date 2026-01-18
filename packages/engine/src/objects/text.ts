@@ -85,6 +85,8 @@ export interface C_TextJSON extends C_TextOptions {
 export class C_Text<
     TEngine extends Engine = Engine,
 > extends C_Drawable<TEngine> {
+    public static typeString: string = 'C_Text';
+
     #text: string;
     #fontSize: number;
     #fontFamily: FontFamily;
@@ -126,7 +128,7 @@ export class C_Text<
     }
 
     override get typeString(): string {
-        return 'C_Text';
+        return C_Text.typeString;
     }
 
     get text(): string {

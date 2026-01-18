@@ -45,9 +45,14 @@ export interface EntityOptions {
     scene?: string;
     components?: ComponentJSON[];
     children?: EntityJSON[];
+
     rigidbody?: boolean;
     mass?: number;
     kinematic?: boolean;
+    velocity?: VectorConstructor;
+    force?: VectorConstructor;
+    gravityScale?: VectorConstructor;
+    bounce?: number;
 }
 
 export interface InternalEntityOptions<TEngine extends Engine = Engine>
@@ -92,9 +97,6 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             name = `entity-${this._id}`,
             engine,
             parent,
-            rigidbody,
-            mass,
-            kinematic,
             ...rest
         } = options as InternalEntityOptions<TEngine>;
         this._name = name;
@@ -140,16 +142,25 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             scale: rest?.scale ?? 1,
         });
 
-        if (
-            options.rigidbody ||
+        const {rigidbody,mass,kinematic,velocity,force,gravityScale,bounce} = options;
+        const rigidbodyPropSet = Boolean(
             mass !== undefined ||
-            kinematic !== undefined
-        ) {
+            kinematic !== undefined ||
+            velocity !== undefined ||
+            force !== undefined ||
+            gravityScale !== undefined ||
+            bounce !== undefined
+        );
+        if (rigidbody || (rigidbodyPropSet && rigidbody !== false)) {
             this.setRigidbody({
                 type: 'rigidbody',
                 mass,
                 kinematic,
-            });
+                velocity,
+                force,
+                gravityScale,
+                bounce
+            })
         }
     }
 

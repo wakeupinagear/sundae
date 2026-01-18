@@ -13,6 +13,7 @@ const resolveCircleCircleCollision = <TEngine extends Engine = Engine>(
     const distance = circleCollA.entity.position.distanceTo(
         circleCollB.entity.position,
     );
+
     if (distance > circleCollA.radius + circleCollB.radius) {
         return null;
     }

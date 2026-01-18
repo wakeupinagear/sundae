@@ -60,7 +60,7 @@ export class Scene<TEngine extends Engine = Engine> {
         }
     }
 
-    get engine(): Engine | null {
+    get engine(): Engine {
         return this._engine;
     }
 

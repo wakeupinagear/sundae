@@ -23,6 +23,7 @@ export interface InternalComponentOptions<TEngine extends Engine = Engine>
 export abstract class Component<TEngine extends Engine = Engine>
     implements Renderable
 {
+    public static typeString: string = 'Component';
     protected static _nextId: number = 1;
     protected readonly _id: string = (Component._nextId++).toString();
 
@@ -56,7 +57,7 @@ export abstract class Component<TEngine extends Engine = Engine>
     }
 
     get typeString(): string {
-        return 'Component';
+        return Component.typeString;
     }
 
     get name(): string {

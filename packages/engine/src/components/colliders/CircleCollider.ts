@@ -10,7 +10,7 @@ export interface C_CircleColliderJSON extends C_CircleColliderOptions {
 export class C_CircleCollider<
     TEngine extends Engine = Engine,
 > extends C_Collider<TEngine> {
-    #radius: number = 0;
+    public static typeString: string = 'C_CircleCollider';
 
     constructor(options: C_CircleColliderOptions) {
         super(options);
@@ -19,11 +19,11 @@ export class C_CircleCollider<
     }
 
     override get typeString(): string {
-        return 'C_CircleCollider';
+        return C_CircleCollider.typeString;
     }
 
     get radius(): number {
-        return this.#radius;
+        return Math.min(this.entity.scale.x, this.entity.scale.y) / 2;
     }
 
     override _computeCollisionBounds(): void {
@@ -31,8 +31,6 @@ export class C_CircleCollider<
             this._collisionBounds = [this.entity.position.clone()];
         } else {
             this._collisionBounds[0].set(this.entity.position);
-            this.#radius =
-                Math.min(this.entity.scale.x, this.entity.scale.y) / 2;
         }
     }
 }

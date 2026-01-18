@@ -19,6 +19,8 @@ export interface C_PointerTargetJSON extends C_PointerTargetOptions {
 export class C_PointerTarget<
     TEngine extends Engine = Engine,
 > extends Component<TEngine> {
+    public static typeString: string = 'C_PointerTarget';
+
     #onPointerEnter?: C_PointerTargetOptions['onPointerEnter'];
     #onPointerLeave?: C_PointerTargetOptions['onPointerLeave'];
     #cursorOnHover?: CursorType;
@@ -37,7 +39,7 @@ export class C_PointerTarget<
     }
 
     override get typeString(): string {
-        return 'C_PointerTarget';
+        return C_PointerTarget.typeString;
     }
 
     get isPointerHovered(): boolean {

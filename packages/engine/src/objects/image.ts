@@ -17,6 +17,8 @@ export interface C_ImageJSON extends C_ImageOptions {
 export class C_Image<
     TEngine extends Engine = Engine,
 > extends C_Drawable<TEngine> {
+    public static typeString: string = 'C_Image';
+
     #imageName: string;
     #repeat: Vector;
 
@@ -28,7 +30,7 @@ export class C_Image<
     }
 
     override get typeString(): string {
-        return 'C_Image';
+        return C_Image.typeString;
     }
 
     get imageName(): string {

@@ -37,6 +37,8 @@ export interface C_ShapeJSON extends C_ShapeOptions {
 export class C_Shape<
     TEngine extends Engine = Engine,
 > extends C_Drawable<TEngine> {
+    public static typeString: string = 'C_Shape';
+
     #shape: Shape;
     #repeat: Vector;
     #gap: Vector;
@@ -78,7 +80,7 @@ export class C_Shape<
     }
 
     override get typeString(): string {
-        return 'C_Shape';
+        return C_Shape.typeString;
     }
 
     get shape(): Shape {

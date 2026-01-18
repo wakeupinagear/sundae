@@ -167,12 +167,14 @@ export class C_Lerp<TEngine extends Engine = Engine> extends C_LerpBase<
     TEngine,
     number
 > {
+    public static typeString: string = 'C_Lerp';
+
     constructor(options: C_LerpOptions<number>) {
         super(options);
     }
 
     override get typeString(): string {
-        return 'C_Lerp';
+        return C_Lerp.typeString;
     }
 }
 
@@ -189,6 +191,8 @@ export class C_LerpOpacity<TEngine extends Engine = Engine> extends C_LerpBase<
     TEngine,
     number
 > {
+    public static typeString: string = 'C_LerpOpacity';
+
     constructor(options: C_LerpOpacityOptions) {
         const { name = 'opacity_lerp', target, ...rest } = options;
         super({
@@ -206,7 +210,7 @@ export class C_LerpOpacity<TEngine extends Engine = Engine> extends C_LerpBase<
     }
 
     override get typeString(): string {
-        return 'C_LerpOpacity';
+        return C_LerpOpacity.typeString;
     }
 }
 
@@ -224,6 +228,8 @@ export class C_LerpPosition<
     TEngine extends Engine = Engine,
     V extends IVector<number> = IVector<number>,
 > extends C_LerpBase<TEngine, V> {
+    public static typeString: string = 'C_LerpPosition';
+
     constructor(options: C_PositionLerpOptions<V>) {
         const {
             name = 'position_lerp',
@@ -247,7 +253,7 @@ export class C_LerpPosition<
     }
 
     override get typeString(): string {
-        return 'C_LerpPosition';
+        return C_LerpPosition.typeString;
     }
 }
 
@@ -264,6 +270,8 @@ export class C_LerpRotation<TEngine extends Engine = Engine> extends C_LerpBase<
     TEngine,
     number
 > {
+    public static typeString: string = 'C_LerpRotation';
+
     constructor(options: C_RotationLerpOptions) {
         const {
             name = 'rotation_lerp',
@@ -287,6 +295,6 @@ export class C_LerpRotation<TEngine extends Engine = Engine> extends C_LerpBase<
     }
 
     override get typeString(): string {
-        return 'C_LerpRotation';
+        return C_LerpRotation.typeString;
     }
 }

@@ -11,6 +11,8 @@ export interface C_RectangleColliderJSON extends C_RectangleColliderOptions {
 export class C_RectangleCollider<
     TEngine extends Engine = Engine,
 > extends C_Collider<TEngine> {
+    public static typeString: string = 'C_RectangleCollider';
+
     constructor(options: C_RectangleColliderOptions) {
         super(options);
 
@@ -18,7 +20,7 @@ export class C_RectangleCollider<
     }
 
     override get typeString(): string {
-        return 'C_RectangleCollider';
+        return C_RectangleCollider.typeString;
     }
 
     override _computeCollisionBounds(): void {

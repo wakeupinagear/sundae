@@ -17,6 +17,8 @@ export interface C_TransformJSON extends C_TransformOptions {
 export class C_Transform<
     TEngine extends Engine = Engine,
 > extends Component<TEngine> {
+    public static typeString: string = 'C_Transform';
+
     #position: Vector = new Vector(0);
     #rotation: number = 0;
     #scale: Vector = new Vector(1);
@@ -52,7 +54,7 @@ export class C_Transform<
     }
 
     override get typeString(): string {
-        return 'C_Transform';
+        return C_Transform.typeString;
     }
 
     get position(): Readonly<Vector> {

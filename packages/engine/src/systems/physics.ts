@@ -1,30 +1,69 @@
 import { System } from '.';
 import { C_Collider } from '../components/colliders';
+import { C_Rigidbody } from '../components/rigidbody';
 import type { Engine } from '../engine';
-import { Entity, boundingBoxesIntersect } from '../exports';
+import { Entity, Vector, VectorConstructor, boundingBoxesIntersect } from '../exports';
 import type { CollisionContact } from '../types';
 
-const MAX_NARROW_PHASE_ITERATIONS = 5;
+const MAX_NARROW_PHASE_ITERATIONS = 12;
 const INV_MASS_EPSILON = 1e-6;
 
 export class PhysicsSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
+    #gravityScale: number = 0;
+    #gravityDirection: Vector = new Vector(0)
+
+    #rigidbodies: Map<string, C_Rigidbody<TEngine>> = new Map()
+
     #pairs: [C_Collider<TEngine>, C_Collider<TEngine>][] = [];
 
-    lateUpdate(): boolean | void {
+    get gravityScale() {
+        return this.#gravityScale;
+    }
+
+    set gravityScale(scale: number) {
+        this.#gravityScale = scale;
+    }
+
+    get gravityDirection() {
+        return this.#gravityDirection;
+    }
+
+    set gravityDirection(direction: VectorConstructor) {
+        this.#gravityDirection.set(direction);
+        this.#gravityDirection.normalizeMut();
+    }
+
+    override lateUpdate(deltaTime: number): boolean | void {
+        this.#physicsUpdate(deltaTime);
         this.#broadPhase();
         this.#narrowPhase();
     }
 
-    #broadPhase() {
+    registerRigidbody(rb: C_Rigidbody<TEngine>): void {
+        this.#rigidbodies.set(rb.id, rb);
+    }
+
+    unregisterRigidbody(rb: C_Rigidbody<TEngine>): void {
+        this.#rigidbodies.delete(rb.id);
+    }
+
+    #physicsUpdate(deltaTime: number): void {
+        const currentGravity = this.#gravityDirection.scaleBy(this.#gravityScale);
+        for (const rb of this.#rigidbodies.values()) {
+            rb.physicsUpdate(deltaTime, currentGravity);
+        }
+    }
+
+    #broadPhase(): void {
         this.#pairs = [];
         if (this._engine.rootEntity.childColliderCount > 0) {
             this.#broadPhaseRecurse(this._engine.rootEntity);
         }
     }
 
-    #broadPhaseRecurse(entity: Readonly<Entity<TEngine>>) {
+    #broadPhaseRecurse(entity: Readonly<Entity<TEngine>>): void {
         const children = entity.children;
         for (let i = 0; i < children.length; i++) {
             for (let j = i + 1; j < children.length; j++) {
@@ -80,8 +119,8 @@ export class PhysicsSystem<
     }
 
     #narrowPhase() {
+        let resolvedAny = false;
         for (let i = 0; i < MAX_NARROW_PHASE_ITERATIONS; i++) {
-            let resolvedAny = false;
             for (const [collA, collB] of this.#pairs) {
                 const contact = collA.resolveCollision(collB);
                 if (contact) {
@@ -145,6 +184,31 @@ export class PhysicsSystem<
             collB.entity.move(
                 contactNormal.scaleBy(penetrationDepth * -ratioB),
             );
+        }
+
+        if (collARigidbody || collBRigidbody) {
+            const velocityA = collARigidbody ? collARigidbody.velocity : new Vector(0);
+            const velocityB = collBRigidbody ? collBRigidbody.velocity : new Vector(0);
+            
+            const relativeVelocity = velocityA.sub(velocityB);
+            const velocityAlongNormal = relativeVelocity.dot(contactNormal);
+            if (velocityAlongNormal > 0) {
+                return;
+            }
+            
+            const bounceA = collARigidbody ? collARigidbody.bounce : 0;
+            const bounceB = collBRigidbody ? collBRigidbody.bounce : 0;
+            const bounce = Math.min(bounceA, bounceB);
+            
+            const impulseScalar = -(1 + bounce) * velocityAlongNormal / totalInvMass;
+            const impulse = contactNormal.scaleBy(impulseScalar);
+            
+            if (collARigidbody) {
+                collARigidbody.addImpulse(impulse);
+            }
+            if (collBRigidbody) {
+                collBRigidbody.addImpulse(impulse.negate());
+            }
         }
     }
 }

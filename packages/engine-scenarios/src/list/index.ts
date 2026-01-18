@@ -1,4 +1,5 @@
 import { EngineScenario } from '..';
+import { ballPit } from './ball-pit';
 import { pong } from './pong';
 import { renderChaos } from './render-chaos';
 import { typeErrors } from './type-errors';
@@ -16,6 +17,11 @@ export const scenarios: Record<string, ScenarioMetadata> = {
         name: 'Pong',
         description: 'A simple pong game',
         scenario: pong,
+    },
+    ballPit: {
+        name: 'Ball Pit',
+        description: 'So many balls',
+        scenario: ballPit,
     },
     renderChaos: {
         name: 'Render Chaos',

@@ -269,7 +269,7 @@ export class C_ColliderDebug<
             stream.setOpacity(1);
             stream.setStyle({
                 strokeStyle: 'lime',
-                lineWidth: 8 / zoomToScale(this.engine.camera.zoom),
+                lineWidth: 4 / zoomToScale(this.engine.camera.zoom),
             });
 
             if (collider.type === 'circle') {

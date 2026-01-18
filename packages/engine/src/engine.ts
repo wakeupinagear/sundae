@@ -18,7 +18,7 @@ import {
 } from './entities/factory';
 import { Matrix2D } from './math/matrix';
 import { generatePRNG } from './math/random';
-import { type IVector } from './math/vector';
+import { VectorConstructor, type IVector } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import { CameraSystem } from './systems/camera';
@@ -132,6 +132,9 @@ export interface EngineOptions {
     cameraScrollMode: CameraScrollMode;
     cullScale: number;
 
+    gravityScale: number;
+    gravityDirection: VectorConstructor;
+
     images: Record<string, string | HTMLImageElement>;
     asyncImageLoading: boolean;
 
@@ -170,6 +173,9 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     cameraTargetLerpSpeed: 0.1,
     cameraScrollMode: 'none',
     cullScale: 1,
+
+    gravityScale: 9.8 * 20,
+    gravityDirection: { x: 0, y: 1 },
 
     images: {},
     asyncImageLoading: true,
@@ -400,6 +406,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     get renderSystem(): RenderSystem {
         return this._renderSystem;
+    }
+
+    get physicsSystem(): PhysicsSystem {
+        return this._physicsSystem;
     }
 
     get frameCount(): number {
@@ -837,6 +847,13 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
         if (newOptions.randomSeed !== undefined) {
             this.#setRandomSeed(newOptions.randomSeed);
+        }
+
+        if (newOptions.gravityScale !== undefined) {
+            this._physicsSystem.gravityScale = newOptions.gravityScale;
+        }
+        if (newOptions.gravityDirection !== undefined) {
+            this._physicsSystem.gravityDirection = newOptions.gravityDirection;
         }
     }
 
