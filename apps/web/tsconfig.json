@@ -3,9 +3,5 @@
     "include": ["src"],
     "compilerOptions": {
         "jsx": "react-jsx"
-    },
-    "references": [
-        { "path": "../../packages/engine" },
-        { "path": "../../packages/engine-scenarios" }
-    ]
+    }
 }

@@ -1,11 +1,12 @@
-import { System } from '.';
-import { C_Collider } from '../components/colliders';
-import { C_CircleCollider } from '../components/colliders/CircleCollider';
-import { C_RectangleCollider } from '../components/colliders/RectangleCollider';
-import { C_Rigidbody } from '../components/rigidbody';
-import type { Engine } from '../engine';
-import { Entity, IVector, ImmutableVector, Vector, VectorConstructor, boundingBoxesIntersect } from '../exports';
-import type { CollisionContact } from '../types';
+import { System } from '..';
+import { C_Collider } from '../../components/colliders';
+import { C_CircleCollider } from '../../components/colliders/CircleCollider';
+import { C_RectangleCollider } from '../../components/colliders/RectangleCollider';
+import { C_Rigidbody } from '../../components/rigidbody';
+import type { Engine } from '../../engine';
+import { Entity, IVector, ImmutableVector, Vector, VectorConstructor, boundingBoxesIntersect } from '../../exports';
+import type { CollisionContact } from '../../types';
+import { SpatialHashGrid } from './spatialHash';
 
 const INV_MASS_EPSILON = 1e-6;
 const MIN_PENETRATION_DEPTH = 0.01;
@@ -45,6 +46,14 @@ export class PhysicsSystem<
     #timeAccumulator: number = 0;
 
     #raycasts: Raycast<TEngine>[] = [];
+    
+    #spatialGrid: SpatialHashGrid<TEngine>;
+    #useSpatialHash: boolean = true;
+
+    constructor(engine: TEngine) {
+        super(engine);
+        this.#spatialGrid = new SpatialHashGrid(engine.options.spatialHashCellSize);
+    }
 
     get gravityScale() {
         return this.#gravityScale;
@@ -67,6 +76,10 @@ export class PhysicsSystem<
 
     get raycastsThisFrame(): Readonly<Raycast<TEngine>[]> {
         return this.#raycasts;
+    }
+
+    get spatialGridStats() {
+        return this.#spatialGrid.getStats();
     }
 
     #updateGravity(): void {
@@ -214,37 +227,27 @@ export class PhysicsSystem<
 
     #broadPhase(): void {
         this.#pairIndex = 0;
-        if (this._engine.rootEntity.childColliderCount > 0) {
-            const collChildren: Entity<TEngine>[] = [];
-            this.#broadPhaseRecurse(this._engine.rootEntity, collChildren);
+        if (this._engine.rootEntity.childColliderCount === 0) {
+            return;
+        }
+
+        this.#spatialGrid.clear();
+        this.#buildSpatialGrid(this._engine.rootEntity);
+
+        const pairs = this.#spatialGrid.queryPairs();
+        for (const [entityA, entityB] of pairs) {
+            this.#broadPhaseDescend(entityA, entityB);
         }
     }
 
-    #broadPhaseRecurse(entity: Readonly<Entity<TEngine>>, collChildren: Entity<TEngine>[]): void {
-        collChildren.length = 0;
-        for (const child of entity.children) {
-            if (child.collider || child.childColliderCount > 0) {
-                collChildren.push(child);
-            }
-        }
-        
-        const collChildrenCount = collChildren.length;
-        for (let i = 0; i < collChildrenCount; i++) {
-            const childI = collChildren[i];
-            const bboxI = childI.transform.boundingBox;
-            
-            for (let j = i + 1; j < collChildrenCount; j++) {
-                const childJ = collChildren[j];
-                
-                if (boundingBoxesIntersect(bboxI, childJ.transform.boundingBox)) {
-                    this.#broadPhaseDescend(childI, childJ);
-                }
-            }
+    #buildSpatialGrid(entity: Readonly<Entity<TEngine>>): void {
+        if (entity.collider) {
+            this.#spatialGrid.insert(entity as Entity<TEngine>);
         }
 
-        for (const child of collChildren) {
-            if (child.childColliderCount > 0) {
-                this.#broadPhaseRecurse(child, collChildren);
+        for (const child of entity.children) {
+            if (child.collider || child.childColliderCount > 0) {
+                this.#buildSpatialGrid(child);
             }
         }
     }

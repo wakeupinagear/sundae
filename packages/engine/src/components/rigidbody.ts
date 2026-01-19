@@ -89,6 +89,7 @@ export class C_Rigidbody<
         this.#bounce = Math.max(0, Math.min(1, value));
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     override onCollision(_contact: CollisionContact<TEngine>): void {
     }
 

@@ -3,7 +3,6 @@ import { C_Drawable, C_DrawableOptions } from '../components/drawable';
 import { Engine } from '../engine';
 import { Entity } from '../entities';
 import { E_Text, E_TextOptions } from '../objects/text';
-import { Raycast } from '../systems/physics';
 import type {
     RenderCommandStats,
     RenderCommandStream,
@@ -53,6 +52,16 @@ export class E_StatsDebug<
         if (stats.renderCommands) {
             textContent += this.#buildCacheText(stats.renderCommands);
         }
+
+        const spatialStats = this._engine.physicsSystem.spatialGridStats;
+        if (spatialStats.entityCount > 0) {
+            textContent += `\n<color=${LABEL_COLOR}>Spatial Grid:</color>`;
+            textContent += `\n  <color=${LABEL_COLOR}>Entities:</color> <bold>${spatialStats.entityCount}</bold>`;
+            textContent += `\n  <color=${LABEL_COLOR}>Cells:</color> <bold>${spatialStats.cellCount}</bold>`;
+            textContent += `\n  <color=${LABEL_COLOR}>Avg/Cell:</color> <bold>${spatialStats.avgEntitiesPerCell.toFixed(1)}</bold>`;
+            textContent += `\n  <color=${LABEL_COLOR}>Max/Cell:</color> <bold>${spatialStats.maxEntitiesInCell}</bold>`;
+        }
+        
         if (textContent) {
             text += `\n${textContent}`;
         }

@@ -90,12 +90,12 @@ class E_Player extends E_Shape {
             contact.other.entity.destroy();
             this.#levelScene.addScore(100);
         } else if (contact.other.entity.name === 'Goomba') {
-            if (contact.contactNormal.dot(Vector.UP) > 0) {
+            if (contact.other.entity.position.y - this.position.y > 10) {
                 contact.other.entity.destroy();
                 this.#levelScene.addScore(50);
 
-                const downTime = this.engine.getButton(PLAYER_JUMP_INPUT).downTime;
-                if (downTime > 0 && downTime < 0.5) {
+                const jumpButton = this.engine.getButton(PLAYER_JUMP_INPUT);
+                if (jumpButton.down && jumpButton.downTime < 0.5) {
                     this.jump();
                 } else {
                     this.bounce();

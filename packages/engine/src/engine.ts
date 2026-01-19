@@ -134,8 +134,10 @@ export interface EngineOptions {
 
     gravityScale: number;
     gravityDirection: VectorConstructor;
+
     maxCollisionIterations: number;
     physicsPerSecond: number;
+    spatialHashCellSize: number;
 
     images: Record<string, string | HTMLImageElement>;
     asyncImageLoading: boolean;
@@ -175,8 +177,10 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     cameraTargetLerpSpeed: 0.1,
     cameraScrollMode: 'none',
     cullScale: 1,
+
     maxCollisionIterations: 8,
     physicsPerSecond: 60,
+    spatialHashCellSize: 100,
 
     gravityScale: 9.8 * 20,
     gravityDirection: { x: 0, y: 1 },
