@@ -2,10 +2,11 @@ import { C_RectangleCollider } from '../components/colliders/RectangleCollider';
 import { C_Drawable, C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
 import { Entity, EntityOptions } from '../entities';
+import { C_Collider, C_ColliderOptions } from '../exports/components';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 
-export interface C_ImageOptions extends C_DrawableOptions {
+export interface C_ImageOptions extends C_DrawableOptions, C_ColliderOptions {
     imageName: string;
     repeat?: VectorConstructor;
 }
@@ -93,9 +94,11 @@ export class E_Image<TEngine extends Engine = Engine> extends Entity<TEngine> {
             type: 'image',
             name: 'Image',
         });
-        if (options.collision) {
+
+        if (options.collision || options.pointerTarget) {
             this._collider = this.addComponent<C_RectangleCollider<TEngine>>({
                 type: 'rectangleCollider',
+                ...C_Collider.getCollisionOptionsForEntity(options),
             });
         }
     }

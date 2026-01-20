@@ -36,6 +36,7 @@ export interface EntityOptions {
     name?: string;
     enabled?: boolean;
     zIndex?: number;
+    opacity?: number;
     cull?: CullMode;
     position?: number | IVector<number> | Vector;
     scale?: number | IVector<number> | Vector;
@@ -71,6 +72,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     protected _enabled: boolean;
     protected _zIndex: number;
+    protected _opacity: number;
 
     protected _transform: C_Transform<TEngine>;
     protected _collider: C_Collider<TEngine> | null = null;
@@ -110,7 +112,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
         this._enabled = rest?.enabled ?? true;
         this._zIndex = rest?.zIndex ?? 0;
-
+        this._opacity = rest?.opacity ?? 1;
+        
         this._positionRelativeToCamera = rest?.positionRelativeToCamera
             ? typeof rest.positionRelativeToCamera === 'string'
                 ? {
@@ -219,6 +222,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     get zIndex(): number {
         return this._zIndex;
+    }
+
+    get opacity(): number {
+        return this._opacity;
     }
 
     get cull(): CullMode {
@@ -403,14 +410,15 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         this.#childrenZIndexDirty = true;
     }
 
-    getComponentsInTree<T extends Component<TEngine>>(typeString: string): T[] {
-        if (typeString in this._cachedComponentsInTree) {
-            return this._cachedComponentsInTree[typeString] as T[];
+    getComponentsInTree<T extends Component<TEngine>>(...typeStrings: string[]): T[] {
+        const key = typeStrings.join(',');
+        if (key in this._cachedComponentsInTree) {
+            return this._cachedComponentsInTree[key] as T[];
         }
 
         const out: T[] = [];
-        this.#getComponentsInTree<T>(typeString, out);
-        this._cachedComponentsInTree[typeString] = out;
+        this.#getComponentsInTree<T>(typeStrings, out);
+        this._cachedComponentsInTree[key] = out;
 
         return out;
     }
@@ -521,6 +529,12 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                 this._parent.childrenZIndexDirty = true;
             }
         }
+
+        return this;
+    }
+
+    setOpacity(opacity: number): this {
+        this._opacity = opacity;
 
         return this;
     }
@@ -789,7 +803,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     }
 
     #getComponentsInTree<T extends Component<TEngine>>(
-        typeString: string,
+        typeStrings: string[],
         out: T[],
     ): void {
         if (!this.enabled) {
@@ -797,11 +811,11 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
 
         for (const child of this._children) {
-            child.#getComponentsInTree(typeString, out);
+            child.#getComponentsInTree(typeStrings, out);
         }
 
         for (const comp of this._components) {
-            if (comp.enabled && comp.typeString === typeString) {
+            if (comp.enabled && typeStrings.includes(comp.typeString)) {
                 out.push(comp as T);
             }
         }

@@ -1,5 +1,7 @@
 import { C_Collider, C_ColliderOptions } from '.';
 import { Engine } from '../../engine';
+import { Vector } from '../../math/vector';
+import { BoundingBox } from '../../types';
 
 interface C_CircleColliderOptions extends C_ColliderOptions {}
 
@@ -32,5 +34,26 @@ export class C_CircleCollider<
         } else {
             this._collisionBounds[0].set(this.entity.position);
         }
+    }
+
+    override checkIfPointInside(worldPosition: Vector): boolean {
+        const center = this.entity.position;
+        const distance = center.distanceTo(worldPosition);
+
+        return distance <= this.radius;
+    }
+
+    override checkIfBoxIntersects(bbox: BoundingBox): boolean {
+        const center = this.entity.position;
+        const radius = this.radius;
+
+        const closestX = Math.max(bbox.x1, Math.min(center.x, bbox.x2));
+        const closestY = Math.max(bbox.y1, Math.min(center.y, bbox.y2));
+
+        const distanceX = center.x - closestX;
+        const distanceY = center.y - closestY;
+        const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+
+        return distanceSquared <= radius * radius;
     }
 }

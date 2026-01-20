@@ -47,11 +47,11 @@ export class PhysicsSystem<
 
     #raycasts: Raycast<TEngine>[] = [];
     
-    #spatialGrid: SpatialHashGrid<TEngine>;
-    #useSpatialHash: boolean = true;
+    #spatialGrid: SpatialHashGrid<Entity<TEngine>>;
 
     constructor(engine: TEngine) {
         super(engine);
+
         this.#spatialGrid = new SpatialHashGrid(engine.options.spatialHashCellSize);
     }
 
@@ -78,13 +78,12 @@ export class PhysicsSystem<
         return this.#raycasts;
     }
 
-    get spatialGridStats() {
-        return this.#spatialGrid.getStats();
+    get spatialGrid() {
+        return this.#spatialGrid;
     }
 
-    #updateGravity(): void {
-        this.#currentGravity.set(this.#gravityDirection);
-        this.#currentGravity.scaleMut(this.#gravityScale);
+    get spatialGridStats() {
+        return this.#spatialGrid.getStats();
     }
 
     override earlyUpdate(): boolean | void {
@@ -100,7 +99,6 @@ export class PhysicsSystem<
             this.#timeAccumulator = MAX_TIMESTEP_ACCUMULATION;
         }
         
-        // Run physics updates at fixed timestep
         const fixedTimeStep = 1 / this._engine.options.physicsPerSecond;
         while (this.#timeAccumulator >= fixedTimeStep) {
             this.#physicsUpdate(fixedTimeStep);
@@ -300,16 +298,14 @@ export class PhysicsSystem<
         
         for (let i = 0; i < this._engine.options.maxCollisionIterations; i++) {
             resolvedAny = false;
+            const isFirstIteration = i === 0;
             
             for (let p = 0; p < pairCount; p++) {
                 const [collA, collB] = this.#pairs[p];
-                const contact = collA.resolveCollision(collB);
-                
+                const isTriggerPair = collA.isTrigger || collB.isTrigger;
+                const contact = !isTriggerPair || isFirstIteration ? collA.resolveCollision(collB) : null;
                 if (contact) {
-                    this.#resolveContact(contact);
-                    resolvedAny = true;
-                    
-                    if (i === 0) {
+                    if (isFirstIteration) {
                         if (collA.entity.onCollision) {
                             collA.entity.onCollision(contact);
                         }
@@ -334,6 +330,11 @@ export class PhysicsSystem<
                         for (let c = 0; c < componentsB.length; c++) {
                             componentsB[c].onCollision?.(flippedContact);
                         }
+                    }
+
+                    if (!isTriggerPair) {
+                        this.#resolveContact(contact);
+                        resolvedAny = true;
                     }
                 }
             }
@@ -407,5 +408,10 @@ export class PhysicsSystem<
                 collBRigidbody.addImpulse(impulse.negate());
             }
         }
+    }
+
+    #updateGravity(): void {
+        this.#currentGravity.set(this.#gravityDirection);
+        this.#currentGravity.scaleMut(this.#gravityScale);
     }
 }

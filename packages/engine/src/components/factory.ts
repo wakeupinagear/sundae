@@ -25,7 +25,6 @@ import {
     C_LerpRotation,
     C_LerpRotationJSON,
 } from './lerp';
-import { C_PointerTarget, C_PointerTargetJSON } from './pointerTarget';
 import { C_Rigidbody, C_RigidbodyJSON } from './rigidbody';
 import { C_Transform, C_TransformJSON } from './transforms';
 
@@ -60,7 +59,6 @@ export type StringComponentJSON =
     | C_TextJSON
     | C_ShapeJSON
     | C_ImageJSON
-    | C_PointerTargetJSON
     | C_LerpJSON
     | C_LerpPositionJSON
     | C_LerpOpacityJSON
@@ -103,8 +101,6 @@ export function createComponentFromJSON<TEngine extends Engine = Engine>(
             return new C_LerpPosition<TEngine>(json);
         case 'lerpRotation':
             return new C_LerpRotation<TEngine>(json);
-        case 'pointerTarget':
-            return new C_PointerTarget<TEngine>(json);
         case 'circleCollider':
             return new C_CircleCollider<TEngine>(json);
         case 'rectangleCollider':

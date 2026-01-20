@@ -1,5 +1,8 @@
 import { C_Collider, C_ColliderOptions } from '.';
 import { Engine } from '../../engine';
+import { Vector } from '../../math/vector';
+import { BoundingBox } from '../../types';
+import { boundingBoxesIntersect } from '../../utils';
 
 interface C_RectangleColliderOptions extends C_ColliderOptions {}
 
@@ -38,5 +41,33 @@ export class C_RectangleCollider<
             this._collisionBounds[2].set(corners[2]);
             this._collisionBounds[3].set(corners[3]);
         }
+    }
+
+    override checkIfPointInside(worldPosition: Vector): boolean {
+        const corners = this.entity.transform.corners;
+
+        for (let i = 0; i < 4; i++) {
+            const p1 = corners[i];
+            const p2 = corners[(i + 1) % 4];
+            
+            const edge = p2.sub(p1);
+            const toPoint = worldPosition.sub(p1);
+            
+            const cross = edge.x * toPoint.y - edge.y * toPoint.x;
+            if (cross < 0) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    override checkIfBoxIntersects(bbox: BoundingBox): boolean {
+        const transform = this.entity?.transform;
+        if (!transform) {
+            return false;
+        }
+
+        return boundingBoxesIntersect(bbox, transform.boundingBox);
     }
 }

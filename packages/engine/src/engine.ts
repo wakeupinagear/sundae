@@ -400,23 +400,23 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._statsSystem.stats;
     }
 
-    get pointerSystem(): PointerSystem {
+    get pointerSystem(): PointerSystem<this> {
         return this._pointerSystem;
     }
 
-    get cameraSystem(): CameraSystem {
+    get cameraSystem(): CameraSystem<this> {
         return this._cameraSystem;
     }
 
-    get sceneSystem(): SceneSystem {
+    get sceneSystem(): SceneSystem<this> {
         return this._sceneSystem;
     }
 
-    get renderSystem(): RenderSystem {
+    get renderSystem(): RenderSystem<this> {
         return this._renderSystem;
     }
 
-    get physicsSystem(): PhysicsSystem {
+    get physicsSystem(): PhysicsSystem<this> {
         return this._physicsSystem;
     }
 

@@ -54,7 +54,7 @@ export abstract class C_Drawable<
     }
 
     get opacity(): number {
-        return this._opacity;
+        return this._opacity * this._entity.opacity;
     }
 
     override isVisual(): boolean {
@@ -100,8 +100,9 @@ export abstract class C_Drawable<
     }
 
     public override queueRenderCommands(stream: RenderCommandStream): boolean {
-        if (this._opacity >= OPACITY_THRESHOLD) {
-            stream.setOpacity(this._opacity);
+        const opacity = this.opacity;
+        if (opacity >= OPACITY_THRESHOLD) {
+            stream.setOpacity(opacity);
             stream.setStyle(this._style);
 
             if (this._fill) {

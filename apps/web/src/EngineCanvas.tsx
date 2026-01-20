@@ -88,8 +88,8 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
 
         const onMouseMove = (event: MouseEvent) =>
             engineRef.current?.onMouseMove('mousemove', {
-                x: event.clientX,
-                y: event.clientY,
+                x: event.offsetX,
+                y: event.offsetY,
             });
         localCanvas.addEventListener('mousemove', onMouseMove);
         const onMouseWheel = (event: WheelEvent) => {
@@ -117,15 +117,15 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
         const onMouseEnter = (event: MouseEvent) =>
             engineRef.current?.onMouseEnter('mouseenter', {
                 target: event.target,
-                x: event.clientX,
-                y: event.clientY,
+                x: event.offsetX,
+                y: event.offsetY,
             });
         localCanvas.addEventListener('mouseenter', onMouseEnter);
         const onMouseLeave = (event: MouseEvent) =>
             engineRef.current?.onMouseLeave('mouseleave', {
                 target: event.target,
-                x: event.clientX,
-                y: event.clientY,
+                x: event.offsetX,
+                y: event.offsetY,
             });
         localCanvas.addEventListener('mouseleave', onMouseLeave);
         const onMouseOver = (event: MouseEvent) =>

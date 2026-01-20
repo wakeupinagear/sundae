@@ -1,7 +1,7 @@
 import { C_CircleCollider } from '../components/colliders/CircleCollider';
 import { C_Drawable, C_DrawableOptions } from '../components/drawable';
 import { Engine } from '../engine';
-import { Entity } from '../entities';
+import { Entity, EntityOptions } from '../entities';
 import { E_Text, E_TextOptions } from '../objects/text';
 import type {
     RenderCommandStats,
@@ -283,7 +283,7 @@ export class C_ColliderDebug<
             const collider = entity.collider;
             const bbox = entity.transform.boundingBox;
 
-            stream.setOpacity(1);
+            stream.setOpacity(collider.isTrigger ? 0.5 : 1);
             stream.setStyle({
                 strokeStyle: 'lime',
                 lineWidth: 4 / zoomToScale(this.engine.camera.zoom),
@@ -348,12 +348,6 @@ export class C_ColliderDebug<
 class C_RaycastDebug<
     TEngine extends Engine = Engine,
 > extends C_Drawable<TEngine> {
-    constructor(options: C_DrawableOptions) {
-        const { name = 'raycastDebug', ...rest } = options;
-        super({ name, ...rest });
-    }
-
-
     override queueRenderCommands(stream: RenderCommandStream): boolean {
         if (!super.queueRenderCommands(stream)) {
             return false;
@@ -401,6 +395,43 @@ class C_RaycastDebug<
         return true;
     }
 }
+
+const MOUSE_HALF_AXIS = 12;
+
+class E_MouseDebug<
+    TEngine extends Engine = Engine,
+> extends Entity<TEngine> {
+    constructor(options: EntityOptions) {
+        super(options);
+
+        this.addComponents({
+            type: 'shape',
+            shape: 'LINE',
+            start: { x: -MOUSE_HALF_AXIS, y: 0 },
+            end: { x: MOUSE_HALF_AXIS, y: 0 },
+            style: { strokeStyle: 'blue', lineWidth: 2 },
+        }, {
+            type: 'shape',
+            shape: 'LINE',
+            start: { x: 0, y: -MOUSE_HALF_AXIS },
+            end: { x: 0.5, y: MOUSE_HALF_AXIS },
+            style: { strokeStyle: 'blue', lineWidth: 2 },
+        })
+    }
+
+    update(): boolean | void {
+        const pointerState = this._engine.pointerState;
+        if (pointerState.onScreen) {
+            this.setPosition(pointerState.worldPosition).setRotation(-this._engine.camera.rotation);
+            this.setOpacity(1);
+        } else {
+            this.setOpacity(0);
+        }
+
+        return true;
+    }
+}
+
 export class DebugOverlayScene<
     TEngine extends Engine = Engine,
 > extends Scene<TEngine> {
@@ -413,14 +444,23 @@ export class DebugOverlayScene<
         });
         visualDebug.addComponent({
             type: C_ColliderDebug,
+            name: 'colliderDebug',
             sceneEntityName: sceneEntityName,
         });
         visualDebug.addComponent({
             type: C_BoundingBoxDebug,
+            name: 'boundingBoxDebug',
             sceneEntityName: sceneEntityName,
         });
         visualDebug.addComponent({
             type: C_RaycastDebug,
+            name: 'raycastDebug',
+        });
+
+        this.createEntity({
+            type: E_MouseDebug,
+            name: 'Mouse Debug',
+            cull: 'none'
         });
 
         this.createEntity({

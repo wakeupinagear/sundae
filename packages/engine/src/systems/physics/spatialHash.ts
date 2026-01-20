@@ -2,32 +2,18 @@ import type { Entity } from '../../entities';
 import type { Engine } from '../../engine';
 import type { BoundingBox } from '../../types';
 import { boundingBoxesIntersect } from '../../utils';
+import { IVector } from '../../exports';
 
-export class SpatialHashGrid<TEngine extends Engine = Engine> {
+export class SpatialHashGrid<TEntity extends Entity<TEngine>, TEngine extends Engine = Engine> {
     #cellSize: number;
-    #grid: Map<string, Set<Entity<TEngine>>> = new Map();
+    #grid: Map<string, Set<TEntity>> = new Map();
     #entityCells: Map<string, string[]> = new Map();
 
     constructor(cellSize: number) {
         this.#cellSize = cellSize;
     }
 
-    #getCellKeysForBounds(bbox: BoundingBox): string[] {
-        const minCellX = Math.floor(bbox.x1 / this.#cellSize);
-        const minCellY = Math.floor(bbox.y1 / this.#cellSize);
-        const maxCellX = Math.floor(bbox.x2 / this.#cellSize);
-        const maxCellY = Math.floor(bbox.y2 / this.#cellSize);
-
-        const keys: string[] = [];
-        for (let x = minCellX; x <= maxCellX; x++) {
-            for (let y = minCellY; y <= maxCellY; y++) {
-                keys.push(`${x},${y}`);
-            }
-        }
-        return keys;
-    }
-
-    insert(entity: Entity<TEngine>): void {
+    insert(entity: TEntity): void {
         const bbox = entity.transform.boundingBox;
         const cellKeys = this.#getCellKeysForBounds(bbox);
 
@@ -44,7 +30,7 @@ export class SpatialHashGrid<TEngine extends Engine = Engine> {
         }
     }
 
-    remove(entity: Entity<TEngine>): void {
+    remove(entity: TEntity): void {
         const cellKeys = this.#entityCells.get(entity.id);
         if (!cellKeys) return;
 
@@ -61,7 +47,7 @@ export class SpatialHashGrid<TEngine extends Engine = Engine> {
         this.#entityCells.delete(entity.id);
     }
 
-    update(entity: Entity<TEngine>): void {
+    update(entity: TEntity): void {
         const oldCellKeys = this.#entityCells.get(entity.id);
         const bbox = entity.transform.boundingBox;
         const newCellKeys = this.#getCellKeysForBounds(bbox);
@@ -74,17 +60,8 @@ export class SpatialHashGrid<TEngine extends Engine = Engine> {
         this.insert(entity);
     }
 
-    #cellKeysEqual(keys1: string[], keys2: string[]): boolean {
-        if (keys1.length !== keys2.length) return false;
-        const set1 = new Set(keys1);
-        for (const key of keys2) {
-            if (!set1.has(key)) return false;
-        }
-        return true;
-    }
-
-    queryPairs(): [Entity<TEngine>, Entity<TEngine>][] {
-        const pairs: [Entity<TEngine>, Entity<TEngine>][] = [];
+    queryPairs(): [TEntity, TEntity][] {
+        const pairs: [TEntity, TEntity][] = [];
         const checkedPairs = new Set<string>();
 
         for (const cell of this.#grid.values()) {
@@ -114,9 +91,9 @@ export class SpatialHashGrid<TEngine extends Engine = Engine> {
         return pairs;
     }
 
-    queryBounds(bbox: BoundingBox): Entity<TEngine>[] {
+    queryBounds(bbox: BoundingBox): TEntity[] {
         const cellKeys = this.#getCellKeysForBounds(bbox);
-        const entities = new Set<Entity<TEngine>>();
+        const entities = new Set<TEntity>();
 
         for (const key of cellKeys) {
             const cell = this.#grid.get(key);
@@ -130,6 +107,16 @@ export class SpatialHashGrid<TEngine extends Engine = Engine> {
         }
 
         return Array.from(entities);
+    }
+
+    queryPoint(point: IVector<number>): TEntity[] {
+        const key = `${Math.floor(point.x / this.#cellSize)},${Math.floor(point.y / this.#cellSize)}`;
+        const cell = this.#grid.get(key);
+        if (cell) {
+            return Array.from(cell);
+        }
+
+        return [];
     }
 
     clear(): void {
@@ -158,5 +145,29 @@ export class SpatialHashGrid<TEngine extends Engine = Engine> {
             avgEntitiesPerCell: this.#grid.size > 0 ? totalEntities / this.#grid.size : 0,
             maxEntitiesInCell: maxEntities,
         };
+    }
+
+    #getCellKeysForBounds(bbox: BoundingBox): string[] {
+        const minCellX = Math.floor(bbox.x1 / this.#cellSize);
+        const minCellY = Math.floor(bbox.y1 / this.#cellSize);
+        const maxCellX = Math.floor(bbox.x2 / this.#cellSize);
+        const maxCellY = Math.floor(bbox.y2 / this.#cellSize);
+
+        const keys: string[] = [];
+        for (let x = minCellX; x <= maxCellX; x++) {
+            for (let y = minCellY; y <= maxCellY; y++) {
+                keys.push(`${x},${y}`);
+            }
+        }
+        return keys;
+    }
+
+    #cellKeysEqual(keys1: string[], keys2: string[]): boolean {
+        if (keys1.length !== keys2.length) return false;
+        const set1 = new Set(keys1);
+        for (const key of keys2) {
+            if (!set1.has(key)) return false;
+        }
+        return true;
     }
 }

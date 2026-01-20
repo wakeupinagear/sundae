@@ -1,5 +1,5 @@
 import { System } from '.';
-import { C_PointerTarget } from '../components/pointerTarget';
+import { C_Collider } from '../components/colliders';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { BoundingBox, ICanvas } from '../types';
 import type { ButtonState } from './input';
@@ -106,8 +106,6 @@ export class PointerSystem<TEngine extends Engine = Engine> extends System<TEngi
     #dragStartMousePosition: IVector<number> | null = null;
     #dragStartCameraPosition: IVector<number> | null = null;
 
-    #checkForOverlap: boolean = true;
-
     #canvas: ICanvas | null = null;
     #currentCursor: CursorType = 'default';
     #cursorRequests: Map<string, CursorRequest> = new Map();
@@ -146,14 +144,6 @@ export class PointerSystem<TEngine extends Engine = Engine> extends System<TEngi
         this.#pointerState.justMovedOffScreen =
             this.#pointerState.onScreen && !onScreen;
         this.#pointerState.onScreen = onScreen;
-    }
-
-    set checkForOverlap(checkForOverlap: boolean) {
-        this.#checkForOverlap = checkForOverlap;
-    }
-
-    get checkForOverlap(): boolean {
-        return this.#checkForOverlap;
     }
 
     get currentCursor(): CursorType {
@@ -259,7 +249,7 @@ export class PointerSystem<TEngine extends Engine = Engine> extends System<TEngi
         this.#dragStartCameraPosition = null;
     }
 
-    getPointerTargetsWithinBox(bbox: BoundingBox): C_PointerTarget[] {
+    getPointerTargetsWithinBox(bbox: BoundingBox): C_Collider<TEngine>[] {
         return this._engine.trace('getPointerTargetsWithinBox', () => {
             const pointerTargets = this.#getAllPointerTargets();
 
@@ -282,40 +272,21 @@ export class PointerSystem<TEngine extends Engine = Engine> extends System<TEngi
         this.#cursorRequests.set(id, { type, priority });
     }
 
-    #getAllPointerTargets(): C_PointerTarget[] {
-        return this._engine.rootEntity.getComponentsInTree<C_PointerTarget<TEngine>>(
-            C_PointerTarget.name,
-        );
-    }
+    #getAllPointerTargets(): C_Collider<TEngine>[] {
+        const grid = this._engine.physicsSystem.spatialGrid;
+        const entities = grid.queryPoint(this.#pointerState.worldPosition.extract());
 
-    #resetAllPointerTargets(): C_PointerTarget[] {
-        const pointerTargets = this.#getAllPointerTargets();
-        for (let i = pointerTargets.length - 1; i >= 0; i--) {
-            const pointerTarget = pointerTargets[i];
-            pointerTarget.isPointerHovered = false;
-        }
-
-        return pointerTargets;
+        return entities.map((entity) => entity.collider).filter(Boolean) as C_Collider<TEngine>[];
     }
 
     #updateAllPointerTargets(): void {
-        if (this.#checkForOverlap) {
-            if (this.#pointerState.onScreen) {
-                const pointerTargets = this.#resetAllPointerTargets();
-                for (let i = pointerTargets.length - 1; i >= 0; i--) {
-                    const pointerTarget = pointerTargets[i];
-                    const isPointerOver = pointerTarget.checkIfPointerOver(
-                        this.#pointerState.worldPosition,
-                    );
-                    if (isPointerOver) {
-                        break;
-                    }
-                }
-            } else if (this.#pointerState.justMovedOffScreen) {
-                this.#resetAllPointerTargets();
-            }
-        } else {
-            this.#resetAllPointerTargets();
+        const pointerTargets = this.#getAllPointerTargets();
+
+        for (let i = pointerTargets.length - 1; i >= 0; i--) {
+            const pointerTarget = pointerTargets[i];
+            pointerTarget.checkIfPointerOver(
+                this.#pointerState.worldPosition,
+            );
         }
 
         if (this.#pointerState.justMovedOnScreen) {

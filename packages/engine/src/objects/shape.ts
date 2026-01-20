@@ -5,6 +5,7 @@ import type { Engine } from '../engine';
 import { Entity, EntityOptions } from '../entities';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
+import { C_Collider, C_ColliderOptions } from '../exports/components';
 
 const DEFAULT_ARROW_LENGTH = 1;
 const DEFAULT_ARROW_ANGLE = 45;
@@ -19,7 +20,7 @@ export interface ArrowTip {
 
 export type Tip = ArrowTip;
 
-export interface C_ShapeOptions extends C_DrawableOptions {
+export interface C_ShapeOptions extends C_DrawableOptions, C_ColliderOptions {
     shape: Shape;
     repeat?: VectorConstructor;
     gap?: VectorConstructor;
@@ -27,7 +28,6 @@ export interface C_ShapeOptions extends C_DrawableOptions {
     end?: VectorConstructor;
     startTip?: Tip;
     endTip?: Tip;
-    collision?: boolean;
 }
 
 export interface C_ShapeJSON extends C_ShapeOptions {
@@ -60,22 +60,6 @@ export class C_Shape<
         if (options.end) this.#end = new Vector(options.end);
         this.#startTip = options.startTip ?? null;
         this.#endTip = options.endTip ?? null;
-
-        if (options.collision) {
-            if (options.shape === 'RECT') {
-                this.entity.setCollider<C_RectangleCollider<TEngine>>({
-                    type: 'rectangleCollider',
-                });
-            } else if (options.shape === 'ELLIPSE') {
-                this.entity.setCollider<C_CircleCollider<TEngine>>({
-                    type: 'circleCollider',
-                });
-            } else {
-                this._engine.warn(
-                    `Collision not supported for shape '${this.shape}'`,
-                );
-            }
-        }
     }
 
     override get typeString(): string {
@@ -275,7 +259,9 @@ export class C_Shape<
     }
 }
 
-export interface E_ShapeOptions extends EntityOptions, C_ShapeOptions {}
+export interface E_ShapeOptions extends EntityOptions, C_ShapeOptions {
+    collision?: boolean;
+}
 
 export interface E_ShapeJSON extends E_ShapeOptions {
     type: 'shape';
@@ -292,9 +278,28 @@ export class E_Shape<TEngine extends Engine = Engine> extends Entity<TEngine> {
             type: 'shape',
             name: 'Shape',
         });
+
+        if (options.collision || options.pointerTarget) {
+            const collOptions = C_Collider.getCollisionOptionsForEntity(options);
+            if (options.shape === 'RECT') {
+                this.setCollider<C_RectangleCollider<TEngine>>({
+                    type: 'rectangleCollider',
+                    ...collOptions,
+                });
+            } else if (options.shape === 'ELLIPSE') {
+                this.setCollider<C_CircleCollider<TEngine>>({
+                    type: 'circleCollider',
+                    ...collOptions,
+                });
+            } else {
+                this._engine.warn(
+                    `Collision not supported for shape '${this.shape}'`,
+                );
+            }
+        }
     }
 
-    get shape(): Shape {
-        return this.#shape.shape;
+    get shape(): C_Shape<TEngine> {
+        return this.#shape;
     }
 }
