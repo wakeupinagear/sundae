@@ -26,3 +26,4 @@
 - Do not use the browser's default globals (`console`, `navigator`, etc) as the engine should be able to run headless in Node-like environments.
 - Prefer `engine.log` to `console.log`, where the engine is a reference to the `Engine` instance
 - Prefer **small, focused changes** that respect the existing ECS and level-editor architecture instead of introducing new one-off patterns.
+- All rotations are in degrees, not radians.

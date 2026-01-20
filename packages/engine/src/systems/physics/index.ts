@@ -64,7 +64,7 @@ export class PhysicsSystem<
         this.#updateGravity();
     }
 
-    get gravityDirection() {
+    get gravityDirection(): ImmutableVector {
         return this.#gravityDirection;
     }
 

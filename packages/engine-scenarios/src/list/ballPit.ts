@@ -57,8 +57,5 @@ class PitScene extends Scene {
 }
 
 export const ballPit:EngineScenario = (harness) => {
-    harness.engine.options = {
-        physicsPerSecond: 120,
-    }
     harness.engine.openScene(PitScene)
 }

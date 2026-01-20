@@ -179,7 +179,7 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     cullScale: 1,
 
     maxCollisionIterations: 8,
-    physicsPerSecond: 60,
+    physicsPerSecond: 120,
     spatialHashCellSize: 100,
 
     gravityScale: 9.8 * 20,

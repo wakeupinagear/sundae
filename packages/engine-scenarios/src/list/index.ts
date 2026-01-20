@@ -1,5 +1,6 @@
 import { EngineScenario } from '..';
 import { ballPit } from './ballPit';
+import { ballVortex } from './ballVortex';
 import { pong } from './pong';
 import { renderChaos } from './renderChaos';
 import { superSundaeBros } from './superSundaeBros';
@@ -23,6 +24,11 @@ export const scenarios: Record<string, ScenarioMetadata> = {
         name: 'Ball Pit',
         description: 'So many balls',
         scenario: ballPit,
+    },
+    ballVortex: {
+        name: 'Ball Vortex',
+        description: 'A vortex of balls',
+        scenario: ballVortex,
     },
     superSundaeBros: {
         name: 'Super Sundae Bros',

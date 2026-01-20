@@ -3,7 +3,6 @@ import { Engine } from '../engine';
 import { Vector, VectorConstructor } from '../math/vector';
 import { RenderCommandStream } from '../systems/render/command';
 import { RenderStyle } from '../systems/render/style';
-import { BoundingBox } from '../types';
 import { OPACITY_THRESHOLD } from '../utils';
 
 export interface C_DrawableOptions extends ComponentOptions {
@@ -24,8 +23,6 @@ export abstract class C_Drawable<
     protected _fill: boolean;
     protected _style: RenderStyle;
     protected _opacity: number;
-
-    #fillBB: BoundingBox | null = null;
 
     constructor(options: DrawableOptions) {
         super({ name: 'drawable', ...options });

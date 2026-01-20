@@ -50,7 +50,10 @@ export class C_Shape<
     #endTip: Tip | null = null;
 
     constructor(options: C_ShapeOptions) {
-        super({ name: 'shape', ...options });
+        super({ name: 'shape', ...options, style: {
+            lineCap: options.startTip || options.endTip ? 'round' : 'butt',
+            ...options.style,
+        } });
 
         this.#shape = options.shape;
         this.#repeat = new Vector(options.repeat ?? 1);
@@ -279,7 +282,7 @@ export class E_Shape<TEngine extends Engine = Engine> extends Entity<TEngine> {
             name: 'Shape',
         });
 
-        if (options.collision || options.pointerTarget) {
+        if (C_Collider.isCollisionEnabledInOptions(options)) {
             const collOptions = C_Collider.getCollisionOptionsForEntity(options);
             if (options.shape === 'RECT') {
                 this.setCollider<C_RectangleCollider<TEngine>>({

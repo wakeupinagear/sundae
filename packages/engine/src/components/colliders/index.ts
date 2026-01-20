@@ -301,6 +301,10 @@ export abstract class C_Collider<
         };
     };
 
+    static isCollisionEnabledInOptions(options: C_ColliderOptions & { collision?: boolean }): boolean {
+        return options.collision ?? options.isTrigger ?? options.pointerTarget ?? false;
+    }
+
     static getCollisionOptionsForEntity(options: C_ColliderOptions & { collision?: boolean }): Partial<C_ColliderOptions> {
         return {
             isTrigger: options.isTrigger ?? (!options.collision),
