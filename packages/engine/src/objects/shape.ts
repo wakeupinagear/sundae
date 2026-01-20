@@ -108,6 +108,7 @@ export class C_Shape<
             this.#start.set(start);
         }
 
+        this._markBoundsDirty();
         return this;
     }
 
@@ -118,6 +119,7 @@ export class C_Shape<
             this.#end.set(end);
         }
 
+        this._markBoundsDirty();
         return this;
     }
 
@@ -129,11 +131,13 @@ export class C_Shape<
 
     setStartTip(tip: Tip | null): this {
         this.#startTip = tip;
+        this._markBoundsDirty();
         return this;
     }
 
     setEndTip(tip: Tip | null): this {
         this.#endTip = tip;
+        this._markBoundsDirty();
         return this;
     }
 
@@ -208,6 +212,67 @@ export class C_Shape<
         }
 
         return true;
+    }
+
+    protected override _computeBoundingBox(): void {
+        if (this.#shape === 'LINE' && this.#start && this.#end) {
+            let minX = Math.min(this.#start.x, this.#end.x);
+            let maxX = Math.max(this.#start.x, this.#end.x);
+            let minY = Math.min(this.#start.y, this.#end.y);
+            let maxY = Math.max(this.#start.y, this.#end.y);
+
+            if (this.#startTip?.type === 'arrow') {
+                const tipPoints = this.#getArrowTipPoints(this.#start, -1, this.#startTip);
+                for (const point of tipPoints) {
+                    minX = Math.min(minX, point.x);
+                    maxX = Math.max(maxX, point.x);
+                    minY = Math.min(minY, point.y);
+                    maxY = Math.max(maxY, point.y);
+                }
+            }
+
+            if (this.#endTip?.type === 'arrow') {
+                const tipPoints = this.#getArrowTipPoints(this.#end, 1, this.#endTip);
+                for (const point of tipPoints) {
+                    minX = Math.min(minX, point.x);
+                    maxX = Math.max(maxX, point.x);
+                    minY = Math.min(minY, point.y);
+                    maxY = Math.max(maxY, point.y);
+                }
+            }
+
+            const lineWidth = (this._style.lineWidth ?? 1) / 2;
+            this._boundingBox = {
+                x1: minX - lineWidth,
+                x2: maxX + lineWidth,
+                y1: minY - lineWidth,
+                y2: maxY + lineWidth,
+            };
+        } else {
+            super._computeBoundingBox();
+        }
+    }
+
+    #getArrowTipPoints(origin: IVector<number>, angMult: number, tip: Tip): IVector<number>[] {
+        if (!this.#start || !this.#end) {
+            return [];
+        }
+
+        const { length = DEFAULT_ARROW_LENGTH } = tip;
+        let { angle = DEFAULT_ARROW_ANGLE } = tip;
+        angle *= angMult;
+        const baseAng = Math.atan2(
+            this.#end.x - this.#start.x,
+            this.#end.y - this.#start.y,
+        );
+
+        return [{
+            x: origin.x + Math.cos(baseAng + (angle / 180) * Math.PI) * length,
+            y: origin.y + -Math.sin(baseAng + (angle / 180) * Math.PI) * length,
+        }, {
+            x: origin.x + -Math.cos(baseAng + (-angle / 180) * Math.PI) * length,
+            y: origin.y + Math.sin(baseAng + (-angle / 180) * Math.PI) * length,
+        }];
     }
 
     #drawTip(
