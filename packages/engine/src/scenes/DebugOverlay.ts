@@ -305,16 +305,21 @@ export class C_ColliderDebug<
                     1,
                 );
             } else if (collider.type === 'rectangle') {
-                stream.drawRect(
-                    bbox.x1,
-                    bbox.y1,
-                    bbox.x2 - bbox.x1,
-                    bbox.y2 - bbox.y1,
-                    1,
-                    1,
-                    1,
-                    1,
-                );
+                const bounds = collider.collisionBounds;
+                for (let i = 0; i < bounds.length + 1; i++) {
+                    const point1 = bounds[i % bounds.length];
+                    const point2 = bounds[(i + 1) % bounds.length];
+                    stream.drawLine(
+                        point1.x,
+                        point1.y,
+                        point2.x,
+                        point2.y,
+                        1,
+                        1,
+                        1,
+                        1,
+                    );
+                }
             }
 
             stream.setStyle({

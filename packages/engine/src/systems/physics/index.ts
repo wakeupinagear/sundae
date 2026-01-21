@@ -39,7 +39,7 @@ export class PhysicsSystem<
     #gravityDirection: Vector = new Vector(0)
     #currentGravity: Vector = new Vector(0)
 
-    #rigidbodies: Map<string, C_Rigidbody<TEngine>> = new Map()
+    #physicsEntities: Map<string, Entity<TEngine>> = new Map();
 
     #pairs: [C_Collider<TEngine>, C_Collider<TEngine>][] = [];
     #pairIndex: number = 0;
@@ -91,31 +91,28 @@ export class PhysicsSystem<
     }
 
     override lateUpdate(deltaTime: number): boolean | void {
-        // Accumulate time
-        this.#timeAccumulator += deltaTime;
-        
-        // Cap accumulation to prevent "spiral of death" where physics can't keep up
-        if (this.#timeAccumulator > MAX_TIMESTEP_ACCUMULATION) {
-            this.#timeAccumulator = MAX_TIMESTEP_ACCUMULATION;
-        }
+        this.#timeAccumulator = Math.min(this.#timeAccumulator + deltaTime, MAX_TIMESTEP_ACCUMULATION);
         
         const fixedTimeStep = 1 / this._engine.options.physicsPerSecond;
         while (this.#timeAccumulator >= fixedTimeStep) {
-            this.#physicsUpdate(fixedTimeStep);
+            this.#buildSpatialGrid();
             
             this.#broadPhase();
             this.#narrowPhase();
+
+            this.#physicsUpdate(fixedTimeStep);
             
             this.#timeAccumulator -= fixedTimeStep;
         }
     }
 
-    registerRigidbody(rb: C_Rigidbody<TEngine>): void {
-        this.#rigidbodies.set(rb.id, rb);
+    registerPhysicsEntity(entity: Entity<TEngine>): void {
+        this.#physicsEntities.set(entity.id, entity);
     }
 
-    unregisterRigidbody(rb: C_Rigidbody<TEngine>): void {
-        this.#rigidbodies.delete(rb.id);
+    unregisterPhysicsEntity(entity: Entity<TEngine>): void {
+        this.#physicsEntities.delete(entity.id);
+        this.#spatialGrid.remove(entity);
     }
 
     raycast(request: RaycastRequest<TEngine>): Raycast<TEngine>['result'] {
@@ -218,8 +215,9 @@ export class PhysicsSystem<
     }
 
     #physicsUpdate(deltaTime: number): void {
-        for (const rb of this.#rigidbodies.values()) {
-            rb.physicsUpdate(deltaTime, this.#currentGravity);
+        for (const entity of this.#physicsEntities.values()) {
+            const rb = entity.rigidbody;
+            rb?.physicsUpdate(deltaTime, this.#currentGravity);
         }
     }
 
@@ -229,23 +227,18 @@ export class PhysicsSystem<
             return;
         }
 
-        this.#spatialGrid.clear();
-        this.#buildSpatialGrid(this._engine.rootEntity);
-
         const pairs = this.#spatialGrid.queryPairs();
         for (const [entityA, entityB] of pairs) {
             this.#broadPhaseDescend(entityA, entityB);
         }
     }
 
-    #buildSpatialGrid(entity: Readonly<Entity<TEngine>>): void {
-        if (entity.collider) {
-            this.#spatialGrid.insert(entity as Entity<TEngine>);
-        }
-
-        for (const child of entity.children) {
-            if (child.collider || child.childColliderCount > 0) {
-                this.#buildSpatialGrid(child);
+    #buildSpatialGrid(): void {
+        this.#spatialGrid.clear();
+        for (const entity of this.#physicsEntities.values()) {
+            const collider = entity.collider;
+            if (collider) {
+                this.#spatialGrid.insert(entity);
             }
         }
     }

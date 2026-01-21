@@ -38,13 +38,13 @@ export class C_Rigidbody<
         this.#bounce = options.bounce ?? 0.2;
         this.#computeInvMass();
 
-        this._engine.physicsSystem.registerRigidbody(this);
+        this._engine.physicsSystem.registerPhysicsEntity(this.entity);
     }
 
     override destroy(): void {
         super.destroy();
 
-        this._engine.physicsSystem.unregisterRigidbody(this);
+        this._engine.physicsSystem.unregisterPhysicsEntity(this.entity);
     }
 
     get mass(): number {
@@ -106,7 +106,7 @@ export class C_Rigidbody<
     physicsUpdate(deltaTime: number, currentGravity: Vector): void {
         this.addForce(currentGravity.scaleBy(this.#mass).scaleBy(this.#gravityScale));
 
-        this.#acceleration.set(this.#force.scaleBy(this.#invMass))
+        this.#acceleration.set(this.#force.scaleBy(this.#invMass));
         this.#velocity.addMut(this.#acceleration.scaleBy(deltaTime));
         this._entity.move(this.#velocity.scaleBy(deltaTime));
         this.#force.set(0);

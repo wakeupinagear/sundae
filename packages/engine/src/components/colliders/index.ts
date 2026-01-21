@@ -52,6 +52,14 @@ export abstract class C_Collider<
         this.#onPointerLeave = options.onPointerLeave ?? null;
         this.#cursorOnHover = options.cursorOnHover ?? null;
         this.#cursorPriority = options.cursorPriority ?? 5;
+
+        this._engine.physicsSystem.registerPhysicsEntity(this.entity);
+    }
+
+    override destroy(): void {
+        super.destroy();
+
+        this._engine.physicsSystem.unregisterPhysicsEntity(this.entity);
     }
 
     get type(): ColliderType {
