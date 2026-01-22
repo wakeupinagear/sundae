@@ -2,7 +2,7 @@ import type { Entity } from '../../entities';
 import type { Engine } from '../../engine';
 import type { BoundingBox } from '../../types';
 import { boundingBoxesIntersect } from '../../utils';
-import { IVector } from '../../exports';
+import { type IVector } from '../../math/vector';
 
 export class SpatialHashGrid<TEntity extends Entity<TEngine>, TEngine extends Engine = Engine> {
     #cellSize: number;

@@ -1,8 +1,8 @@
-import { C_CircleCollider } from '../components/colliders/CircleCollider';
-import { C_Drawable, C_DrawableOptions } from '../components/drawable';
-import { Engine } from '../engine';
-import { Entity, EntityOptions } from '../entities';
-import { E_Text, E_TextOptions } from '../objects/text';
+import { type C_CircleCollider } from '../components/colliders/CircleCollider';
+import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
+import { type Engine } from '../engine';
+import { Entity, type EntityOptions } from '../entities';
+import { E_Text, type E_TextOptions } from '../objects/text';
 import type {
     RenderCommandStats,
     RenderCommandStream,

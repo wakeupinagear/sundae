@@ -1,5 +1,5 @@
 import type { Engine } from '../engine';
-import { Entity } from '../entities';
+import { type Entity } from '../entities';
 import type { RenderCommandStream } from '../systems/render/command';
 import type {
     BoundingBox,

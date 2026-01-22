@@ -1,7 +1,7 @@
 import { Scene } from "@repo/engine/scene";
-import { EngineScenario } from "..";
-import { Engine, EngineOptions, Vector } from "@repo/engine";
-import { E_Shape, type E_ShapeJSON } from "@repo/engine/entities";
+import { type EngineScenario } from "..";
+import { type Engine, type EngineOptions, Vector } from "@repo/engine";
+import { type E_Shape, type E_ShapeJSON } from "@repo/engine/entities";
 
 const BALL_COLORS = ['red', 'blue', 'cyan', 'yellow', 'orange', 'green'];
 const HEXAGON_RADIUS = 350;

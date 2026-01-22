@@ -1,8 +1,8 @@
-import { Entity, type EntityOptions, type InternalEntityOptions } from '.';
-import { Engine } from '../engine';
-import { E_Image, E_ImageJSON } from '../objects/image';
-import { E_Shape, E_ShapeJSON } from '../objects/shape';
-import { E_Text, E_TextJSON } from '../objects/text';
+import { Entity, type EntityOptions, type InternalEntityOptions } from '../entities';
+import { type Engine } from '../engine';
+import { E_Image, type E_ImageJSON } from '../objects/image';
+import { E_Shape, type E_ShapeJSON } from '../objects/shape';
+import { E_Text, type E_TextJSON } from '../objects/text';
 
 export type BaseEntityJSON = EntityOptions & { type?: 'entity' };
 

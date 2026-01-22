@@ -1,33 +1,14 @@
-import { C_Collider } from '../components/colliders';
-import {
-    type Component,
-    type ComponentConstructor,
-    type ComponentJSON,
-    type CustomComponentJSON,
-} from '../components/factory';
-import { C_Rigidbody } from '../components/rigidbody';
-import { C_Transform } from '../components/transforms';
-import type { Engine } from '../engine';
-import {
-    type IVector,
-    ImmutableVector,
-    Vector,
-    type VectorConstructor,
-} from '../math/vector';
-import type { RenderCommandStream } from '../systems/render/command';
-import type {
-    BoundingBox,
-    Camera,
-    CollisionContact,
-    OneAxisAlignment,
-    Renderable,
-} from '../types';
-import { boundingBoxesIntersect, zoomToScale } from '../utils';
-import type {
-    CustomEntityJSON,
-    EntityConstructor,
-    EntityJSON,
-} from './factory';
+import type { C_Collider } from "../components/colliders";
+import { type Component, type ComponentConstructor, type ComponentJSON, type CustomComponentJSON } from "../components/factory";
+import type { C_Rigidbody } from "../components/rigidbody";
+import type { C_Transform } from "../components/transforms";
+import { type Engine } from "../engine";
+import { type CustomEntityJSON, type EntityConstructor, type EntityJSON } from "./factory";
+import { type ImmutableVector, type IVector, Vector, type VectorConstructor } from "../math/vector";
+import type { RenderCommandStream } from "../systems/render/command";
+import { type BoundingBox, type Camera, type CollisionContact, type OneAxisAlignment, type Renderable } from "../types";
+import { boundingBoxesIntersect } from "../utils";
+import { zoomToScale } from "../utils";
 
 type CullMode = 'components' | 'children' | 'all' | 'none';
 type PositionRelativeToCamera = OneAxisAlignment | 'none';

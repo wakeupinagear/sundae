@@ -2,31 +2,31 @@ import {
     Component,
     type ComponentOptions,
     type InternalComponentOptions,
-} from '.';
+} from './index';
 import type { Engine } from '../engine';
-import { C_Image, C_ImageJSON } from '../objects/image';
-import { C_Shape, C_ShapeJSON } from '../objects/shape';
-import { C_Text, C_TextJSON } from '../objects/text';
+import { C_Image, type C_ImageJSON } from '../objects/image';
+import { C_Shape, type C_ShapeJSON } from '../objects/shape';
+import { C_Text, type C_TextJSON } from '../objects/text';
 import {
     C_CircleCollider,
-    C_CircleColliderJSON,
+    type C_CircleColliderJSON,
 } from './colliders/CircleCollider';
 import {
     C_RectangleCollider,
-    C_RectangleColliderJSON,
+    type C_RectangleColliderJSON,
 } from './colliders/RectangleCollider';
 import {
     C_Lerp,
-    C_LerpJSON,
+    type C_LerpJSON,
     C_LerpOpacity,
-    C_LerpOpacityJSON,
+    type C_LerpOpacityJSON,
     C_LerpPosition,
-    C_LerpPositionJSON,
+    type C_LerpPositionJSON,
     C_LerpRotation,
-    C_LerpRotationJSON,
+    type C_LerpRotationJSON,
 } from './lerp';
-import { C_Rigidbody, C_RigidbodyJSON } from './rigidbody';
-import { C_Transform, C_TransformJSON } from './transforms';
+import { C_Rigidbody, type C_RigidbodyJSON } from './rigidbody';
+import { C_Transform, type C_TransformJSON } from './transforms';
 
 export { Component };
 export type { ComponentOptions };

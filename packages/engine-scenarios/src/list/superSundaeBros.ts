@@ -1,8 +1,8 @@
-import { CollisionContact, Engine, EngineOptions, IVector, Vector } from '@repo/engine';
-import { E_Shape, E_ShapeOptions, E_Text } from '@repo/engine/entities';
+import { type CollisionContact, type Engine, type EngineOptions, type IVector, Vector } from '@repo/engine';
+import { E_Shape, type E_ShapeOptions, type E_Text } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
-import { EngineScenario } from '..';
+import { type EngineScenario } from '..';
 
 type Tile = 'P' | 'C' | 'B' | 'Y' | 'A' | 'F' | 'G' | 'H' | 'I';
 
@@ -74,7 +74,7 @@ class E_Player extends E_Shape {
         const input = this.engine.getAxis(PLAYER_MOVEMENT_AXIS);
         this.rigidbody?.addForce({ x: input.value.x * 10000, y: 0 });
 
-        const raycastResult = this._engine.raycast({
+        const raycastResult = this.engine.raycast({
             origin: { x: this.position.x + this.scale.x * 0.5, y: this.position.y + this.scale.y * 0.5 },
             direction: Vector.DOWN,
             maxDistance: 25,
@@ -192,16 +192,16 @@ class LevelScene extends Scene {
     }
 
     update(): boolean | void {
-        this._engine.cameraTarget = ({
+        this.engine.cameraTarget = ({
             position: {
                 x: Math.max(
-                    this._engine.camera.position.x,
+                    this.engine.camera.position.x,
                     this.#player.position.x,
                 ),
-                y: this._engine.camera.position.y,
+                y: this.engine.camera.position.y,
             },
-            zoom: this._engine.camera.zoom,
-            rotation: this._engine.camera.rotation,
+            zoom: this.engine.camera.zoom,
+            rotation: this.engine.camera.rotation,
         });
     }
     

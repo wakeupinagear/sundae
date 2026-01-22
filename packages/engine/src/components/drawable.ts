@@ -1,8 +1,8 @@
-import { Component, ComponentOptions } from '.';
-import { Engine } from '../engine';
-import { Vector, VectorConstructor } from '../math/vector';
-import { RenderCommandStream } from '../systems/render/command';
-import { RenderStyle } from '../systems/render/style';
+import { Component, type ComponentOptions } from './index';
+import { type Engine } from '../engine';
+import { Vector, type VectorConstructor } from '../math/vector';
+import { type RenderCommandStream } from '../systems/render/command';
+import { type RenderStyle } from '../systems/render/style';
 import { OPACITY_THRESHOLD } from '../utils';
 
 export interface C_DrawableOptions extends ComponentOptions {

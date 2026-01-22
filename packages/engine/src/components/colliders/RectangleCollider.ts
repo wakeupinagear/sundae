@@ -1,7 +1,7 @@
-import { C_Collider, C_ColliderOptions } from '.';
-import { Engine } from '../../engine';
-import { Vector } from '../../math/vector';
-import { BoundingBox } from '../../types';
+import { C_Collider, type C_ColliderOptions } from './index';
+import { type Engine } from '../../engine';
+import { type Vector } from '../../math/vector';
+import { type BoundingBox } from '../../types';
 import { boundingBoxesIntersect } from '../../utils';
 
 interface C_RectangleColliderOptions extends C_ColliderOptions {}

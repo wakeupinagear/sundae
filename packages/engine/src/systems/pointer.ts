@@ -1,10 +1,10 @@
-import { System } from '.';
-import { C_Collider } from '../components/colliders';
+import { System } from './index';
+import { type C_Collider } from '../components/colliders';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { BoundingBox, ICanvas } from '../types';
 import type { ButtonState } from './input';
 import { zoomToScale } from '../utils';
-import { Engine } from '../exports';
+import { type Engine } from '../engine';
 
 const MAX_DISTANCE_DURING_CLICK = 10;
 const DRAG_CURSOR_PRIORITY = 100;

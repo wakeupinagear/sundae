@@ -1,11 +1,11 @@
-import { Engine } from '../../engine';
-import { Vector } from '../../exports';
-import { BoundingBox, CollisionContact } from '../../types';
-import { Component, ComponentOptions } from '../factory';
-import { C_Rigidbody } from '../rigidbody';
-import { C_CircleCollider } from './CircleCollider';
-import { C_RectangleCollider } from './RectangleCollider';
+import { type Engine } from '../../engine';
+import { type Vector } from '../../math/vector';
+import { type BoundingBox, type CollisionContact } from '../../types';
+import { Component, type ComponentOptions } from '../index';
+import { type C_Rigidbody } from '../rigidbody';
+import { type C_RectangleCollider } from './RectangleCollider';
 import type { CursorType } from '../../systems/pointer';
+import type { C_CircleCollider } from './CircleCollider';
 
 type ColliderType = 'circle' | 'rectangle';
 

@@ -6,7 +6,7 @@ import {
     type CustomComponentJSON,
     createComponentFromJSON,
 } from './components/factory';
-import { Entity } from './entities';
+import { type Entity } from './entities';
 import type { InternalEntityOptions } from './entities';
 import {
     type BaseEntityJSON,
@@ -16,9 +16,9 @@ import {
     type StringEntityJSON,
     createEntityFromJSON,
 } from './entities/factory';
-import { Matrix2D } from './math/matrix';
+import { type Matrix2D } from './math/matrix';
 import { generatePRNG } from './math/random';
-import { VectorConstructor, type IVector } from './math/vector';
+import { type VectorConstructor, type IVector } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import { CameraSystem } from './systems/camera';
@@ -32,7 +32,7 @@ import {
     type KeyboardKeyState,
 } from './systems/input';
 import { type I_Logging, type LogOutput, LogSystem } from './systems/log';
-import { PhysicsSystem, Raycast, RaycastRequest } from './systems/physics';
+import { PhysicsSystem, type Raycast, type RaycastRequest } from './systems/physics';
 import {
     type CameraScrollMode,
     type CursorType,
@@ -43,7 +43,7 @@ import {
 } from './systems/pointer';
 import { RenderSystem } from './systems/render';
 import {
-    Scene,
+    type Scene,
     type SceneIdentifier,
     type SceneOptions,
 } from './systems/scene';

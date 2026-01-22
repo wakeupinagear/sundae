@@ -3,7 +3,7 @@ import path from 'path';
 import { Canvas } from 'skia-canvas';
 import { test } from 'vitest';
 
-import { Engine, EngineOptions } from '@repo/engine';
+import { Engine, type EngineOptions } from '@repo/engine';
 import type { EngineScenario, IEngineHarness } from '@repo/engine-scenarios';
 
 const WRITE_MODE = process.env.WRITE_SNAPSHOTS === 'true';
@@ -43,6 +43,7 @@ class SnapshotHarness implements IEngineHarness {
                 this.#startNextFrame = startNextFrame;
             },
         });
+        this.#engine.canvas = canvas;
         this.#canvas = canvas;
 
         this.#testName = options?.testName;
@@ -51,6 +52,10 @@ class SnapshotHarness implements IEngineHarness {
 
     get engine() {
         return this.#engine;
+    }
+
+    get snapshotCount() {
+        return this.#snapshotCount;
     }
 
     async step(n = 1) {
@@ -116,10 +121,14 @@ export function defineSnapshotTest(
     fn: EngineScenario,
     options: SnapshotTestOptions,
 ) {
-    const canvas: Canvas = options.canvas ?? new Canvas(1000, 750);
+    const canvas: Canvas = options.canvas ?? new Canvas(800, 600);
 
     test(name, async () => {
         const harness = new SnapshotHarness(canvas, {}, { testName: name });
         await fn(harness);
+        if (harness.snapshotCount === 0) {
+            await harness.step(12);
+            harness.snapshot();
+        }
     });
 }

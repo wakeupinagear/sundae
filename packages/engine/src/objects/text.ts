@@ -1,8 +1,8 @@
-import { C_Drawable, C_DrawableOptions } from '../components/drawable';
+import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
-import { Entity, EntityOptions } from '../entities';
-import { C_Shape, C_ShapeOptions } from '../exports/components';
-import { Vector } from '../math/vector';
+import { Entity, type EntityOptions } from '../entities';
+import { type C_Shape, type C_ShapeOptions } from './shape';
+import { Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { BoundingBox, TwoAxisAlignment } from '../types';
 
@@ -929,7 +929,15 @@ export class C_Text<
     }
 }
 
-export interface E_TextOptions extends EntityOptions, C_TextOptions {}
+export interface E_TextOptions extends EntityOptions, C_TextOptions {
+    collision?: boolean;
+    mass?: number;
+    kinematic?: boolean;
+    velocity?: VectorConstructor;
+    force?: VectorConstructor;
+    gravityScale?: VectorConstructor;
+    bounce?: number;
+}
 
 export interface E_TextJSON extends E_TextOptions {
     type: 'text';

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { Engine, EngineOptions } from '@repo/engine';
+import { Engine, type EngineOptions } from '@repo/engine';
 import { scenarios } from '@repo/engine-scenarios/list';
 
 import { EngineCanvas } from './EngineCanvas';

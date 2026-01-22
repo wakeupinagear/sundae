@@ -1,5 +1,5 @@
-import { Component, type ComponentOptions } from '.';
-import { Engine } from '../engine';
+import { Component, type ComponentOptions } from './index';
+import { type Engine } from '../engine';
 import { Matrix2D } from '../math/matrix';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { BoundingBox } from '../types';

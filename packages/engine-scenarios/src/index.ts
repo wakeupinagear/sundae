@@ -1,4 +1,4 @@
-import { Engine } from '@repo/engine';
+import { type Engine } from '@repo/engine';
 
 export interface IEngineHarness {
     engine: Engine;

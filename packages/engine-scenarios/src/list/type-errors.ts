@@ -1,7 +1,7 @@
-import { Entity, EntityOptions } from '@repo/engine/entities';
+import { Entity, type EntityOptions } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
-import { EngineScenario } from '..';
+import { type EngineScenario } from '..';
 
 // Custom entity classes for testing
 interface E_CustomOptions extends EntityOptions {

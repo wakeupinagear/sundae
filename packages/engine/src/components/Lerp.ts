@@ -1,5 +1,5 @@
-import { Component, type ComponentOptions } from '.';
-import { Engine } from '../engine';
+import { Component, type ComponentOptions } from './index';
+import { type Engine } from '../engine';
 import { type IVector } from '../math/vector';
 
 const SNAP_EPSILON = 1e-6;

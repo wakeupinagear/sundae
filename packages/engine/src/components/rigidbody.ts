@@ -1,5 +1,7 @@
-import { CollisionContact, Engine, Vector, VectorConstructor } from '../exports';
-import { Component, ComponentOptions } from './factory';
+import { type Engine } from '../engine';
+import { Vector, type VectorConstructor } from '../math/vector';
+import type { CollisionContact } from '../types';
+import { Component, type ComponentOptions } from './index';
 
 interface C_RigidbodyOptions extends ComponentOptions {
     mass?: number;

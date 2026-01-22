@@ -1,5 +1,5 @@
-import { System } from '.';
-import { Engine } from '../exports';
+import { System } from './index';
+import { type Engine } from '../engine';
 
 export interface LoadedImage {
     name: string;

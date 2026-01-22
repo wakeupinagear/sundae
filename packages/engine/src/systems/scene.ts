@@ -1,6 +1,6 @@
-import { System } from '.';
+import { System } from './index';
 import type { Engine } from '../engine';
-import { Entity } from '../entities';
+import { type Entity } from '../entities';
 import {
     type BaseEntityJSON,
     type CustomEntityJSON,

@@ -1,5 +1,5 @@
-import { System } from '.';
-import { Engine } from '../exports';
+import { System } from '../systems';
+import { type Engine } from '../engine';
 import { Vector } from '../math/vector';
 import type { WebKey } from '../types';
 

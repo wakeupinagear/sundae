@@ -1,10 +1,11 @@
-import { System } from '..';
-import { C_Collider } from '../../components/colliders';
-import { C_CircleCollider } from '../../components/colliders/CircleCollider';
-import { C_RectangleCollider } from '../../components/colliders/RectangleCollider';
-import { C_Rigidbody } from '../../components/rigidbody';
+import { System } from '../index';
+import { type C_Collider } from '../../components/colliders';
+import { type C_CircleCollider } from '../../components/colliders/CircleCollider';
+import { type C_RectangleCollider } from '../../components/colliders/RectangleCollider';
 import type { Engine } from '../../engine';
-import { Entity, IVector, ImmutableVector, Vector, VectorConstructor, boundingBoxesIntersect } from '../../exports';
+import { type Entity } from '../../entities';
+import { type IVector, type ImmutableVector, Vector, type VectorConstructor } from '../../math/vector';
+import { boundingBoxesIntersect } from '../../utils';
 import type { CollisionContact } from '../../types';
 import { SpatialHashGrid } from './spatialHash';
 

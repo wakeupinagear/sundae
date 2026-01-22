@@ -17,5 +17,16 @@
         "**/bower_components": true,
         "**/*.code-search": true,
         "**/exports/**": true,
-    }
+    },
+    "typescript.preferences.importModuleSpecifier": "non-relative",
+    "javascript.preferences.importModuleSpecifier": "non-relative",
+    "typescript.preferences.importModuleSpecifierEnding": "minimal",
+    "javascript.preferences.importModuleSpecifierEnding": "minimal",
+    "typescript.preferences.autoImportFileExcludePatterns": [
+        "**/packages/engine/exports/**"
+    ],
+    "javascript.preferences.autoImportFileExcludePatterns": [
+        "**/packages/engine/exports/**"
+    ],
+    "typescript.preferences.preferTypeOnlyAutoImports": true
 }

@@ -1,5 +1,5 @@
-import { Engine } from '@repo/engine';
-import { IEngineHarness } from '@repo/engine-scenarios';
+import { type Engine } from '@repo/engine';
+import { type IEngineHarness } from '@repo/engine-scenarios';
 
 export class WebHarness implements IEngineHarness {
     constructor(public engine: Engine) {}

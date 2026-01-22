@@ -1,4 +1,4 @@
-import { System } from '.';
+import { System } from './index';
 import type { Engine } from '../engine';
 import { Matrix2D } from '../math/matrix';
 import { type IVector, Vector } from '../math/vector';

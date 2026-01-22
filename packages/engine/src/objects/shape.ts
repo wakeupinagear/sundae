@@ -1,11 +1,11 @@
-import { C_CircleCollider } from '../components/colliders/CircleCollider';
-import { C_RectangleCollider } from '../components/colliders/RectangleCollider';
-import { C_Drawable, C_DrawableOptions } from '../components/drawable';
+import { type C_CircleCollider } from '../components/colliders/CircleCollider';
+import { type C_RectangleCollider } from '../components/colliders/RectangleCollider';
+import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
-import { Entity, EntityOptions } from '../entities';
+import { Entity, type EntityOptions } from '../entities';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
-import { C_Collider, C_ColliderOptions } from '../exports/components';
+import { C_Collider, type C_ColliderOptions } from '../components/colliders';
 
 const DEFAULT_ARROW_LENGTH = 1;
 const DEFAULT_ARROW_ANGLE = 45;
@@ -329,6 +329,12 @@ export class C_Shape<
 
 export interface E_ShapeOptions extends EntityOptions, C_ShapeOptions {
     collision?: boolean;
+    mass?: number;
+    kinematic?: boolean;
+    velocity?: VectorConstructor;
+    force?: VectorConstructor;
+    gravityScale?: VectorConstructor;
+    bounce?: number;
 }
 
 export interface E_ShapeJSON extends E_ShapeOptions {

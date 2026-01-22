@@ -1,8 +1,8 @@
-import { C_RectangleCollider } from '../components/colliders/RectangleCollider';
-import { C_Drawable, C_DrawableOptions } from '../components/drawable';
+import { type C_RectangleCollider } from '../components/colliders/RectangleCollider';
+import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
-import { Entity, EntityOptions } from '../entities';
-import { C_Collider, C_ColliderOptions } from '../exports/components';
+import { Entity, type EntityOptions } from '../entities';
+import { C_Collider, type C_ColliderOptions } from '../components/colliders';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { RenderCommandStream } from '../systems/render/command';
 
@@ -75,7 +75,7 @@ export class C_Image<
     }
 }
 
-export interface E_ImageOptions extends EntityOptions, C_ImageOptions {
+export interface E_ImageOptions extends EntityOptions, C_ImageOptions, C_ColliderOptions {
     collision?: boolean;
 }
 

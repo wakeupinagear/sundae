@@ -1,7 +1,7 @@
-import { System } from '..';
+import { System } from '../index';
 import { DynamicNumberArray } from '../../dynamicNumberArray';
-import { Engine } from '../../engine';
-import { Entity } from '../../entities';
+import { type Engine } from '../../engine';
+import { type Entity } from '../../entities';
 import { HashFactory } from '../../hashFactory';
 import { ItemCache } from '../../itemCache';
 import { Matrix2D } from '../../math/matrix';
@@ -44,9 +44,9 @@ export class RenderSystem<
         },
     );
     #hashedImages: HashFactory<string> = new HashFactory<string>(
-        (image) => image,
+        (image: string) => image,
     );
-    #hashedTexts: HashFactory<string> = new HashFactory<string>((text) => text);
+    #hashedTexts: HashFactory<string> = new HashFactory<string>((text: string) => text);
 
     #imageCache = new ItemCache<Readonly<LoadedImage>, number>(
         (imageID: number) => {

@@ -1,6 +1,6 @@
-import { IVector, type TwoAxisAlignment } from '@repo/engine';
-import { EngineScenario } from '@repo/engine-scenarios';
-import { Entity } from '@repo/engine/entities';
+import { type IVector, type TwoAxisAlignment } from '@repo/engine';
+import { type EngineScenario } from '@repo/engine-scenarios';
+import { type Entity } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
 const NUM_BOXES = 50;
@@ -78,13 +78,15 @@ class ChaosScene extends Scene {
             .setScale({ x: 300, y: 300 });
 
         this.#loadTextAlignmentTest();
+
+        this._engine.setCameraRotation(125);
     }
 
-    override update(deltaTime: number): boolean {
-        this.#rotatingBox?.rotate(90 * deltaTime);
+    override update(_deltaTime: number): boolean | void {
+        this.#rotatingBox?.rotate(90 * _deltaTime);
 
-        this._engine.setCameraRotation(
-            this._engine.camera.rotation - 10 * deltaTime,
+        this.engine.setCameraRotation(
+            this.engine.camera.rotation - 10 * _deltaTime,
         );
 
         return true;

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-
-import { Engine, type WebKey } from '@repo/engine';
-import { PointerButton } from '@repo/engine/pointer';
+import { type Engine, type WebKey } from '@repo/engine';
+import { type PointerButton } from '@repo/engine/pointer';
 
 interface EngineCanvasProps<TEngine extends Engine = Engine>
     extends React.CanvasHTMLAttributes<HTMLCanvasElement> {
@@ -33,7 +32,7 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
 
     if (!engineRef.current) {
         const options: Partial<TEngine['options']> = {
-            onReadyForNextFrame: (startNextFrame) => {
+            onReadyForNextFrame: (startNextFrame: () => void) => {
                 requestedAnimationFrame.current =
                     window.requestAnimationFrame(startNextFrame);
             },
@@ -55,7 +54,8 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
                 engine.prototype &&
                 engine.prototype.constructor === engine
             ) {
-                engineRef.current = new engine(options);
+                const EngineCtor = engine as new (options?: Partial<TEngine['options']>) => TEngine;
+                engineRef.current = new EngineCtor(options);
             } else {
                 engineRef.current = engine as TEngine;
                 engineRef.current.options = options;
@@ -234,6 +234,10 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
             localCanvas.removeEventListener('drop', onDrop);
         };
     }, [dpr, engineRef, scrollDirection, scrollSensitivity, engineOptions]);
+
+    if (engineRef.current) {
+        engineRef.current.options = { ...engineOptions };
+    }
 
     return (
         <canvas

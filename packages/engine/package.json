@@ -8,43 +8,43 @@
     },
     "exports": {
         ".": {
-            "types": "./src/exports/index.ts",
+            "types": "./exports/index.ts",
             "default": "./dist/exports/index.js"
         },
         "./components": {
-            "types": "./src/exports/components.ts",
+            "types": "./exports/components.ts",
             "default": "./dist/exports/components.js"
         },
         "./entities": {
-            "types": "./src/exports/entities.ts",
+            "types": "./exports/entities.ts",
             "default": "./dist/exports/entities.js"
         },
         "./image": {
-            "types": "./src/exports/image.ts",
+            "types": "./exports/image.ts",
             "default": "./dist/exports/image.js"
         },
         "./input": {
-            "types": "./src/exports/input.ts",
+            "types": "./exports/input.ts",
             "default": "./dist/exports/input.js"
         },
         "./log": {
-            "types": "./src/exports/log.ts",
+            "types": "./exports/log.ts",
             "default": "./dist/exports/log.js"
         },
         "./pointer": {
-            "types": "./src/exports/pointer.ts",
+            "types": "./exports/pointer.ts",
             "default": "./dist/exports/pointer.js"
         },
         "./render": {
-            "types": "./src/exports/render.ts",
+            "types": "./exports/render.ts",
             "default": "./dist/exports/render.js"
         },
         "./scene": {
-            "types": "./src/exports/scene.ts",
+            "types": "./exports/scene.ts",
             "default": "./dist/exports/scene.js"
         },
         "./stats": {
-            "types": "./src/exports/stats.ts",
+            "types": "./exports/stats.ts",
             "default": "./dist/exports/stats.js"
         }
     },

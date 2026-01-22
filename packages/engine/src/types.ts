@@ -1,5 +1,5 @@
-import { C_Collider } from './components/colliders';
-import { Engine } from './engine';
+import { type C_Collider } from './components/colliders';
+import { type Engine } from './engine';
 import type { IVector, Vector } from './math/vector';
 import type { RenderCommandStream } from './systems/render/command';
 

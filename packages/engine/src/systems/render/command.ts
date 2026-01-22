@@ -1,6 +1,6 @@
 import { DynamicNumberArray } from '../../dynamicNumberArray';
-import { HashFactory } from '../../hashFactory';
-import { Matrix2D } from '../../math/matrix';
+import { type HashFactory } from '../../hashFactory';
+import { type Matrix2D } from '../../math/matrix';
 import type { CacheStats } from '../../types';
 import { OPACITY_THRESHOLD } from '../../utils';
 import { type RenderStyle } from './style';

@@ -1,4 +1,4 @@
-import { EngineScenario } from '..';
+import { type EngineScenario } from '..';
 import { ballPit } from './ballPit';
 import { ballVortex } from './ballVortex';
 import { pong } from './pong';

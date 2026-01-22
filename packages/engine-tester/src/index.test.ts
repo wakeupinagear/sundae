@@ -3,11 +3,11 @@ import { beforeAll } from 'vitest';
 
 import { scenarios } from '@repo/engine-scenarios/list';
 
-import { defineSnapshotTest } from './test-utils/snapshot';
+import { defineSnapshotTest } from './snapshot';
 
 let canvas!: Canvas;
 beforeAll(() => {
-    canvas = new Canvas(1000, 750);
+    canvas = new Canvas(800, 600);
 });
 
 for (const scenarioMetadata of Object.values(scenarios)) {

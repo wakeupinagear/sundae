@@ -1,4 +1,4 @@
-import { System } from '.';
+import { System } from './index';
 import type { Engine } from '../engine';
 
 const LOG_PREFIX = '[LOG]:';
