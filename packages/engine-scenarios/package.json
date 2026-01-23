@@ -11,11 +11,6 @@
             "types": "./src/index.ts",
             "import": "./src/index.ts",
             "default": "./dist/index.js"
-        },
-        "./list": {
-            "types": "./src/list/index.ts",
-            "import": "./src/list/index.ts",
-            "default": "./dist/list/index.js"
         }
     },
     "devDependencies": {

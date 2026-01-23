@@ -1,4 +1,4 @@
-import { type EngineScenario } from '..';
+import { type EngineScenario } from '../types';
 import { ballPit } from './ballPit';
 import { ballVortex } from './ballVortex';
 import { pong } from './pong';
@@ -14,7 +14,7 @@ interface ScenarioMetadata {
     hideInDemos?: boolean;
 }
 
-export const scenarios: Record<string, ScenarioMetadata> = {
+export const ENGINE_SCENARIOS: Record<string, ScenarioMetadata> = {
     pong: {
         name: 'Pong',
         description: 'A simple pong game',

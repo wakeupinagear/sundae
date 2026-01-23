@@ -1,9 +1,9 @@
-import { Component, type ComponentOptions } from './index';
 import { type Engine } from '../engine';
 import { Vector, type VectorConstructor } from '../math/vector';
 import { type RenderCommandStream } from '../systems/render/command';
 import { type RenderStyle } from '../systems/render/style';
 import { OPACITY_THRESHOLD } from '../utils';
+import { Component, type ComponentOptions } from './index';
 
 export interface C_DrawableOptions extends ComponentOptions {
     origin?: VectorConstructor;
@@ -104,7 +104,10 @@ export abstract class C_Drawable<
 
             if (this._fill) {
                 const parentBB = this._entity.transform.boundingBox;
-                this._size.set({ x: parentBB.x2 - parentBB.x1, y: parentBB.y2 - parentBB.y1 });
+                this._size.set({
+                    x: parentBB.x2 - parentBB.x1,
+                    y: parentBB.y2 - parentBB.y1,
+                });
                 this._origin.set(1);
             }
 

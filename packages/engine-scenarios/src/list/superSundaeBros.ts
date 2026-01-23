@@ -1,8 +1,18 @@
-import { type CollisionContact, type Engine, type EngineOptions, type IVector, Vector } from '@repo/engine';
-import { E_Shape, type E_ShapeOptions, type E_Text } from '@repo/engine/entities';
+import {
+    type CollisionContact,
+    type Engine,
+    type EngineOptions,
+    type IVector,
+    Vector,
+} from '@repo/engine';
+import {
+    E_Shape,
+    type E_ShapeOptions,
+    type E_Text,
+} from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
-import { type EngineScenario } from '..';
+import { type EngineScenario } from '../types';
 
 type Tile = 'P' | 'C' | 'B' | 'Y' | 'A' | 'F' | 'G' | 'H' | 'I';
 
@@ -75,7 +85,10 @@ class E_Player extends E_Shape {
         this.rigidbody?.addForce({ x: input.value.x * 10000, y: 0 });
 
         const raycastResult = this.engine.raycast({
-            origin: { x: this.position.x + this.scale.x * 0.5, y: this.position.y + this.scale.y * 0.5 },
+            origin: {
+                x: this.position.x + this.scale.x * 0.5,
+                y: this.position.y + this.scale.y * 0.5,
+            },
             direction: Vector.DOWN,
             maxDistance: 25,
             ignoreEntity: this,
@@ -86,7 +99,10 @@ class E_Player extends E_Shape {
     }
 
     onCollision(contact: CollisionContact<Engine<EngineOptions>>): void {
-        if (contact.other.entity.name === 'Question Block' && contact.contactNormal.dot(Vector.UP) < 0) {
+        if (
+            contact.other.entity.name === 'Question Block' &&
+            contact.contactNormal.dot(Vector.UP) < 0
+        ) {
             contact.other.entity.destroy();
             this.#levelScene.addScore(100);
         } else if (contact.other.entity.name === 'Goomba') {
@@ -186,13 +202,13 @@ class LevelScene extends Scene {
             textAlign: 'bottom-left',
             padding: 24,
             bold: true,
-            positionRelativeToCamera: { x: 'end', y: 'start' }
+            positionRelativeToCamera: { x: 'end', y: 'start' },
         }) as E_Text;
         this.#computeScoreText();
     }
 
     update(): boolean | void {
-        this.engine.cameraTarget = ({
+        this.engine.cameraTarget = {
             position: {
                 x: Math.max(
                     this.engine.camera.position.x,
@@ -202,9 +218,9 @@ class LevelScene extends Scene {
             },
             zoom: this.engine.camera.zoom,
             rotation: this.engine.camera.rotation,
-        });
+        };
     }
-    
+
     addScore(score: number): void {
         this.#score += score;
         this.#computeScoreText();

@@ -1,7 +1,8 @@
 import { type IVector, type TwoAxisAlignment } from '@repo/engine';
-import { type EngineScenario } from '@repo/engine-scenarios';
 import { type Entity } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
+
+import { type EngineScenario } from '../types';
 
 const NUM_BOXES = 50;
 

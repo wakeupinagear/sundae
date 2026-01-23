@@ -18,7 +18,7 @@ import {
 } from './entities/factory';
 import { type Matrix2D } from './math/matrix';
 import { generatePRNG } from './math/random';
-import { type VectorConstructor, type IVector } from './math/vector';
+import { type IVector, type VectorConstructor } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import { CameraSystem } from './systems/camera';
@@ -32,7 +32,11 @@ import {
     type KeyboardKeyState,
 } from './systems/input';
 import { type I_Logging, type LogOutput, LogSystem } from './systems/log';
-import { PhysicsSystem, type Raycast, type RaycastRequest } from './systems/physics';
+import {
+    PhysicsSystem,
+    type Raycast,
+    type RaycastRequest,
+} from './systems/physics';
 import {
     type CameraScrollMode,
     type CursorType,
@@ -470,7 +474,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         sceneCtor: SceneConstructor<T, this>,
         options?: Omit<SceneOptions<this>, 'engine'>,
     ): T {
-        const scene = new sceneCtor({ engine: this, ...options })
+        const scene = new sceneCtor({ engine: this, ...options });
         this._sceneSystem.openScene(scene as unknown as Scene<this>);
 
         return scene;

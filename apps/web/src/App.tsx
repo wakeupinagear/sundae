@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { Engine, type EngineOptions } from '@repo/engine';
-import { scenarios } from '@repo/engine-scenarios/list';
+import { type Engine, type EngineOptions } from '@repo/engine';
+import { ENGINE_SCENARIOS } from '@repo/engine-scenarios';
+import { Harness } from '@repo/react';
 
-import { EngineCanvas } from './EngineCanvas';
 import { WebHarness } from './harness';
 import { useAppStore } from './store';
 import './style.css';
 
 const SCENARIOS = Object.fromEntries(
-    Object.entries(scenarios).filter(([_, { hideInDemos }]) => !hideInDemos),
+    Object.entries(ENGINE_SCENARIOS).filter(
+        ([_, { hideInDemos }]) => !hideInDemos,
+    ),
 );
 
 const DEFAULT_SCENARIO = 'renderChaos';
@@ -52,7 +54,6 @@ export function App() {
         };
     }, [debugMode, trueRandom]);
 
-    // Callback to run the scenario when engine is ready
     const onEngineReady = useMemo(() => {
         return (engine: Engine) => {
             if (scenario) {
@@ -66,9 +67,8 @@ export function App() {
         <div className="p-4 flex flex-col items-center justify-center gap-4">
             <h1 className="text-2xl font-bold">Engine Scenarios</h1>
             <div className="flex flex-col gap-4">
-                <EngineCanvas
+                <Harness
                     key={scenarioId || 'default'}
-                    engine={Engine}
                     onInitialized={onEngineReady}
                     width={800}
                     height={600}

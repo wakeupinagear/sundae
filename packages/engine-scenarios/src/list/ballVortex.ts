@@ -1,7 +1,8 @@
-import { Scene } from "@repo/engine/scene";
-import { type EngineScenario } from "..";
-import { type Engine, type EngineOptions, Vector } from "@repo/engine";
-import { type E_Shape, type E_ShapeJSON } from "@repo/engine/entities";
+import { type Engine, type EngineOptions, Vector } from '@repo/engine';
+import { type E_Shape, type E_ShapeJSON } from '@repo/engine/entities';
+import { Scene } from '@repo/engine/scene';
+
+import { type EngineScenario } from '../types';
 
 const BALL_COLORS = ['red', 'blue', 'cyan', 'yellow', 'orange', 'green'];
 const HEXAGON_RADIUS = 350;
@@ -22,7 +23,7 @@ class VortexScene extends Scene {
                 strokeStyle: '#222222',
                 lineWidth: 16,
             },
-            zIndex: -1
+            zIndex: -1,
         }) as E_Shape;
         this.#syncArrow();
 
@@ -59,7 +60,12 @@ class VortexScene extends Scene {
                 shape: 'ELLIPSE',
                 scale: 2.5 + _engine.random() * 20,
                 style: {
-                    fillStyle: BALL_COLORS[Math.floor(this._engine.random() * BALL_COLORS.length)]
+                    fillStyle:
+                        BALL_COLORS[
+                            Math.floor(
+                                this._engine.random() * BALL_COLORS.length,
+                            )
+                        ],
                 },
                 position: {
                     x: 200 * (_engine.random() - 0.5),
@@ -90,7 +96,7 @@ class VortexScene extends Scene {
 
     #syncArrow(): void {
         const direction = this.engine.physicsSystem.gravityDirection;
-        this.#arrow.shape.setEnd(direction.scaleBy(100))
+        this.#arrow.shape.setEnd(direction.scaleBy(100));
         this.#arrow.shape.setStart(direction.scaleBy(-100));
     }
 }

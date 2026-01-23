@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { type Engine, type WebKey } from '@repo/engine';
+
+import { Engine, type WebKey } from '@repo/engine';
 import { type PointerButton } from '@repo/engine/pointer';
 
-interface EngineCanvasProps<TEngine extends Engine = Engine>
+interface HarnessProps<TEngine extends Engine = Engine>
     extends React.CanvasHTMLAttributes<HTMLCanvasElement> {
     engine?: TEngine | (new (options?: Partial<TEngine['options']>) => TEngine);
     engineOptions?: Partial<TEngine['options']>;
@@ -13,7 +14,7 @@ interface EngineCanvasProps<TEngine extends Engine = Engine>
     onInitialized?: (engine: TEngine) => void;
 }
 
-export function EngineCanvas<TEngine extends Engine = Engine>({
+export function Harness<TEngine extends Engine = Engine>({
     engine,
     engineOptions,
     width,
@@ -22,7 +23,7 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
     scrollSensitivity = 1,
     onInitialized,
     ...rest
-}: EngineCanvasProps<TEngine>) {
+}: HarnessProps<TEngine>) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [dpr] = useState(() => window.devicePixelRatio || 1);
 
@@ -48,18 +49,19 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
             ...engineOptions,
         };
 
-        if (engine) {
-            if (
-                typeof engine === 'function' &&
-                engine.prototype &&
-                engine.prototype.constructor === engine
-            ) {
-                const EngineCtor = engine as new (options?: Partial<TEngine['options']>) => TEngine;
-                engineRef.current = new EngineCtor(options);
-            } else {
-                engineRef.current = engine as TEngine;
-                engineRef.current.options = options;
-            }
+        const engineCtor = engine || Engine;
+        if (
+            typeof engineCtor === 'function' &&
+            engineCtor.prototype &&
+            engineCtor.prototype.constructor === engineCtor
+        ) {
+            const EngineCtor = engineCtor as new (
+                options?: Partial<TEngine['options']>,
+            ) => TEngine;
+            engineRef.current = new EngineCtor(options);
+        } else {
+            engineRef.current = engine as TEngine;
+            engineRef.current.options = options;
         }
     }
 
@@ -234,6 +236,14 @@ export function EngineCanvas<TEngine extends Engine = Engine>({
             localCanvas.removeEventListener('drop', onDrop);
         };
     }, [dpr, engineRef, scrollDirection, scrollSensitivity, engineOptions]);
+
+    useEffect(() => {
+        return () => {
+            if (engineRef.current) {
+                engineRef.current.destroy();
+            }
+        };
+    }, []);
 
     if (engineRef.current) {
         engineRef.current.options = { ...engineOptions };

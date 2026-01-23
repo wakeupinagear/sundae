@@ -1,4 +1,5 @@
 import { type Engine } from '@repo/engine';
+
 import { type IEngineHarness } from '@repo/engine-scenarios';
 
 export class WebHarness implements IEngineHarness {
@@ -14,6 +15,6 @@ export class WebHarness implements IEngineHarness {
     }
 
     snapshot(): void {
-        console.log('Snapshot requested in web harness - ignoring for now');
+        // Snapshot requested in web harness - ignoring for now
     }
 }
