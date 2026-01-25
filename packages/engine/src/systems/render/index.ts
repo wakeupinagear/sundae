@@ -1,13 +1,14 @@
-import { System } from '../index';
 import { DynamicNumberArray } from '../../dynamicNumberArray';
 import { type Engine } from '../../engine';
 import { type Entity } from '../../entities';
 import { HashFactory } from '../../hashFactory';
 import { ItemCache } from '../../itemCache';
 import { Matrix2D } from '../../math/matrix';
-import type { Camera, ICanvasRenderingContext2D } from '../../types';
+import type { ICanvasRenderingContext2D } from '../../types';
 import { zoomToScale } from '../../utils';
+import type { CameraSystem } from '../camera';
 import type { LoadedImage } from '../image';
+import { System } from '../index';
 import {
     type RenderCommandStats,
     RenderCommandStream,
@@ -46,7 +47,9 @@ export class RenderSystem<
     #hashedImages: HashFactory<string> = new HashFactory<string>(
         (image: string) => image,
     );
-    #hashedTexts: HashFactory<string> = new HashFactory<string>((text: string) => text);
+    #hashedTexts: HashFactory<string> = new HashFactory<string>(
+        (text: string) => text,
+    );
 
     #imageCache = new ItemCache<Readonly<LoadedImage>, number>(
         (imageID: number) => {
@@ -72,7 +75,7 @@ export class RenderSystem<
     render(
         ctx: ICanvasRenderingContext2D,
         rootEntity: Entity<TEngine>,
-        camera: Camera,
+        camera: CameraSystem,
     ) {
         if (!this.#stream) {
             this.#stream = new RenderCommandStream(

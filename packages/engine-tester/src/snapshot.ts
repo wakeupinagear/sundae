@@ -43,7 +43,7 @@ class SnapshotHarness implements IEngineHarness {
                 this.#startNextFrame = startNextFrame;
             },
         });
-        this.#engine.canvas = canvas;
+        this.#engine.setCanvas(canvas);
         this.#canvas = canvas;
 
         this.#testName = options?.testName;

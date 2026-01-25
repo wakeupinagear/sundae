@@ -6,6 +6,7 @@ import {
     type CustomComponentJSON,
     createComponentFromJSON,
 } from './components/factory';
+import { DEFAULT_CAMERA_ID, DEFAULT_CANVAS_ID } from './constants';
 import { type Entity } from './entities';
 import type { InternalEntityOptions } from './entities';
 import {
@@ -16,12 +17,11 @@ import {
     type StringEntityJSON,
     createEntityFromJSON,
 } from './entities/factory';
-import { type Matrix2D } from './math/matrix';
 import { generatePRNG } from './math/random';
 import { type IVector, type VectorConstructor } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
-import { CameraSystem } from './systems/camera';
+import { CameraSystem, type CameraSystemOptions } from './systems/camera';
 import { ImageSystem, type LoadedImage } from './systems/image';
 import {
     type AxisState,
@@ -31,18 +31,16 @@ import {
     InputSystem,
     type KeyboardKeyState,
 } from './systems/input';
-import { type I_Logging, type LogOutput, LogSystem } from './systems/log';
+import { type I_LogSystem, type LogOutput, LogSystem } from './systems/log';
 import {
     PhysicsSystem,
     type Raycast,
     type RaycastRequest,
 } from './systems/physics';
 import {
-    type CameraScrollMode,
     type CursorType,
-    PointerButton,
-    type PointerButtonState,
-    type PointerState,
+    type I_PointerSystem,
+    type PointerButton,
     PointerSystem,
 } from './systems/pointer';
 import { RenderSystem } from './systems/render';
@@ -53,18 +51,14 @@ import {
 } from './systems/scene';
 import { SceneSystem } from './systems/scene';
 import { type Stats, StatsSystem } from './systems/stats';
-import {
-    type Camera,
-    type CameraData,
-    type ICanvas,
-    type WebKey,
-} from './types';
-import { DEFAULT_CAMERA_OPTIONS } from './utils';
+import { type ICanvas, type WebKey } from './types';
 
 const DEBUG_OVERLAY_SCENE_NAME = '__ENGINE_DEBUG_SCENE__';
 const DEBUG_OVERLAY_SCENE_Z_INDEX = 100;
 
-type BrowserEvent =
+type BrowserWindowEvent = 'keydown' | 'keyup';
+
+type BrowserCanvasEvent =
     | 'mousemove'
     | 'mousewheel'
     | 'mousedown'
@@ -72,9 +66,7 @@ type BrowserEvent =
     | 'mouseenter'
     | 'mouseleave'
     | 'mouseover'
-    | 'mouseout'
-    | 'keydown'
-    | 'keyup';
+    | 'mouseout';
 
 interface BrowserEventMap {
     mousemove: { x: number; y: number };
@@ -102,8 +94,14 @@ interface BrowserEventMap {
     };
 }
 
-type BrowserEventHandler<T extends BrowserEvent> = (
+type BrowserWindowEventHandler<T extends BrowserWindowEvent> = (
     event: T,
+    data: BrowserEventMap[T],
+) => void | boolean;
+
+type BrowserCanvasEventHandler<T extends BrowserCanvasEvent> = (
+    event: T,
+    canvasID: string,
     data: BrowserEventMap[T],
 ) => void | boolean;
 
@@ -125,16 +123,11 @@ export interface EngineOptions {
     zoomSpeed: number;
     minZoom: number;
     maxZoom: number;
+
+    cameras: Record<string, CameraSystemOptions>;
     clearColor: string;
 
     startScenes: Array<SceneConstructor>;
-
-    cameraStart: CameraData;
-    cameraDrag: boolean;
-    cameraDragButtons: PointerButton[];
-    cameraTargetLerpSpeed: number;
-    cameraScrollMode: CameraScrollMode;
-    cullScale: number;
 
     gravityScale: number;
     gravityDirection: VectorConstructor;
@@ -167,20 +160,13 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     zoomSpeed: 0.001,
     minZoom: -3, // 2^-3 = 0.125 (1/8x scale)
     maxZoom: 3, // 2^3 = 8 (8x scale)
+
+    cameras: {
+        [DEFAULT_CAMERA_ID]: {},
+    },
     clearColor: 'black',
 
     startScenes: [],
-
-    cameraStart: {
-        position: DEFAULT_CAMERA_OPTIONS.position,
-        rotation: DEFAULT_CAMERA_OPTIONS.rotation,
-        zoom: DEFAULT_CAMERA_OPTIONS.zoom,
-    },
-    cameraDrag: false,
-    cameraDragButtons: [PointerButton.MIDDLE, PointerButton.RIGHT],
-    cameraTargetLerpSpeed: 0.1,
-    cameraScrollMode: 'none',
-    cullScale: 1,
 
     maxCollisionIterations: 8,
     physicsPerSecond: 120,
@@ -210,12 +196,13 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
 };
 
 export class Engine<TOptions extends EngineOptions = EngineOptions>
-    implements I_Logging
+    implements I_LogSystem, I_PointerSystem
 {
     protected static _nextId: number = 1;
     protected readonly _id: string = (Engine._nextId++).toString();
 
-    protected _canvas: ICanvas | null = null;
+    protected _canvases: Record<string, ICanvas | null> = {};
+
     protected _options: TOptions = { ...DEFAULT_ENGINE_OPTIONS } as TOptions;
     protected _devicePixelRatio: number = 1;
 
@@ -226,10 +213,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     protected _inputSystem: InputSystem<this>;
     protected _pointerSystem: PointerSystem<this>;
     protected _imageSystem: ImageSystem<this>;
-    protected _cameraSystem: CameraSystem<this>;
     protected _physicsSystem: PhysicsSystem<this>;
     protected _statsSystem: StatsSystem<this>;
     protected _logSystem: LogSystem<this>;
+    protected _cameraSystems: Record<string, CameraSystem<this>> = {};
 
     protected _systems: System[] = [];
 
@@ -239,8 +226,18 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     #forceRender: boolean = true;
     #boundEngineLoop = this.#engineLoop.bind(this);
-    #browserEventHandlers: Partial<
-        Record<BrowserEvent, BrowserEventHandler<BrowserEvent>[]>
+
+    #browserWindowEventHandlers: Partial<
+        Record<
+            BrowserWindowEvent,
+            BrowserWindowEventHandler<BrowserWindowEvent>[]
+        >
+    > = {};
+    #browserCanvasEventHandlers: Partial<
+        Record<
+            BrowserCanvasEvent,
+            BrowserCanvasEventHandler<BrowserCanvasEvent>[]
+        >
     > = {};
 
     #frameCount: number = 0;
@@ -261,7 +258,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._pointerSystem = new PointerSystem(this);
         this._sceneSystem = new SceneSystem(this);
         this._imageSystem = new ImageSystem(this);
-        this._cameraSystem = new CameraSystem(this, this._options.cameraStart);
         this._physicsSystem = new PhysicsSystem(this);
 
         // Order isn't important since systems are manually updated
@@ -269,25 +265,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._renderSystem = new RenderSystem(this);
         this._logSystem = new LogSystem(this);
 
-        this.addBrowserEventHandler('mousedown', (_, data) =>
-            this.#setPointerButtonDown(data.button, true),
-        );
-        this.addBrowserEventHandler('mouseup', (_, data) =>
-            this.#setPointerButtonDown(data.button, false),
-        );
-        this.addBrowserEventHandler('mousemove', (_, data) =>
-            this.#setPointerPosition(data),
-        );
-        this.addBrowserEventHandler('mouseenter', (_, data) =>
-            this.#setPointerOnScreen(true, data),
-        );
-        this.addBrowserEventHandler('mouseleave', (_, data) =>
-            this.#setPointerOnScreen(false, data),
-        );
-        this.addBrowserEventHandler('mousewheel', (_, data) => {
-            this.#setPointerScrollDelta(data.delta);
-        });
-        this.addBrowserEventHandler('keydown', (_, data) =>
+        this.addBrowserWindowEventHandler('keydown', (_, data) =>
             this.#setKeyDown(
                 data.key,
                 true,
@@ -297,7 +275,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                 data.alt,
             ),
         );
-        this.addBrowserEventHandler('keyup', (_, data) =>
+        this.addBrowserWindowEventHandler('keyup', (_, data) =>
             this.#setKeyDown(
                 data.key,
                 false,
@@ -306,6 +284,25 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                 data.shift,
                 data.alt,
             ),
+        );
+
+        this.addBrowserCanvasEventHandler('mousedown', (_, canvasID, data) =>
+            this.setPointerButtonDown(data.button, true, canvasID),
+        );
+        this.addBrowserCanvasEventHandler('mouseup', (_, canvasID, data) =>
+            this.setPointerButtonDown(data.button, false, canvasID),
+        );
+        this.addBrowserCanvasEventHandler('mousemove', (_, canvasID, data) =>
+            this.setPointerPosition(data, canvasID),
+        );
+        this.addBrowserCanvasEventHandler('mouseenter', (_, canvasID, data) =>
+            this.setPointerOnScreen(true, data, canvasID),
+        );
+        this.addBrowserCanvasEventHandler('mouseleave', (_, canvasID, data) =>
+            this.setPointerOnScreen(false, data, canvasID),
+        );
+        this.addBrowserCanvasEventHandler('mousewheel', (_, canvasID, data) =>
+            this.setPointerScrollDelta(data.delta, canvasID),
         );
 
         this.#setRandomSeed(DEFAULT_ENGINE_OPTIONS.randomSeed);
@@ -342,28 +339,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._id;
     }
 
-    get canvas(): ICanvas | null {
-        return this._canvas;
-    }
-
-    set canvas(canvas: ICanvas | null) {
-        this._canvas = canvas;
-        this._cameraSystem.worldToScreenMatrixDirty = true;
-        this._pointerSystem.canvas = canvas;
-        this.#forceRender = true;
-    }
-
-    get canvasSize(): IVector<number> | null {
-        if (!this._canvas) {
-            return null;
-        }
-
-        return {
-            x: this._canvas.width / this._devicePixelRatio,
-            y: this._canvas.height / this._devicePixelRatio,
-        };
-    }
-
     get options(): Readonly<TOptions> {
         return this._options;
     }
@@ -372,32 +347,8 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this.#applyOptions(newOptions);
     }
 
-    get camera(): Readonly<Camera> {
-        return this._cameraSystem.camera;
-    }
-
-    set camera(newCamera: Partial<CameraData>) {
-        this._cameraSystem.camera = newCamera;
-    }
-
-    set cameraTarget(cameraTarget: CameraData | null) {
-        this._cameraSystem.cameraTarget = cameraTarget;
-    }
-
     get rootEntity(): Readonly<Entity<this>> {
         return this._rootEntity;
-    }
-
-    get worldToScreenMatrix(): Readonly<Matrix2D> {
-        return this._cameraSystem.worldToScreenMatrix;
-    }
-
-    get inverseWorldToScreenMatrix(): Readonly<Matrix2D> {
-        return this._cameraSystem.inverseWorldToScreenMatrix;
-    }
-
-    get pointerState(): Readonly<PointerState> {
-        return this._pointerSystem.pointerState;
     }
 
     get stats(): Readonly<Stats> | null {
@@ -406,10 +357,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     get pointerSystem(): PointerSystem<this> {
         return this._pointerSystem;
-    }
-
-    get cameraSystem(): CameraSystem<this> {
-        return this._cameraSystem;
     }
 
     get sceneSystem(): SceneSystem<this> {
@@ -428,8 +375,13 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this.#frameCount;
     }
 
+    get devicePixelRatio(): number {
+        return this._devicePixelRatio;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     requestCursor(id: string, type: CursorType, priority?: number): void {
-        this._pointerSystem.requestCursor(id, type, priority);
+        // TODO: Request cursor
     }
 
     forceRender(): void {
@@ -484,20 +436,27 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._sceneSystem.closeScene(scene);
     }
 
-    screenToWorld(position: IVector<number>): IVector<number> {
-        if (!this._canvas) {
-            return position;
-        }
-
-        return this.inverseWorldToScreenMatrix.transformPoint(position);
+    setCanvas(canvas: ICanvas | null, id = DEFAULT_CANVAS_ID): void {
+        this._canvases[id] = canvas;
+        this.#forceRender = true;
     }
 
-    worldToScreen(position: IVector<number>): IVector<number> {
-        if (!this._canvas) {
-            return position;
-        }
+    getCanvas(id: string): ICanvas | null {
+        return this._canvases[id] ?? null;
+    }
 
-        return this.worldToScreenMatrix.transformPoint(position);
+    screenToWorld(
+        position: IVector<number>,
+        cameraID = DEFAULT_CAMERA_ID,
+    ): IVector<number> | null {
+        return this._cameraSystems[cameraID]?.screenToWorld(position) ?? null;
+    }
+
+    worldToScreen(
+        position: IVector<number>,
+        cameraID = DEFAULT_CAMERA_ID,
+    ): IVector<number> | null {
+        return this._cameraSystems[cameraID]?.worldToScreen(position) ?? null;
     }
 
     getKey(keyCode: WebKey): Readonly<KeyboardKeyState> {
@@ -516,48 +475,35 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._inputSystem.releaseAllKeys();
     }
 
-    getPointerButton(button: PointerButton): Readonly<PointerButtonState> {
-        return this._pointerSystem.getPointerButton(button);
-    }
-
-    getScrollSteps(): number {
-        return this._pointerSystem.scrollSteps;
-    }
-
-    capturePointerButtonClick(button: PointerButton): void {
-        return this._pointerSystem.capturePointerButtonClick(button);
-    }
-
-    getIsCameraDragging(threshold: number = 0): boolean {
-        return this.pointerSystem.getIsCameraDragging(threshold);
-    }
-
-    setCamera(camera: CameraData): void {
-        this._cameraSystem.setCameraPosition(camera.position);
-        this._cameraSystem.setCameraRotation(camera.rotation);
-        this._cameraSystem.setCameraZoom(camera.zoom);
-    }
-
     setCameraPosition(
         position: IVector<number>,
         cancelCameraTarget: boolean = true,
+        cameraID = DEFAULT_CAMERA_ID,
     ): void {
-        this._cameraSystem.setCameraPosition(position);
+        this._cameraSystems[cameraID]?.setPosition(position);
         if (cancelCameraTarget) {
-            this.cameraTarget = null;
+            // TODO: Cancel camera target
         }
     }
 
-    setCameraZoom(zoom: number): void {
-        this._cameraSystem.setCameraZoom(zoom);
+    setCameraZoom(zoom: number, cameraID = DEFAULT_CAMERA_ID): void {
+        this._cameraSystems[cameraID]?.setZoom(zoom);
     }
 
-    zoomCamera(delta: number, focalPoint?: IVector<number>): void {
-        this._cameraSystem.zoomCamera(delta, focalPoint);
+    zoomCamera(
+        delta: number,
+        focalPoint?: IVector<number>,
+        cameraID = DEFAULT_CAMERA_ID,
+    ): void {
+        this._cameraSystems[cameraID]?.zoomBy(delta, focalPoint);
     }
 
-    setCameraRotation(rotation: number): void {
-        this._cameraSystem.setCameraRotation(rotation);
+    setCameraRotation(rotation: number, cameraID = DEFAULT_CAMERA_ID): void {
+        this._cameraSystems[cameraID]?.setRotation(rotation);
+    }
+
+    rotateCamera(delta: number, cameraID = DEFAULT_CAMERA_ID): void {
+        this._cameraSystems[cameraID]?.rotate(delta);
     }
 
     getImage(name: string): Readonly<LoadedImage> | null {
@@ -568,46 +514,132 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._physicsSystem.raycast(request);
     }
 
-    addBrowserEventHandler<T extends BrowserEvent>(
+    addBrowserWindowEventHandler<T extends BrowserWindowEvent>(
         event: T,
-        handler: BrowserEventHandler<T>,
+        handler: BrowserWindowEventHandler<T>,
     ): void {
-        this.#browserEventHandlers[event] ??= [];
-        (this.#browserEventHandlers[event] as BrowserEventHandler<T>[]).push(
-            handler,
-        );
+        this.#browserWindowEventHandlers[event] ??= [];
+        (
+            this.#browserWindowEventHandlers[
+                event
+            ] as BrowserWindowEventHandler<T>[]
+        ).push(handler);
     }
 
-    removeBrowserEventHandler<T extends BrowserEvent>(
+    removeBrowserWindowEventHandler<T extends BrowserWindowEvent>(
         event: T,
-        handler: BrowserEventHandler<T>,
+        handler: BrowserWindowEventHandler<T>,
     ): void {
-        if (this.#browserEventHandlers[event]) {
-            this.#browserEventHandlers[event] = this.#browserEventHandlers[
-                event
-            ].filter((h) => h !== handler);
+        if (this.#browserWindowEventHandlers[event]) {
+            this.#browserWindowEventHandlers[event] =
+                this.#browserWindowEventHandlers[event].filter(
+                    (h) => h !== handler,
+                );
         }
     }
 
-    onMouseMove: BrowserEventHandler<'mousemove'> = (...args) =>
-        this.#handleBrowserEvent(...args);
-    onMouseWheel: BrowserEventHandler<'mousewheel'> = (...args) =>
-        this.#handleBrowserEvent(...args);
-    onMouseDown: BrowserEventHandler<'mousedown'> = (...args) =>
-        this.#handleBrowserEvent(...args);
-    onMouseUp: BrowserEventHandler<'mouseup'> = (...args) =>
-        this.#handleBrowserEvent(...args);
-    onMouseEnter: BrowserEventHandler<'mouseenter'> = (...args) =>
-        this.#handleBrowserEvent(...args);
-    onMouseLeave: BrowserEventHandler<'mouseleave'> = (...args) =>
-        this.#handleBrowserEvent(...args);
-    onMouseOver: BrowserEventHandler<'mouseover'> = (...args) =>
-        this.#handleBrowserEvent(...args);
+    addBrowserCanvasEventHandler<T extends BrowserCanvasEvent>(
+        event: T,
+        handler: BrowserCanvasEventHandler<T>,
+    ): void {
+        this.#browserCanvasEventHandlers[event] ??= [];
+        (
+            this.#browserCanvasEventHandlers[
+                event
+            ] as BrowserCanvasEventHandler<T>[]
+        ).push(handler);
+    }
 
-    onKeyDown: BrowserEventHandler<'keydown'> = (...args) =>
-        this.#handleBrowserEvent(...args);
-    onKeyUp: BrowserEventHandler<'keyup'> = (...args) =>
-        this.#handleBrowserEvent(...args);
+    removeBrowserCanvasEventHandler<T extends BrowserCanvasEvent>(
+        event: T,
+        handler: BrowserCanvasEventHandler<T>,
+    ): void {
+        if (this.#browserCanvasEventHandlers[event]) {
+            this.#browserCanvasEventHandlers[event] =
+                this.#browserCanvasEventHandlers[event].filter(
+                    (h) => h !== handler,
+                );
+        }
+    }
+
+    onKeyDown: BrowserWindowEventHandler<'keydown'> = (...args) =>
+        this.#handleBrowserWindowEvent(...args);
+    onKeyUp: BrowserWindowEventHandler<'keyup'> = (...args) =>
+        this.#handleBrowserWindowEvent(...args);
+
+    onMouseMove: BrowserCanvasEventHandler<'mousemove'> = (...args) =>
+        this.#handleBrowserCanvasEvent(...args);
+    onMouseWheel: BrowserCanvasEventHandler<'mousewheel'> = (...args) =>
+        this.#handleBrowserCanvasEvent(...args);
+    onMouseDown: BrowserCanvasEventHandler<'mousedown'> = (...args) =>
+        this.#handleBrowserCanvasEvent(...args);
+    onMouseUp: BrowserCanvasEventHandler<'mouseup'> = (...args) =>
+        this.#handleBrowserCanvasEvent(...args);
+    onMouseEnter: BrowserCanvasEventHandler<'mouseenter'> = (...args) =>
+        this.#handleBrowserCanvasEvent(...args);
+    onMouseLeave: BrowserCanvasEventHandler<'mouseleave'> = (...args) =>
+        this.#handleBrowserCanvasEvent(...args);
+    onMouseOver: BrowserCanvasEventHandler<'mouseover'> = (...args) =>
+        this.#handleBrowserCanvasEvent(...args);
+
+    getPointerButton: I_PointerSystem['getPointerButton'] = (
+        button,
+        canvasID,
+    ) => {
+        return this._pointerSystem.getPointerButton(button, canvasID);
+    };
+
+    getCanvasPointer: I_PointerSystem['getCanvasPointer'] = (canvasID) => {
+        return this._pointerSystem.getCanvasPointer(canvasID);
+    };
+
+    getIsCameraDragging: I_PointerSystem['getIsCameraDragging'] = (
+        threshold,
+        canvasID,
+    ) => {
+        return this._pointerSystem.getIsCameraDragging(threshold, canvasID);
+    };
+
+    getScrollSteps: I_PointerSystem['getScrollSteps'] = (canvasID) => {
+        return this._pointerSystem.getScrollSteps(canvasID);
+    };
+
+    setPointerButtonDown: I_PointerSystem['setPointerButtonDown'] = (
+        button,
+        down,
+        canvasID,
+    ) => {
+        this._pointerSystem.setPointerButtonDown(button, down, canvasID);
+    };
+
+    setPointerPosition: I_PointerSystem['setPointerPosition'] = (
+        position,
+        canvasID,
+    ) => {
+        this._pointerSystem.setPointerPosition(position, canvasID);
+    };
+
+    setPointerOnScreen: I_PointerSystem['setPointerOnScreen'] = (
+        onScreen,
+        position,
+        canvasID,
+    ) => {
+        this._pointerSystem.setPointerOnScreen(onScreen, position, canvasID);
+    };
+
+    setPointerScrollDelta: I_PointerSystem['setPointerScrollDelta'] = (
+        delta,
+        canvasID,
+    ) => {
+        this._pointerSystem.setPointerScrollDelta(delta, canvasID);
+    };
+
+    capturePointerButtonClick: I_PointerSystem['capturePointerButtonClick'] = (
+        button,
+        canvasID,
+    ) => {
+        this._pointerSystem.capturePointerButtonClick(button, canvasID);
+    };
 
     destroy(): void {
         this._options.onDestroy?.();
@@ -649,14 +681,14 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update(_deltaTime: number): boolean | void {}
 
-    log: I_Logging['log'] = (...args) => this._logSystem.log(...args);
-    warn: I_Logging['warn'] = (...args) => this._logSystem.warn(...args);
-    error: I_Logging['error'] = (...args) => this._logSystem.error(...args);
-    logBeforeFrame: I_Logging['logBeforeFrame'] = (n, ...args) =>
+    log: I_LogSystem['log'] = (...args) => this._logSystem.log(...args);
+    warn: I_LogSystem['warn'] = (...args) => this._logSystem.warn(...args);
+    error: I_LogSystem['error'] = (...args) => this._logSystem.error(...args);
+    logBeforeFrame: I_LogSystem['logBeforeFrame'] = (n, ...args) =>
         this._logSystem.logBeforeFrame(n, ...args);
-    warnBeforeFrame: I_Logging['warnBeforeFrame'] = (n, ...args) =>
+    warnBeforeFrame: I_LogSystem['warnBeforeFrame'] = (n, ...args) =>
         this._logSystem.warnBeforeFrame(n, ...args);
-    errorBeforeFrame: I_Logging['errorBeforeFrame'] = (n, ...args) =>
+    errorBeforeFrame: I_LogSystem['errorBeforeFrame'] = (n, ...args) =>
         this._logSystem.errorBeforeFrame(n, ...args);
 
     random(): number {
@@ -672,41 +704,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         updated = this._rootEntity.engineUpdate(deltaTime) || updated;
 
         return updated;
-    }
-
-    #render() {
-        if (!this._canvas || !this.canvasSize) {
-            return;
-        }
-
-        const ctx = this._canvas.getContext('2d');
-        if (!ctx) {
-            this.error('Failed to get canvas context');
-            return;
-        }
-
-        const dpr = this._devicePixelRatio;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.textAlign = 'left';
-
-        const { x: canvasWidth, y: canvasHeight } = this.canvasSize;
-        if (
-            this.options.clearColor &&
-            this.options.clearColor !== 'transparent'
-        ) {
-            ctx.fillStyle = this.options.clearColor;
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-        } else {
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        }
-        ctx.translate(canvasWidth / 2, canvasHeight / 2);
-
-        this._renderSystem.render(
-            ctx,
-            this._rootEntity,
-            this._cameraSystem.camera,
-        );
-        this._cameraSystem.postRender();
     }
 
     #engineLoop() {
@@ -756,7 +753,18 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
         this.trace('Render', () => {
             if (this.#forceRender) {
-                this.#render();
+                for (const canvas of Object.values(this._canvases)) {
+                    if (canvas) {
+                        canvas
+                            .getContext('2d')
+                            ?.clearRect(0, 0, canvas.width, canvas.height);
+                    }
+                }
+
+                for (const cameraSystem of Object.values(this._cameraSystems)) {
+                    cameraSystem.render();
+                }
+
                 this.#forceRender = false;
             }
         });
@@ -770,13 +778,30 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._options.onReadyForNextFrame?.(this.#boundEngineLoop);
     }
 
-    #handleBrowserEvent(
-        event: BrowserEvent,
-        data: BrowserEventMap[BrowserEvent],
+    #handleBrowserWindowEvent(
+        event: BrowserWindowEvent,
+        data: BrowserEventMap[BrowserWindowEvent],
     ): boolean {
         let preventDefault = false;
-        this.#browserEventHandlers[event]?.forEach((handler) => {
+        this.#browserWindowEventHandlers[event]?.forEach((handler) => {
             const result = handler(event, data);
+            if (result === true) {
+                preventDefault = true;
+            }
+        });
+
+        return preventDefault;
+    }
+
+    #handleBrowserCanvasEvent(
+        event: BrowserCanvasEvent,
+        canvasID: string,
+        data: BrowserEventMap[BrowserCanvasEvent],
+    ): boolean {
+        let preventDefault = false;
+
+        this.#browserCanvasEventHandlers[event]?.forEach((handler) => {
+            const result = handler(event, canvasID, data);
             if (result === true) {
                 preventDefault = true;
             }
@@ -803,31 +828,8 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         );
     }
 
-    #setPointerPosition(position: IVector<number>): void {
-        this._pointerSystem.pointerPosition.set(position);
-    }
-
-    #setPointerOnScreen(onScreen: boolean, position: IVector<number>): void {
-        this._pointerSystem.pointerPosition.set(position);
-        this._pointerSystem.pointerOnScreen = onScreen;
-    }
-
-    #setPointerScrollDelta(delta: number): void {
-        this._pointerSystem.pointerScrollDelta = delta;
-    }
-
-    #setPointerButtonDown(button: PointerButton, down: boolean): void {
-        this._pointerSystem.pointerButtonStateChange(button, down);
-    }
-
     #applyOptions(newOptions: Partial<TOptions>): void {
-        if (this._options.cullScale !== newOptions.cullScale) {
-            this._cameraSystem.onCameraChanged();
-        }
-
         this._options = { ...this._options, ...newOptions };
-
-        this._cameraSystem.applyCameraZoomClamp();
 
         for (const name in this._options.images) {
             const src = this._options.images[name];
@@ -843,10 +845,9 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         }
 
         if (
-            this._options.debugOverlayEnabled !==
-            Boolean(this.#debugOverlayScene)
+            newOptions.debugOverlayEnabled !== Boolean(this.#debugOverlayScene)
         ) {
-            if (this._options.debugOverlayEnabled) {
+            if (newOptions.debugOverlayEnabled) {
                 this.openDebugOverlay();
             } else {
                 this.closeDebugOverlay();
@@ -870,6 +871,32 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         }
         if (newOptions.gravityDirection !== undefined) {
             this._physicsSystem.gravityDirection = newOptions.gravityDirection;
+        }
+
+        if (newOptions.cameras !== undefined) {
+            const newCameraIDs = new Set(Object.keys(newOptions.cameras));
+            const existingCameraIDs = new Set(Object.keys(this._cameraSystems));
+
+            for (const cameraID in newOptions.cameras) {
+                if (!(cameraID in this._cameraSystems)) {
+                    this._cameraSystems[cameraID] = new CameraSystem(
+                        this,
+                        cameraID,
+                    );
+                }
+
+                this._cameraSystems[cameraID].applyOptions(
+                    newOptions.cameras[cameraID],
+                );
+            }
+
+            for (const cameraID of existingCameraIDs) {
+                if (!newCameraIDs.has(cameraID)) {
+                    const system = this._cameraSystems[cameraID];
+                    system.destroy();
+                    delete this._cameraSystems[cameraID];
+                }
+            }
         }
     }
 

@@ -1,31 +1,59 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { Engine, type WebKey } from '@repo/engine';
-import { type PointerButton } from '@repo/engine/pointer';
+import { DEFAULT_CANVAS_ID } from '@repo/engine';
 
-interface HarnessProps<TEngine extends Engine = Engine>
-    extends React.CanvasHTMLAttributes<HTMLCanvasElement> {
-    engine?: TEngine | (new (options?: Partial<TEngine['options']>) => TEngine);
-    engineOptions?: Partial<TEngine['options']>;
+import { type CanvasOptions, CanvasTracker } from './CanvasTracker';
+
+interface SizeState {
     width: number;
     height: number;
-    scrollDirection?: -1 | 1;
-    scrollSensitivity?: number;
+    dpr: number;
+}
+
+interface HarnessProps<TEngine extends Engine = Engine>
+    extends React.CanvasHTMLAttributes<HTMLCanvasElement>,
+        Partial<CanvasOptions> {
+    engine?: TEngine | (new (options?: Partial<TEngine['options']>) => TEngine);
+    engineOptions?: Partial<TEngine['options']>;
+    width?: number;
+    height?: number;
     onInitialized?: (engine: TEngine) => void;
+    canvases?: Record<string, React.RefObject<HTMLCanvasElement>>;
 }
 
 export function Harness<TEngine extends Engine = Engine>({
     engine,
     engineOptions,
-    width,
-    height,
+    width: widthProp = -1,
+    height: heightProp = -1,
     scrollDirection = 1,
     scrollSensitivity = 1,
     onInitialized,
+    canvases,
     ...rest
 }: HarnessProps<TEngine>) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [dpr] = useState(() => window.devicePixelRatio || 1);
+    const defaultCanvasRef = useRef<HTMLCanvasElement>(null);
+
+    const [size, setSize] = useState<SizeState>({
+        width: widthProp ?? window.innerWidth,
+        height: heightProp ?? window.innerHeight,
+        dpr: window.devicePixelRatio || 1,
+    });
+    useEffect(() => {
+        if (widthProp === -1 || heightProp === -1) {
+            const onResize = () => {
+                setSize({
+                    width: widthProp ?? window.innerWidth,
+                    height: heightProp ?? window.innerHeight,
+                    dpr: window.devicePixelRatio || 1,
+                });
+            };
+            window.addEventListener('resize', onResize);
+
+            return () => window.removeEventListener('resize', onResize);
+        }
+    }, [widthProp, heightProp]);
 
     const engineRef = useRef<TEngine | null>(null);
     const requestedAnimationFrame = useRef<number>(-1);
@@ -45,7 +73,7 @@ export function Harness<TEngine extends Engine = Engine>({
                     requestedAnimationFrame.current = -1;
                 }
             },
-            devicePixelRatio: dpr,
+            devicePixelRatio: size.dpr,
             ...engineOptions,
         };
 
@@ -66,11 +94,7 @@ export function Harness<TEngine extends Engine = Engine>({
     }
 
     useEffect(() => {
-        if (
-            !canvasRef.current ||
-            !engineRef.current ||
-            initializedRef.current
-        ) {
+        if (!engineRef.current || initializedRef.current) {
             return;
         }
 
@@ -79,63 +103,11 @@ export function Harness<TEngine extends Engine = Engine>({
     }, [onInitialized]);
 
     useEffect(() => {
-        if (!canvasRef.current || !engineRef.current) {
+        if (!engineRef.current) {
             return;
         }
 
         engineRef.current.options = { ...engineOptions };
-
-        const localCanvas = canvasRef.current;
-        engineRef.current.canvas = localCanvas;
-
-        const onMouseMove = (event: MouseEvent) =>
-            engineRef.current?.onMouseMove('mousemove', {
-                x: event.offsetX,
-                y: event.offsetY,
-            });
-        localCanvas.addEventListener('mousemove', onMouseMove);
-        const onMouseWheel = (event: WheelEvent) => {
-            let delta = event.deltaY * scrollDirection;
-            if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
-                delta = event.deltaY * 40;
-            } else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
-                delta = event.deltaY * 100;
-            }
-            delta *= scrollSensitivity;
-            engineRef.current?.onMouseWheel('mousewheel', { delta });
-            event.preventDefault();
-        };
-        localCanvas.addEventListener('wheel', onMouseWheel);
-        const onMouseDown = (event: MouseEvent) =>
-            engineRef.current?.onMouseDown('mousedown', {
-                button: event.button as PointerButton,
-            });
-        localCanvas.addEventListener('mousedown', onMouseDown);
-        const onMouseUp = (event: MouseEvent) =>
-            engineRef.current?.onMouseUp('mouseup', {
-                button: event.button as PointerButton,
-            });
-        localCanvas.addEventListener('mouseup', onMouseUp);
-        const onMouseEnter = (event: MouseEvent) =>
-            engineRef.current?.onMouseEnter('mouseenter', {
-                target: event.target,
-                x: event.offsetX,
-                y: event.offsetY,
-            });
-        localCanvas.addEventListener('mouseenter', onMouseEnter);
-        const onMouseLeave = (event: MouseEvent) =>
-            engineRef.current?.onMouseLeave('mouseleave', {
-                target: event.target,
-                x: event.offsetX,
-                y: event.offsetY,
-            });
-        localCanvas.addEventListener('mouseleave', onMouseLeave);
-        const onMouseOver = (event: MouseEvent) =>
-            engineRef.current?.onMouseOver('mouseover', {
-                from: event.relatedTarget,
-                to: event.target,
-            });
-        localCanvas.addEventListener('mouseover', onMouseOver);
 
         const isInputFocused = (): boolean => {
             const activeElement = document.activeElement;
@@ -198,33 +170,7 @@ export function Harness<TEngine extends Engine = Engine>({
         };
         document.addEventListener('visibilitychange', onVisibilityChange);
 
-        localCanvas.addEventListener('contextmenu', (event) =>
-            event.preventDefault(),
-        );
-
-        const onDragOver = (event: DragEvent) => {
-            event.preventDefault();
-            event.dataTransfer!.dropEffect = 'copy';
-        };
-        localCanvas.addEventListener('dragover', onDragOver);
-
-        const onDrop = (event: DragEvent) => {
-            event.preventDefault();
-            const entityType = event.dataTransfer?.getData('entityType');
-            if (!entityType || !engineRef.current) {
-                return;
-            }
-        };
-        localCanvas.addEventListener('drop', onDrop);
-
         return () => {
-            localCanvas.removeEventListener('mousemove', onMouseMove);
-            localCanvas.removeEventListener('wheel', onMouseWheel);
-            localCanvas.removeEventListener('mousedown', onMouseDown);
-            localCanvas.removeEventListener('mouseup', onMouseUp);
-            localCanvas.removeEventListener('mouseenter', onMouseEnter);
-            localCanvas.removeEventListener('mouseleave', onMouseLeave);
-            localCanvas.removeEventListener('mouseover', onMouseOver);
             window.removeEventListener('keydown', onKeyDown);
             window.removeEventListener('keyup', onKeyUp);
             window.removeEventListener('blur', onBlur);
@@ -232,10 +178,8 @@ export function Harness<TEngine extends Engine = Engine>({
                 'visibilitychange',
                 onVisibilityChange,
             );
-            localCanvas.removeEventListener('dragover', onDragOver);
-            localCanvas.removeEventListener('drop', onDrop);
         };
-    }, [dpr, engineRef, scrollDirection, scrollSensitivity, engineOptions]);
+    }, [size, engineRef, scrollDirection, scrollSensitivity, engineOptions]);
 
     useEffect(() => {
         return () => {
@@ -249,13 +193,39 @@ export function Harness<TEngine extends Engine = Engine>({
         engineRef.current.options = { ...engineOptions };
     }
 
+    if (canvases) {
+        return (
+            <>
+                {Object.entries(canvases).map(([id, canvasRef]) => (
+                    <CanvasTracker
+                        key={id}
+                        canvasID={id}
+                        canvasRef={canvasRef}
+                        engineRef={engineRef}
+                        scrollDirection={scrollDirection}
+                        scrollSensitivity={scrollSensitivity}
+                    />
+                ))}
+            </>
+        );
+    }
+
     return (
-        <canvas
-            {...rest}
-            ref={canvasRef}
-            width={width * dpr}
-            height={height * dpr}
-            style={{ width: `${width}px`, height: `${height}px` }}
-        />
+        <>
+            <canvas
+                {...rest}
+                ref={defaultCanvasRef}
+                width={size.width * size.dpr}
+                height={size.height * size.dpr}
+                style={{ width: `${size.width}px`, height: `${size.height}px` }}
+            />
+            <CanvasTracker
+                canvasID={DEFAULT_CANVAS_ID}
+                canvasRef={defaultCanvasRef}
+                engineRef={engineRef}
+                scrollDirection={scrollDirection}
+                scrollSensitivity={scrollSensitivity}
+            />
+        </>
     );
 }

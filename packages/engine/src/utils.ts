@@ -1,20 +1,9 @@
 import { type IVector } from './math/vector';
-import type { BoundingBox, Camera } from './types';
+import type { BoundingBox } from './types';
 
 export const lerp = (from: number, to: number, t: number): number => {
     return from + (to - from) * t;
 };
-
-export const DEFAULT_CAMERA_OPTIONS: Camera = {
-    zoom: 0,
-    rotation: 0,
-    position: { x: 0, y: 0 },
-    size: { x: 0, y: 0 },
-    boundingBox: { x1: 0, x2: 0, y1: 0, y2: 0 },
-    cullBoundingBox: { x1: 0, x2: 0, y1: 0, y2: 0 },
-    dirty: false,
-};
-
 export const zoomToScale = (zoom: number): number => {
     return Math.pow(2, zoom);
 };

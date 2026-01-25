@@ -1,12 +1,8 @@
 import type { Engine } from '../engine';
 import { type Entity } from '../entities';
+import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
-import type {
-    BoundingBox,
-    Camera,
-    CollisionContact,
-    Renderable,
-} from '../types';
+import type { BoundingBox, CollisionContact, Renderable } from '../types';
 
 export interface ComponentOptions {
     name?: string;
@@ -112,7 +108,7 @@ export abstract class Component<TEngine extends Engine = Engine>
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _stream: RenderCommandStream,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _camera: Camera,
+        _camera: CameraSystem,
     ): boolean {
         return false;
     }

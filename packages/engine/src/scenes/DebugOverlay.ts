@@ -3,6 +3,7 @@ import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import { type Engine } from '../engine';
 import { Entity, type EntityOptions } from '../entities';
 import { E_Text, type E_TextOptions } from '../objects/text';
+import type { CameraSystem } from '../systems/camera';
 import type {
     RenderCommandStats,
     RenderCommandStream,
@@ -10,7 +11,7 @@ import type {
 import type { RenderStyle } from '../systems/render/style';
 import { Scene } from '../systems/scene';
 import type { TraceFrame } from '../systems/stats';
-import type { BoundingBox, CacheStats, Camera } from '../types';
+import type { BoundingBox, CacheStats } from '../types';
 import { zoomToScale } from '../utils';
 
 const IMPORTANT_TRACE_THRESHOLD = 0.2;
@@ -36,7 +37,10 @@ export class E_StatsDebug<
         return true;
     }
 
-    override queueRenderCommands(stream: RenderCommandStream, camera: Camera) {
+    override queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ) {
         const stats = this._engine.stats;
         if (!stats) {
             return false;
@@ -47,7 +51,12 @@ export class E_StatsDebug<
 
         let textContent = '';
         if (stats.traces.length > 0) {
-            textContent += this.#buildTraceText(stats.traces, 0, '', currentTime);
+            textContent += this.#buildTraceText(
+                stats.traces,
+                0,
+                '',
+                currentTime,
+            );
         }
         if (stats.renderCommands) {
             textContent += this.#buildCacheText(stats.renderCommands);
@@ -61,7 +70,7 @@ export class E_StatsDebug<
             textContent += `\n  <color=${LABEL_COLOR}>Avg/Cell:</color> <bold>${spatialStats.avgEntitiesPerCell.toFixed(1)}</bold>`;
             textContent += `\n  <color=${LABEL_COLOR}>Max/Cell:</color> <bold>${spatialStats.maxEntitiesInCell}</bold>`;
         }
-        
+
         if (textContent) {
             text += `\n${textContent}`;
         }
@@ -166,20 +175,23 @@ export class C_BoundingBoxDebug<
         this.#sceneEntityName = sceneEntityName;
     }
 
-    override queueRenderCommands(stream: RenderCommandStream): boolean {
-        if (!super.queueRenderCommands(stream)) {
+    override queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ): boolean {
+        if (!super.queueRenderCommands(stream, camera)) {
             return false;
         }
 
         stream.pushTransform(this._entity.transform.worldMatrix.inverse());
         for (const child of this._engine.rootEntity.children) {
-            this.#drawEntityBoundingBox(child, stream);
+            this.#drawEntityBoundingBox(child, stream, camera);
         }
         stream.popTransform();
 
-        this.#drawBoundingBox(this._engine.camera.cullBoundingBox, stream, {
+        this.#drawBoundingBox(camera.cullBoundingBox, stream, {
             strokeStyle: 'blue',
-            lineWidth: 4 / zoomToScale(this.engine.camera.zoom),
+            lineWidth: 4 / zoomToScale(camera.zoom),
         });
 
         return true;
@@ -188,13 +200,13 @@ export class C_BoundingBoxDebug<
     #drawEntityBoundingBox(
         entity: Readonly<Entity<TEngine>>,
         stream: RenderCommandStream,
+        camera: CameraSystem,
         level = 0,
     ): void {
         if (!entity.enabled || entity.name === this.#sceneEntityName) return;
 
         const culled =
-            entity.cull !== 'none' &&
-            entity.isCulled(this._engine.camera.cullBoundingBox);
+            entity.cull !== 'none' && entity.isCulled(camera.cullBoundingBox);
         if (culled && entity.cull === 'all') {
             return;
         }
@@ -210,7 +222,7 @@ export class C_BoundingBoxDebug<
         const cullChildren = culled && entity.cull === 'components';
         if (!cullChildren) {
             for (const child of entity.children) {
-                this.#drawEntityBoundingBox(child, stream, level + 1);
+                this.#drawEntityBoundingBox(child, stream, camera, level + 1);
             }
         }
     }
@@ -252,14 +264,17 @@ export class C_ColliderDebug<
         this.#sceneEntityName = sceneEntityName;
     }
 
-    override queueRenderCommands(stream: RenderCommandStream): boolean {
-        if (!super.queueRenderCommands(stream)) {
+    override queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ): boolean {
+        if (!super.queueRenderCommands(stream, camera)) {
             return false;
         }
 
         stream.pushTransform(this._entity.transform.worldMatrix.inverse());
         for (const child of this._engine.rootEntity.children) {
-            this.#drawEntityCollider(child, stream);
+            this.#drawEntityCollider(child, stream, camera);
         }
         stream.popTransform();
 
@@ -269,12 +284,12 @@ export class C_ColliderDebug<
     #drawEntityCollider(
         entity: Readonly<Entity<TEngine>>,
         stream: RenderCommandStream,
+        camera: CameraSystem,
     ): void {
         if (!entity.enabled || entity.name === this.#sceneEntityName) return;
 
         const culled =
-            entity.cull !== 'none' &&
-            entity.isCulled(this._engine.camera.cullBoundingBox);
+            entity.cull !== 'none' && entity.isCulled(camera.cullBoundingBox);
         if (culled && entity.cull === 'all') {
             return;
         }
@@ -286,7 +301,7 @@ export class C_ColliderDebug<
             stream.setOpacity(collider.isTrigger ? 0.5 : 1);
             stream.setStyle({
                 strokeStyle: 'lime',
-                lineWidth: 4 / zoomToScale(this.engine.camera.zoom),
+                lineWidth: 4 / zoomToScale(camera.zoom),
             });
 
             if (collider.type === 'circle') {
@@ -344,7 +359,7 @@ export class C_ColliderDebug<
         const cullChildren = culled && entity.cull === 'components';
         if (!cullChildren) {
             for (const child of entity.children) {
-                this.#drawEntityCollider(child, stream);
+                this.#drawEntityCollider(child, stream, camera);
             }
         }
     }
@@ -353,8 +368,11 @@ export class C_ColliderDebug<
 class C_RaycastDebug<
     TEngine extends Engine = Engine,
 > extends C_Drawable<TEngine> {
-    override queueRenderCommands(stream: RenderCommandStream): boolean {
-        if (!super.queueRenderCommands(stream)) {
+    override queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ): boolean {
+        if (!super.queueRenderCommands(stream, camera)) {
             return false;
         }
 
@@ -369,8 +387,12 @@ class C_RaycastDebug<
                 stream.drawLine(
                     raycast.request.origin.x,
                     raycast.request.origin.y,
-                    raycast.request.origin.x + raycast.request.direction.x * raycast.request.maxDistance,
-                    raycast.request.origin.y + raycast.request.direction.y * raycast.request.maxDistance,
+                    raycast.request.origin.x +
+                        raycast.request.direction.x *
+                            raycast.request.maxDistance,
+                    raycast.request.origin.y +
+                        raycast.request.direction.y *
+                            raycast.request.maxDistance,
                     1,
                     1,
                     1,
@@ -403,31 +425,35 @@ class C_RaycastDebug<
 
 const MOUSE_HALF_AXIS = 12;
 
-class E_MouseDebug<
-    TEngine extends Engine = Engine,
-> extends Entity<TEngine> {
+class E_MouseDebug<TEngine extends Engine = Engine> extends Entity<TEngine> {
     constructor(options: EntityOptions) {
         super(options);
 
-        this.addComponents({
-            type: 'shape',
-            shape: 'LINE',
-            start: { x: -MOUSE_HALF_AXIS, y: 0 },
-            end: { x: MOUSE_HALF_AXIS, y: 0 },
-            style: { strokeStyle: 'blue', lineWidth: 2 },
-        }, {
-            type: 'shape',
-            shape: 'LINE',
-            start: { x: 0, y: -MOUSE_HALF_AXIS },
-            end: { x: 0.5, y: MOUSE_HALF_AXIS },
-            style: { strokeStyle: 'blue', lineWidth: 2 },
-        })
+        this.addComponents(
+            {
+                type: 'shape',
+                shape: 'LINE',
+                start: { x: -MOUSE_HALF_AXIS, y: 0 },
+                end: { x: MOUSE_HALF_AXIS, y: 0 },
+                style: { strokeStyle: 'blue', lineWidth: 2 },
+            },
+            {
+                type: 'shape',
+                shape: 'LINE',
+                start: { x: 0, y: -MOUSE_HALF_AXIS },
+                end: { x: 0.5, y: MOUSE_HALF_AXIS },
+                style: { strokeStyle: 'blue', lineWidth: 2 },
+            },
+        );
     }
 
     update(): boolean | void {
-        const pointerState = this._engine.pointerState;
-        if (pointerState.onScreen) {
-            this.setPosition(pointerState.worldPosition).setRotation(-this._engine.camera.rotation);
+        const pointerState = this._engine.getCanvasPointer();
+        const worldPosition = this._engine.screenToWorld(
+            pointerState.currentState.position,
+        );
+        if (worldPosition && pointerState.currentState.onScreen) {
+            this.setPosition(worldPosition);
             this.setOpacity(1);
         } else {
             this.setOpacity(0);
@@ -464,8 +490,7 @@ export class DebugOverlayScene<
 
         this.createEntity({
             type: E_MouseDebug,
-            name: 'Mouse Debug',
-            cull: 'none'
+            name: 'mouseDebug',
         });
 
         this.createEntity({
@@ -476,7 +501,7 @@ export class DebugOverlayScene<
             scaleRelativeToCamera: true,
             trim: 'ends',
             padding: 12,
-            background: true
+            background: true,
         });
     }
 }

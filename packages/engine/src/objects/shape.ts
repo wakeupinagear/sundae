@@ -1,11 +1,12 @@
+import { C_Collider, type C_ColliderOptions } from '../components/colliders';
 import { type C_CircleCollider } from '../components/colliders/CircleCollider';
 import { type C_RectangleCollider } from '../components/colliders/RectangleCollider';
 import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
 import { Entity, type EntityOptions } from '../entities';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
+import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
-import { C_Collider, type C_ColliderOptions } from '../components/colliders';
 
 const DEFAULT_ARROW_LENGTH = 1;
 const DEFAULT_ARROW_ANGLE = 45;
@@ -50,10 +51,14 @@ export class C_Shape<
     #endTip: Tip | null = null;
 
     constructor(options: C_ShapeOptions) {
-        super({ name: 'shape', ...options, style: {
-            lineCap: options.startTip || options.endTip ? 'round' : 'butt',
-            ...options.style,
-        } });
+        super({
+            name: 'shape',
+            ...options,
+            style: {
+                lineCap: options.startTip || options.endTip ? 'round' : 'butt',
+                ...options.style,
+            },
+        });
 
         this.#shape = options.shape;
         this.#repeat = new Vector(options.repeat ?? 1);
@@ -141,8 +146,11 @@ export class C_Shape<
         return this;
     }
 
-    override queueRenderCommands(stream: RenderCommandStream): boolean {
-        if (!super.queueRenderCommands(stream)) {
+    override queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ): boolean {
+        if (!super.queueRenderCommands(stream, camera)) {
             return false;
         }
 
@@ -222,7 +230,11 @@ export class C_Shape<
             let maxY = Math.max(this.#start.y, this.#end.y);
 
             if (this.#startTip?.type === 'arrow') {
-                const tipPoints = this.#getArrowTipPoints(this.#start, -1, this.#startTip);
+                const tipPoints = this.#getArrowTipPoints(
+                    this.#start,
+                    -1,
+                    this.#startTip,
+                );
                 for (const point of tipPoints) {
                     minX = Math.min(minX, point.x);
                     maxX = Math.max(maxX, point.x);
@@ -232,7 +244,11 @@ export class C_Shape<
             }
 
             if (this.#endTip?.type === 'arrow') {
-                const tipPoints = this.#getArrowTipPoints(this.#end, 1, this.#endTip);
+                const tipPoints = this.#getArrowTipPoints(
+                    this.#end,
+                    1,
+                    this.#endTip,
+                );
                 for (const point of tipPoints) {
                     minX = Math.min(minX, point.x);
                     maxX = Math.max(maxX, point.x);
@@ -253,7 +269,11 @@ export class C_Shape<
         }
     }
 
-    #getArrowTipPoints(origin: IVector<number>, angMult: number, tip: Tip): IVector<number>[] {
+    #getArrowTipPoints(
+        origin: IVector<number>,
+        angMult: number,
+        tip: Tip,
+    ): IVector<number>[] {
         if (!this.#start || !this.#end) {
             return [];
         }
@@ -266,13 +286,24 @@ export class C_Shape<
             this.#end.y - this.#start.y,
         );
 
-        return [{
-            x: origin.x + Math.cos(baseAng + (angle / 180) * Math.PI) * length,
-            y: origin.y + -Math.sin(baseAng + (angle / 180) * Math.PI) * length,
-        }, {
-            x: origin.x + -Math.cos(baseAng + (-angle / 180) * Math.PI) * length,
-            y: origin.y + Math.sin(baseAng + (-angle / 180) * Math.PI) * length,
-        }];
+        return [
+            {
+                x:
+                    origin.x +
+                    Math.cos(baseAng + (angle / 180) * Math.PI) * length,
+                y:
+                    origin.y +
+                    -Math.sin(baseAng + (angle / 180) * Math.PI) * length,
+            },
+            {
+                x:
+                    origin.x +
+                    -Math.cos(baseAng + (-angle / 180) * Math.PI) * length,
+                y:
+                    origin.y +
+                    Math.sin(baseAng + (-angle / 180) * Math.PI) * length,
+            },
+        ];
     }
 
     #drawTip(
@@ -354,7 +385,8 @@ export class E_Shape<TEngine extends Engine = Engine> extends Entity<TEngine> {
         });
 
         if (C_Collider.isCollisionEnabledInOptions(options)) {
-            const collOptions = C_Collider.getCollisionOptionsForEntity(options);
+            const collOptions =
+                C_Collider.getCollisionOptionsForEntity(options);
             if (options.shape === 'RECT') {
                 this.setCollider<C_RectangleCollider<TEngine>>({
                     type: 'rectangleCollider',

@@ -1,14 +1,34 @@
-import type { C_Collider } from "../components/colliders";
-import { type Component, type ComponentConstructor, type ComponentJSON, type CustomComponentJSON } from "../components/factory";
-import type { C_Rigidbody } from "../components/rigidbody";
-import type { C_Transform } from "../components/transforms";
-import { type Engine } from "../engine";
-import { type CustomEntityJSON, type EntityConstructor, type EntityJSON } from "./factory";
-import { type ImmutableVector, type IVector, Vector, type VectorConstructor } from "../math/vector";
-import type { RenderCommandStream } from "../systems/render/command";
-import { type BoundingBox, type Camera, type CollisionContact, type OneAxisAlignment, type Renderable } from "../types";
-import { boundingBoxesIntersect } from "../utils";
-import { zoomToScale } from "../utils";
+import type { C_Collider } from '../components/colliders';
+import {
+    type Component,
+    type ComponentConstructor,
+    type ComponentJSON,
+    type CustomComponentJSON,
+} from '../components/factory';
+import type { C_Rigidbody } from '../components/rigidbody';
+import type { C_Transform } from '../components/transforms';
+import { type Engine } from '../engine';
+import {
+    type IVector,
+    type ImmutableVector,
+    Vector,
+    type VectorConstructor,
+} from '../math/vector';
+import type { CameraSystem } from '../systems/camera';
+import type { RenderCommandStream } from '../systems/render/command';
+import {
+    type BoundingBox,
+    type CollisionContact,
+    type OneAxisAlignment,
+    type Renderable,
+} from '../types';
+import { boundingBoxesIntersect } from '../utils';
+import { zoomToScale } from '../utils';
+import {
+    type CustomEntityJSON,
+    type EntityConstructor,
+    type EntityJSON,
+} from './factory';
 
 type CullMode = 'components' | 'children' | 'all' | 'none';
 type PositionRelativeToCamera = OneAxisAlignment | 'none';
@@ -94,7 +114,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         this._enabled = rest?.enabled ?? true;
         this._zIndex = rest?.zIndex ?? 0;
         this._opacity = rest?.opacity ?? 1;
-        
+
         this._positionRelativeToCamera = rest?.positionRelativeToCamera
             ? typeof rest.positionRelativeToCamera === 'string'
                 ? {
@@ -111,9 +131,13 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                   }
                 : rest.scaleRelativeToCamera
             : { x: false, y: false };
-        this._rotateRelativeToCamera = rest?.rotateRelativeToCamera !== undefined 
-            ? Boolean(rest.rotateRelativeToCamera) 
-            : Boolean(this._scaleRelativeToCamera.x || this._scaleRelativeToCamera.y);
+        this._rotateRelativeToCamera =
+            rest?.rotateRelativeToCamera !== undefined
+                ? Boolean(rest.rotateRelativeToCamera)
+                : Boolean(
+                      this._scaleRelativeToCamera.x ||
+                          this._scaleRelativeToCamera.y,
+                  );
 
         this._cull = rest?.cull ?? 'all';
 
@@ -131,14 +155,22 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             scale: rest?.scale ?? 1,
         });
 
-        const {rigidbody,mass,kinematic,velocity,force,gravityScale,bounce} = options;
+        const {
+            rigidbody,
+            mass,
+            kinematic,
+            velocity,
+            force,
+            gravityScale,
+            bounce,
+        } = options;
         const rigidbodyPropSet = Boolean(
             mass !== undefined ||
-            kinematic !== undefined ||
-            velocity !== undefined ||
-            force !== undefined ||
-            gravityScale !== undefined ||
-            bounce !== undefined
+                kinematic !== undefined ||
+                velocity !== undefined ||
+                force !== undefined ||
+                gravityScale !== undefined ||
+                bounce !== undefined,
         );
         if (rigidbody || (rigidbodyPropSet && rigidbody !== false)) {
             this.setRigidbody({
@@ -148,8 +180,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                 velocity,
                 force,
                 gravityScale,
-                bounce
-            })
+                bounce,
+            });
         }
     }
 
@@ -391,7 +423,9 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         this.#childrenZIndexDirty = true;
     }
 
-    getComponentsInTree<T extends Component<TEngine>>(...typeStrings: string[]): T[] {
+    getComponentsInTree<T extends Component<TEngine>>(
+        ...typeStrings: string[]
+    ): T[] {
         const key = typeStrings.join(',');
         if (key in this._cachedComponentsInTree) {
             return this._cachedComponentsInTree[key] as T[];
@@ -584,7 +618,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this._components.find((c) => c.name === typeString) ?? null;
     }
 
-    queueRenderCommands(stream: RenderCommandStream, camera: Camera): void {
+    queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ): void {
         if (
             !this._enabled ||
             this._children.length + this._components.length === 0
@@ -603,6 +640,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             );
         }
 
+        // TODO: re-enable this when we have a way to handle camera position offset
+        /*
         // Apply camera position offset only if we need to render
         if (
             this._positionRelativeToCamera.x !== 'none' ||
@@ -673,6 +712,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                         : 0,
             });
         }
+            */
 
         if (this._rotateRelativeToCamera) {
             this.transform.setRotationOffset(-camera.rotation);

@@ -86,9 +86,7 @@ class ChaosScene extends Scene {
     override update(_deltaTime: number): boolean | void {
         this.#rotatingBox?.rotate(90 * _deltaTime);
 
-        this.engine.setCameraRotation(
-            this.engine.camera.rotation - 10 * _deltaTime,
-        );
+        this.engine.rotateCamera(-10 * _deltaTime);
 
         return true;
     }

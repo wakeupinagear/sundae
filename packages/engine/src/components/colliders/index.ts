@@ -1,11 +1,11 @@
 import { type Engine } from '../../engine';
 import { type Vector } from '../../math/vector';
+import type { CursorType } from '../../systems/pointer';
 import { type BoundingBox, type CollisionContact } from '../../types';
 import { Component, type ComponentOptions } from '../index';
 import { type C_Rigidbody } from '../rigidbody';
-import { type C_RectangleCollider } from './RectangleCollider';
-import type { CursorType } from '../../systems/pointer';
 import type { C_CircleCollider } from './CircleCollider';
+import { type C_RectangleCollider } from './RectangleCollider';
 
 type ColliderType = 'circle' | 'rectangle';
 
@@ -13,7 +13,7 @@ export type CollisionBounds = Vector[];
 
 export interface C_ColliderOptions extends ComponentOptions {
     isTrigger?: boolean;
-    
+
     pointerTarget?: boolean;
     onPointerEnter?: ((collider: C_Collider) => void) | null;
     onPointerLeave?: ((collider: C_Collider) => void) | null;
@@ -25,7 +25,7 @@ export abstract class C_Collider<
     TEngine extends Engine = Engine,
 > extends Component<TEngine> {
     _type!: ColliderType;
-    
+
     #isTrigger: boolean;
 
     #pointerTarget: boolean;
@@ -110,7 +110,10 @@ export abstract class C_Collider<
     }
 
     override update(): boolean | void {
-        if (this.#pointerTarget && this.#prevIsPointerHovered !== this.#isPointerHovered) {
+        if (
+            this.#pointerTarget &&
+            this.#prevIsPointerHovered !== this.#isPointerHovered
+        ) {
             if (this.#isPointerHovered) {
                 this.#onPointerEnter?.(this);
                 if (this.#cursorOnHover) {
@@ -161,19 +164,20 @@ export abstract class C_Collider<
         const distance = circleCollA.entity.position.distanceTo(
             circleCollB.entity.position,
         );
-    
+
         if (distance > circleCollA.radius + circleCollB.radius) {
             return null;
         }
-    
+
         const contactNormal = circleCollA.entity.position
             .sub(circleCollB.entity.position)
             .normalize();
-        const penetrationDepth = circleCollA.radius + circleCollB.radius - distance;
+        const penetrationDepth =
+            circleCollA.radius + circleCollB.radius - distance;
         const point = circleCollA.entity.position.add(
             contactNormal.scaleBy(circleCollA.radius),
         );
-    
+
         return {
             contactNormal,
             penetrationDepth,
@@ -183,23 +187,25 @@ export abstract class C_Collider<
         };
     };
 
-    static resolveRectangleRectangleCollision = <TEngine extends Engine = Engine>(
+    static resolveRectangleRectangleCollision = <
+        TEngine extends Engine = Engine,
+    >(
         rectangleCollA: C_RectangleCollider<TEngine>,
         rectangleCollB: C_RectangleCollider<TEngine>,
     ): CollisionContact<TEngine> | null => {
         const cornersA = rectangleCollA.entity.transform.corners;
         const cornersB = rectangleCollB.entity.transform.corners;
-    
+
         let minOverlap = Infinity;
         let smallestAxis = null;
-    
+
         const axes = [
             cornersA[1].sub(cornersA[0]).normalize(), // Edge 0-1 of A
             cornersA[2].sub(cornersA[1]).normalize(), // Edge 1-2 of A
             cornersB[1].sub(cornersB[0]).normalize(), // Edge 0-1 of B
             cornersB[2].sub(cornersB[1]).normalize(), // Edge 1-2 of B
         ];
-    
+
         for (const axis of axes) {
             let minA = Infinity;
             let maxA = -Infinity;
@@ -208,7 +214,7 @@ export abstract class C_Collider<
                 minA = Math.min(minA, projection);
                 maxA = Math.max(maxA, projection);
             }
-    
+
             let minB = Infinity;
             let maxB = -Infinity;
             for (let i = 0; i < 4; i++) {
@@ -216,22 +222,22 @@ export abstract class C_Collider<
                 minB = Math.min(minB, projection);
                 maxB = Math.max(maxB, projection);
             }
-    
+
             if (maxA < minB || maxB < minA) {
                 return null;
             }
-    
+
             const overlap = Math.min(maxA - minB, maxB - minA);
             if (overlap < minOverlap) {
                 minOverlap = overlap;
                 smallestAxis = axis;
             }
         }
-    
+
         if (!smallestAxis) {
             return null;
         }
-    
+
         const direction = rectangleCollA.entity.position.sub(
             rectangleCollB.entity.position,
         );
@@ -239,11 +245,11 @@ export abstract class C_Collider<
         if (direction.dot(contactNormal) < 0) {
             contactNormal = contactNormal.negate();
         }
-    
+
         const point = rectangleCollA.entity.position.add(
             contactNormal.scaleBy(-minOverlap / 2),
         );
-    
+
         return {
             contactNormal,
             penetrationDepth: minOverlap,
@@ -259,47 +265,47 @@ export abstract class C_Collider<
     ): CollisionContact<TEngine> | null => {
         const circleCenter = circleColl.entity.position;
         const corners = rectangleColl.entity.transform.corners;
-    
+
         let closestPoint = circleCenter.clone();
         let minDistanceSquared = Infinity;
-    
+
         for (let i = 0; i < 4; i++) {
             const edgeStart = corners[i];
             const edgeEnd = corners[(i + 1) % 4];
             const edge = edgeEnd.sub(edgeStart);
             const edgeLength = edge.length();
-    
+
             if (edgeLength === 0) continue;
-    
+
             const toCircle = circleCenter.sub(edgeStart);
             const t = Math.max(
                 0,
                 Math.min(1, toCircle.dot(edge) / (edgeLength * edgeLength)),
             );
-    
+
             const pointOnEdge = edgeStart.add(edge.scaleBy(t));
             const distanceSquared = circleCenter.distanceSquaredTo(pointOnEdge);
-    
+
             if (distanceSquared < minDistanceSquared) {
                 minDistanceSquared = distanceSquared;
                 closestPoint = pointOnEdge;
             }
         }
-    
+
         const distance = Math.sqrt(minDistanceSquared);
         const radius = circleColl.radius;
         if (distance > radius) {
             return null;
         }
-    
+
         const contactNormal =
             distance > 0
                 ? circleCenter.sub(closestPoint).normalize()
                 : circleCenter.sub(rectangleColl.entity.position).normalize();
         const penetrationDepth = radius - distance;
-        
+
         const point = closestPoint.clone();
-    
+
         return {
             contactNormal,
             penetrationDepth,
@@ -309,19 +315,28 @@ export abstract class C_Collider<
         };
     };
 
-    static isCollisionEnabledInOptions(options: C_ColliderOptions & { collision?: boolean }): boolean {
-        return options.collision ?? options.isTrigger ?? options.pointerTarget ?? false;
+    static isCollisionEnabledInOptions(
+        options: C_ColliderOptions & { collision?: boolean },
+    ): boolean {
+        return (
+            options.collision ??
+            options.isTrigger ??
+            options.pointerTarget ??
+            false
+        );
     }
 
-    static getCollisionOptionsForEntity(options: C_ColliderOptions & { collision?: boolean }): Partial<C_ColliderOptions> {
+    static getCollisionOptionsForEntity(
+        options: C_ColliderOptions & { collision?: boolean },
+    ): Partial<C_ColliderOptions> {
         return {
-            isTrigger: options.isTrigger ?? (!options.collision),
+            isTrigger: options.isTrigger ?? !options.collision,
             pointerTarget: options.pointerTarget ?? false,
             onPointerEnter: options.onPointerEnter ?? null,
             onPointerLeave: options.onPointerLeave ?? null,
             cursorOnHover: options.cursorOnHover ?? null,
         };
-    };
+    }
 
     resolveCollision(
         otherCollider: C_Collider<TEngine>,

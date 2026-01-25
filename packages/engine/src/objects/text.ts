@@ -1,10 +1,11 @@
 import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
 import { Entity, type EntityOptions } from '../entities';
-import { type C_Shape, type C_ShapeOptions } from './shape';
 import { Vector, type VectorConstructor } from '../math/vector';
+import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { BoundingBox, TwoAxisAlignment } from '../types';
+import { type C_Shape, type C_ShapeOptions } from './shape';
 
 const MONOSPACE_WIDTH_RATIO = 0.6;
 const MONOSPACE_HEIGHT_RATIO = 0.8;
@@ -133,7 +134,7 @@ export class C_Text<
         this.#italic = options.italic ?? false;
         this.#bold = options.bold ?? false;
         this.#opacity = options.opacity ?? 1;
-    
+
         this.#setPadding(options.padding ?? 0);
         this.#setBackground(options.background ?? null);
     }
@@ -278,8 +279,11 @@ export class C_Text<
         this.#setBackground(background);
     }
 
-    override queueRenderCommands(stream: RenderCommandStream): boolean {
-        if (!this.#text || !super.queueRenderCommands(stream)) {
+    override queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ): boolean {
+        if (!this.#text || !super.queueRenderCommands(stream, camera)) {
             return false;
         }
 
@@ -611,7 +615,10 @@ export class C_Text<
             this.#drawActions.pop();
         }
 
-        this.#textSize.set({ x: overallWidth + this.#padding.x1 + this.#padding.x2, y: overallHeight + this.#padding.y1 + this.#padding.y2 });
+        this.#textSize.set({
+            x: overallWidth + this.#padding.x1 + this.#padding.x2,
+            y: overallHeight + this.#padding.y1 + this.#padding.y2,
+        });
         this._markBoundsDirty();
     }
 
@@ -893,9 +900,19 @@ export class C_Text<
 
     #setPadding(padding: Padding) {
         if (typeof padding === 'number') {
-            this.#padding = { x1: padding, x2: padding, y1: padding, y2: padding };
+            this.#padding = {
+                x1: padding,
+                x2: padding,
+                y1: padding,
+                y2: padding,
+            };
         } else if ('x' in padding) {
-            this.#padding = { x1: padding.x, x2: padding.x, y1: padding.y, y2: padding.y };
+            this.#padding = {
+                x1: padding.x,
+                x2: padding.x,
+                y1: padding.y,
+                y2: padding.y,
+            };
         } else {
             this.#padding = padding;
         }
@@ -915,7 +932,7 @@ export class C_Text<
                 opacity: 0.5,
                 style: { fillStyle: 'black' },
                 ...(typeof background === 'object' ? background : {}),
-                fill: true
+                fill: true,
             });
         } else if (this.#bgShape) {
             this.#bgShape.destroy();

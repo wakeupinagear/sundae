@@ -1,5 +1,5 @@
-import { System } from './index';
 import type { Engine } from '../engine';
+import { System } from './index';
 
 const LOG_PREFIX = '[LOG]:';
 const WARN_PREFIX = '[WARN]:';
@@ -8,7 +8,7 @@ const ERROR_PREFIX = '[ERROR]:';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LogArgs = any[];
 
-export interface I_Logging {
+export interface I_LogSystem {
     log: (...args: LogArgs) => void;
     warn: (...args: LogArgs) => void;
     error: (...args: LogArgs) => void;
@@ -23,38 +23,41 @@ export interface LogOutput {
     error: (...args: LogArgs) => void;
 }
 
-export class LogSystem<TEngine extends Engine = Engine> extends System<TEngine> implements I_Logging {
+export class LogSystem<TEngine extends Engine = Engine>
+    extends System<TEngine>
+    implements I_LogSystem
+{
     #logOutput: LogOutput | null = null;
 
     set logOutput(logOutput: LogOutput | null | undefined) {
         this.#logOutput = logOutput ?? null;
     }
 
-    log: I_Logging['log'] = (...args) => {
+    log: I_LogSystem['log'] = (...args) => {
         this.#logOutput?.log?.(LOG_PREFIX, ...args);
     };
 
-    warn: I_Logging['warn'] = (...args) => {
+    warn: I_LogSystem['warn'] = (...args) => {
         this.#logOutput?.warn?.(WARN_PREFIX, ...args);
     };
 
-    error: I_Logging['error'] = (...args) => {
+    error: I_LogSystem['error'] = (...args) => {
         this.#logOutput?.error?.(ERROR_PREFIX, ...args);
     };
 
-    logBeforeFrame: I_Logging['logBeforeFrame'] = (n, ...args) => {
+    logBeforeFrame: I_LogSystem['logBeforeFrame'] = (n, ...args) => {
         if (this._engine.frameCount < n) {
             this.#logOutput?.log(LOG_PREFIX, ...args);
         }
     };
 
-    warnBeforeFrame: I_Logging['warnBeforeFrame'] = (n, ...args) => {
+    warnBeforeFrame: I_LogSystem['warnBeforeFrame'] = (n, ...args) => {
         if (this._engine.frameCount < n) {
             this.#logOutput?.warn(WARN_PREFIX, ...args);
         }
     };
 
-    errorBeforeFrame: I_Logging['errorBeforeFrame'] = (n, ...args) => {
+    errorBeforeFrame: I_LogSystem['errorBeforeFrame'] = (n, ...args) => {
         if (this._engine.frameCount < n) {
             this.#logOutput?.error(ERROR_PREFIX, ...args);
         }

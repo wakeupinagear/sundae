@@ -1,9 +1,10 @@
+import { C_Collider, type C_ColliderOptions } from '../components/colliders';
 import { type C_RectangleCollider } from '../components/colliders/RectangleCollider';
 import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
 import { Entity, type EntityOptions } from '../entities';
-import { C_Collider, type C_ColliderOptions } from '../components/colliders';
 import { Vector, type VectorConstructor } from '../math/vector';
+import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
 
 export interface C_ImageOptions extends C_DrawableOptions, C_ColliderOptions {
@@ -50,11 +51,14 @@ export class C_Image<
         this.#repeat = new Vector(repeat ?? 1);
     }
 
-    override queueRenderCommands(stream: RenderCommandStream): boolean {
+    override queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ): boolean {
         if (
             !this._entity ||
             !this.#imageName ||
-            !super.queueRenderCommands(stream)
+            !super.queueRenderCommands(stream, camera)
         ) {
             return false;
         }
@@ -75,7 +79,10 @@ export class C_Image<
     }
 }
 
-export interface E_ImageOptions extends EntityOptions, C_ImageOptions, C_ColliderOptions {
+export interface E_ImageOptions
+    extends EntityOptions,
+        C_ImageOptions,
+        C_ColliderOptions {
     collision?: boolean;
 }
 

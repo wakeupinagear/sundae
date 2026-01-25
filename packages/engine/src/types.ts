@@ -1,6 +1,7 @@
 import { type C_Collider } from './components/colliders';
 import { type Engine } from './engine';
-import type { IVector, Vector } from './math/vector';
+import type { Vector } from './math/vector';
+import type { CameraSystem } from './systems/camera';
 import type { RenderCommandStream } from './systems/render/command';
 
 export interface BoundingBox {
@@ -15,6 +16,10 @@ export interface BoundingBox {
  * This ensures compatibility between browser CanvasRenderingContext2D and skia-canvas.
  */
 export interface ICanvasRenderingContext2D {
+    // Save/restore methods
+    save(): void;
+    restore(): void;
+
     // Transform methods
     setTransform(
         a: number,
@@ -38,6 +43,10 @@ export interface ICanvasRenderingContext2D {
     fillRect(x: number, y: number, w: number, h: number): void;
     strokeRect(x: number, y: number, w: number, h: number): void;
     clearRect(x: number, y: number, w: number, h: number): void;
+
+    // Clipping methods
+    clip(): void;
+    rect(x: number, y: number, w: number, h: number): void;
 
     // Path methods
     beginPath(): void;
@@ -99,20 +108,6 @@ export interface ICanvas {
 
 export type RecursiveArray<T> = Array<RecursiveArray<T> | T>;
 
-export interface CameraData {
-    zoom: number;
-    rotation: number;
-    position: IVector<number>;
-}
-export interface CameraMetadata {
-    size: IVector<number>;
-    boundingBox: BoundingBox;
-    cullBoundingBox: BoundingBox;
-    dirty: boolean;
-}
-
-export interface Camera extends CameraData, CameraMetadata {}
-
 export interface CollisionContact<TEngine extends Engine = Engine> {
     contactNormal: Vector;
     penetrationDepth: number;
@@ -122,7 +117,10 @@ export interface CollisionContact<TEngine extends Engine = Engine> {
 }
 
 export interface Renderable {
-    queueRenderCommands(stream: RenderCommandStream, camera: Camera): void;
+    queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ): void;
 }
 
 // prettier-ignore

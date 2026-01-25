@@ -1,5 +1,6 @@
 import { type Engine } from '../engine';
 import { Vector, type VectorConstructor } from '../math/vector';
+import type { CameraSystem } from '../systems/camera';
 import { type RenderCommandStream } from '../systems/render/command';
 import { type RenderStyle } from '../systems/render/style';
 import { OPACITY_THRESHOLD } from '../utils';
@@ -96,7 +97,11 @@ export abstract class C_Drawable<
         return this;
     }
 
-    public override queueRenderCommands(stream: RenderCommandStream): boolean {
+    public override queueRenderCommands(
+        stream: RenderCommandStream,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _camera: CameraSystem,
+    ): boolean {
         const opacity = this.opacity;
         if (opacity >= OPACITY_THRESHOLD) {
             stream.setOpacity(opacity);

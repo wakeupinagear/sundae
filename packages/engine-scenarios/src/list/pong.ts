@@ -47,6 +47,8 @@ class E_Paddle extends E_Shape {
 
 class PongScene extends Scene {
     #ball!: E_Shape;
+    #paddle1!: E_Paddle;
+    #paddle2!: E_Paddle;
     #scoreText!: E_Text;
 
     #score1 = 0;
@@ -65,7 +67,7 @@ class PongScene extends Scene {
             zIndex: -1,
         }) as E_Text;
 
-        this.createEntities(
+        [this.#paddle1, this.#paddle2] = this.createEntities(
             {
                 type: E_Paddle,
                 inputAxis: PLAYER_1_INPUT_AXIS,
@@ -121,13 +123,10 @@ class PongScene extends Scene {
     }
 
     override update() {
-        const canvasSize = this.engine.canvasSize;
-        if (canvasSize) {
-            if (this.#ball.position.x < -canvasSize.x / 2) {
-                this.score('player2');
-            } else if (this.#ball.position.x > canvasSize.x / 2) {
-                this.score('player1');
-            }
+        if (this.#ball.position.x < this.#paddle1.position.x - 36) {
+            this.score('player2');
+        } else if (this.#ball.position.x > this.#paddle2.position.x + 36) {
+            this.score('player1');
         }
 
         this.#scoreText.text = `${this.#score1}-${this.#score2}`;

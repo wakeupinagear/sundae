@@ -1,1 +1,7 @@
-export { PointerButton, type PointerButtonState, type PointerState, PointerSystem, type CameraScrollMode, type CursorType } from '../src/systems/pointer';
+export {
+    PointerButton,
+    type PointerButtonState,
+    PointerSystem,
+    type CameraScrollMode,
+    type CursorType,
+} from '../src/systems/pointer';

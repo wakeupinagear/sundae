@@ -208,6 +208,8 @@ class LevelScene extends Scene {
     }
 
     update(): boolean | void {
+        // TODO: Implement camera targeting
+        /*
         this.engine.cameraTarget = {
             position: {
                 x: Math.max(
@@ -219,6 +221,7 @@ class LevelScene extends Scene {
             zoom: this.engine.camera.zoom,
             rotation: this.engine.camera.rotation,
         };
+        */
     }
 
     addScore(score: number): void {
