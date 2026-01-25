@@ -1,7 +1,6 @@
 import type { C_Collider } from '../components/colliders';
 import { DEFAULT_CANVAS_ID } from '../constants';
 import { type Engine } from '../engine';
-import type { Entity } from '../entities';
 import { Matrix2D } from '../math/matrix';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import type { BoundingBox } from '../types';
@@ -45,12 +44,34 @@ export interface CameraSystemOptions extends CameraOptions {
     scale?: VectorConstructor;
 }
 
+type CameraTarget =
+    | {
+          type: 'entity';
+          name: string;
+      }
+    | {
+          type: 'fixed';
+          position?: VectorConstructor;
+          zoom?: number;
+          rotation?: number;
+      };
+export type CameraTargetConstructor =
+    | CameraTarget
+    | {
+          position?: VectorConstructor;
+          zoom?: number;
+          rotation?: number;
+      }
+    | string
+    | null;
+
 export class CameraSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
     #position: Vector = new Vector(0);
     #rotation: number = 0;
     #zoom: number = 0;
+    #target: CameraTarget | null = null;
 
     #offset: Vector = new Vector(0);
     #scale: Vector = new Vector(1);
@@ -65,6 +86,8 @@ export class CameraSystem<
     #boundingBox: BoundingBox | null = null;
     #cullBoundingBox: BoundingBox | null = null;
     #boundsDirty: boolean = true;
+
+    #worldPosition: Vector = new Vector(0);
 
     constructor(engine: TEngine, cameraID: string) {
         super(engine);
@@ -171,19 +194,30 @@ export class CameraSystem<
     }
 
     screenToWorld(position: IVector<number>): IVector<number> | null {
-        const matrix = this.inverseWorldToScreenMatrix;
-        if (!matrix) {
-            return null;
-        }
-        return matrix.transformPoint(position);
+        return (
+            this.inverseWorldToScreenMatrix?.transformPoint(position) ?? null
+        );
     }
 
     worldToScreen(position: IVector<number>): IVector<number> | null {
-        const matrix = this.worldToScreenMatrix;
-        if (!matrix) {
-            return null;
+        return this.worldToScreenMatrix?.transformPoint(position) ?? null;
+    }
+
+    setTarget(target: CameraTargetConstructor): void {
+        if (typeof target === 'string') {
+            this.#target = { type: 'entity', name: target };
+        } else if (target === null) {
+            this.#target = null;
+        } else if ('type' in target && target.type === 'entity') {
+            this.#target = { type: 'entity', name: target.name };
+        } else {
+            this.#target = {
+                type: 'fixed',
+                position: target.position,
+                zoom: target.zoom,
+                rotation: target.rotation,
+            };
         }
-        return matrix.transformPoint(position);
     }
 
     applyOptions(options: CameraSystemOptions): void {
@@ -231,6 +265,10 @@ export class CameraSystem<
     }
 
     override earlyUpdate() {
+        if (this.#target) {
+            this.#updateTarget(this.#target);
+        }
+
         const canvasPointer = this._engine.getCanvasPointer(
             this.#options.canvasID,
         );
@@ -240,11 +278,23 @@ export class CameraSystem<
             canvasPointer.currentState.position,
         );
         if (worldPosition) {
-            // TODO: cache vector
-            this.#updateAllPointerTargets(
-                new Vector(worldPosition),
-                canvasPointer,
-            );
+            this.#worldPosition.set(worldPosition);
+            this.#updateAllPointerTargets(this.#worldPosition, canvasPointer);
+        }
+    }
+
+    #updateTarget(target: CameraTarget): void {
+        if (target.type === 'entity') {
+        } else if (target.type === 'fixed') {
+            if (target.position) {
+                this.#position.set(target.position);
+            }
+            if (target.zoom) {
+                this.setZoom(target.zoom);
+            }
+            if (target.rotation) {
+                this.setRotation(target.rotation);
+            }
         }
     }
 
@@ -286,10 +336,12 @@ export class CameraSystem<
                 buttonStates.some((state) => state.pressed) &&
                 !canvasPointer.dragStartMousePosition
             ) {
-                canvasPointer.dragStartMousePosition =
-                    canvasPointer.currentState.position.extract();
-                canvasPointer.dragStartCameraPosition =
-                    this.#position.extract();
+                canvasPointer.dragStartMousePosition = new Vector(
+                    canvasPointer.currentState.position,
+                );
+                canvasPointer.dragStartCameraPosition = new Vector(
+                    this.#position,
+                );
             }
 
             if (canvasPointer.currentState.justMoved) {
@@ -309,9 +361,7 @@ export class CameraSystem<
                     const rotatedDelta = worldDelta.rotate(rotationRad);
                     // Subtract because dragging content right means camera moves left
                     this.setPosition(
-                        new Vector(canvasPointer.dragStartCameraPosition).sub(
-                            rotatedDelta,
-                        ),
+                        canvasPointer.dragStartCameraPosition.sub(rotatedDelta),
                     );
                     this.#cancelCameraTarget();
                 }
@@ -403,12 +453,7 @@ export class CameraSystem<
 
         ctx.translate(x + w / 2, y + h / 2);
 
-        this._engine.renderSystem.render(
-            ctx,
-            // TODO: remove type cast
-            this._engine.rootEntity as Entity<TEngine>,
-            this,
-        );
+        this._engine.renderSystem.render(ctx, this._engine.rootEntity, this);
 
         if (!isFullScreen) {
             ctx.restore();
@@ -423,7 +468,6 @@ export class CameraSystem<
     #computeMatrices() {
         const canvas = this._engine.getCanvas(this.#options.canvasID);
         if (!canvas) {
-            // No canvas means we can't compute proper matrices
             this.#worldToScreenMatrix = null;
             this.#inverseWorldToScreenMatrix = null;
             this.#matricesDirty = false;
@@ -502,6 +546,6 @@ export class CameraSystem<
     }
 
     #cancelCameraTarget(): void {
-        // TODO: Cancel camera target
+        this.#target = null;
     }
 }
