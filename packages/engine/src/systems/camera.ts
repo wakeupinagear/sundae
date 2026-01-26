@@ -85,6 +85,7 @@ export class CameraSystem<
 
     #worldPosition: Vector = new Vector(0);
     #canvasSize: Vector | null = null;
+    #prevCanvasSize: Vector | null = null;
     #size: Vector | null = null;
 
     constructor(engine: TEngine, cameraID: string) {
@@ -283,7 +284,7 @@ export class CameraSystem<
         const canvasPointer = this._engine.getCanvasPointer(
             this.#options.canvasID,
         );
-        const updated = this.#updatePointer(canvasPointer);
+        let updated = this.#updatePointer(canvasPointer);
 
         const worldPosition = this.screenToWorld(
             canvasPointer.currentState.position,
@@ -300,6 +301,19 @@ export class CameraSystem<
             } else {
                 this.#canvasSize.x = canvas.width;
                 this.#canvasSize.y = canvas.height;
+            }
+
+            if (this.#prevCanvasSize === null && this.#canvasSize !== null) {
+                this.#prevCanvasSize = new Vector(this.#canvasSize);
+                updated = true;
+                this.#markDirty();
+            } else if (
+                this.#prevCanvasSize !== null &&
+                this.#canvasSize !== null &&
+                this.#prevCanvasSize.set(this.#canvasSize)
+            ) {
+                updated = true;
+                this.#markDirty();
             }
 
             if (!this.#size) {

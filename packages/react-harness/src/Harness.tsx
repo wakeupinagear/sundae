@@ -24,47 +24,61 @@ interface HarnessProps<TEngine extends Engine = Engine>
     engineOptions?: Partial<TEngine['options']>;
     width?: number;
     height?: number;
-    onInitialized?: (engine: TEngine) => void;
+    onEngineReady?: (engine: TEngine) => void;
     canvases?: Record<string, React.RefObject<HTMLCanvasElement>>;
+    containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function Harness<TEngine extends Engine = Engine>({
     engine,
     initialEngineOptions,
     engineOptions,
-    width: widthProp = -1,
-    height: heightProp = -1,
+    width: widthProp,
+    height: heightProp,
     scrollDirection: scrollDirectionProp,
     scrollSensitivity = 1,
-    onInitialized,
+    onEngineReady,
     canvases,
+    containerRef,
     ...rest
 }: HarnessProps<TEngine>) {
     const defaultCanvasRef = useRef<HTMLCanvasElement>(null);
 
     const [size, setSize] = useState<SizeState>({
-        width: widthProp ?? window.innerWidth,
-        height: heightProp ?? window.innerHeight,
+        width:
+            widthProp ??
+            containerRef?.current?.clientWidth ??
+            window.innerWidth,
+        height:
+            heightProp ??
+            containerRef?.current?.clientHeight ??
+            window.innerHeight,
         dpr: window.devicePixelRatio || 1,
     });
     useEffect(() => {
-        if (widthProp === -1 || heightProp === -1) {
+        if (!canvases && (!widthProp || !heightProp)) {
             const onResize = () => {
                 setSize({
-                    width: widthProp ?? window.innerWidth,
-                    height: heightProp ?? window.innerHeight,
+                    width:
+                        widthProp ??
+                        containerRef?.current?.clientWidth ??
+                        window.innerWidth,
+                    height:
+                        heightProp ??
+                        containerRef?.current?.clientHeight ??
+                        window.innerHeight,
                     dpr: window.devicePixelRatio || 1,
                 });
             };
             window.addEventListener('resize', onResize);
+            onResize();
 
             return () => window.removeEventListener('resize', onResize);
         }
-    }, [widthProp, heightProp]);
+    }, [canvases, widthProp, heightProp, containerRef]);
 
     const engineRef = useRef<TEngine | null>(null);
     const requestedAnimationFrame = useRef<number>(-1);
-    const initializedRef = useRef(false);
     const platformRef = useRef<Platform>('unknown');
 
     if (!engineRef.current) {
@@ -106,13 +120,10 @@ export function Harness<TEngine extends Engine = Engine>({
     }
 
     useEffect(() => {
-        if (!engineRef.current || initializedRef.current) {
-            return;
+        if (engineRef.current) {
+            onEngineReady?.(engineRef.current);
         }
-
-        initializedRef.current = true;
-        onInitialized?.(engineRef.current);
-    }, [onInitialized]);
+    }, [onEngineReady]);
 
     useEffect(() => {
         if (!engineRef.current) {

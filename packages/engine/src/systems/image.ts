@@ -1,5 +1,5 @@
-import { System } from './index';
 import { type Engine } from '../engine';
+import { System } from './index';
 
 export interface LoadedImage {
     name: string;
@@ -7,7 +7,9 @@ export interface LoadedImage {
     owned: boolean;
 }
 
-export class ImageSystem<TEngine extends Engine = Engine> extends System<TEngine> {
+export class ImageSystem<
+    TEngine extends Engine = Engine,
+> extends System<TEngine> {
     #loadingImages: Set<string> = new Set();
     #loadedImages: Record<string, LoadedImage> = {};
     #pathsToLoadedImages: Record<string, string> = {};

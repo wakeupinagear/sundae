@@ -11,9 +11,10 @@
     },
     "dependencies": {
         "@repo/engine-scenarios": "workspace:*",
-        "@repo/tailwind-config": "workspace:*",
         "@repo/react": "workspace:*",
+        "@repo/tailwind-config": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
+        "clsx": "^2.1.1",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "tailwindcss": "^4.1.5",
@@ -21,8 +22,8 @@
     },
     "devDependencies": {
         "@repo/engine": "workspace:*",
-        "@repo/react": "workspace:*",
         "@repo/eslint-config": "workspace:*",
+        "@repo/react": "workspace:*",
         "@repo/typescript-config": "workspace:*",
         "@types/react": "^19.0.1",
         "@types/react-dom": "^19.0.2",

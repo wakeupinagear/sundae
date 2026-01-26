@@ -27,4 +27,8 @@ export class ItemCache<TValue, TKey = string> {
 
         return item;
     }
+
+    clear(): void {
+        this.#items.clear();
+    }
 }

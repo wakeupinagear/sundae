@@ -1,4 +1,3 @@
-import { System } from './index';
 import type { Engine } from '../engine';
 import { type Entity } from '../entities';
 import {
@@ -8,6 +7,7 @@ import {
     type EntityJSON,
     type StringEntityJSON,
 } from '../entities/factory';
+import { System } from './index';
 
 type TypedEntityJSON = Extract<StringEntityJSON, { type: string }>;
 // Utility to get all keys from all members of a union.

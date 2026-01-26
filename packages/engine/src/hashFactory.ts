@@ -21,6 +21,11 @@ export class HashFactory<T> {
         return this.#itemsByID.size;
     }
 
+    clear(): void {
+        this.#itemsByHash.clear();
+        this.#itemsByID.clear();
+    }
+
     idToItem(id: number): HashedItem<T> | null {
         return this.#itemsByID.get(id) ?? null;
     }

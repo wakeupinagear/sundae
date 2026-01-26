@@ -1,5 +1,5 @@
-import { System } from './index';
 import type { Engine } from '../engine';
+import { System } from './index';
 import type { RenderCommandStats } from './render/command';
 
 const STATS_BUFFER_SIZE = 1;
@@ -24,7 +24,9 @@ const createEmptyStats = (fps: number = 0): Stats => ({
     renderCommands: null,
 });
 
-export class StatsSystem<TEngine extends Engine = Engine> extends System<TEngine> {
+export class StatsSystem<
+    TEngine extends Engine = Engine,
+> extends System<TEngine> {
     #lastFrameStats: Stats[] = [];
     #currentFrameStats: Stats = createEmptyStats();
 
