@@ -41,10 +41,11 @@ export function CanvasTracker({
 
         const onMouseMove = (event: MouseEvent) =>
             engineRef.current?.onMouseMove('mousemove', canvasID, {
-                x: event.offsetX,
-                y: event.offsetY,
+                x: event.clientX - localCanvas.offsetLeft,
+                y: event.clientY - localCanvas.offsetTop,
             });
-        localCanvas.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mousemove', onMouseMove);
+
         const onMouseWheel = (event: WheelEvent) => {
             let delta = event.deltaY * scrollDirection;
             if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
@@ -57,16 +58,19 @@ export function CanvasTracker({
             event.preventDefault();
         };
         localCanvas.addEventListener('wheel', onMouseWheel);
+
         const onMouseDown = (event: MouseEvent) =>
             engineRef.current?.onMouseDown('mousedown', canvasID, {
                 button: event.button as PointerButton,
             });
         localCanvas.addEventListener('mousedown', onMouseDown);
+
         const onMouseUp = (event: MouseEvent) =>
             engineRef.current?.onMouseUp('mouseup', canvasID, {
                 button: event.button as PointerButton,
             });
-        localCanvas.addEventListener('mouseup', onMouseUp);
+        window.addEventListener('mouseup', onMouseUp);
+
         const onMouseEnter = (event: MouseEvent) =>
             engineRef.current?.onMouseEnter('mouseenter', canvasID, {
                 target: event.target,
@@ -74,6 +78,7 @@ export function CanvasTracker({
                 y: event.offsetY,
             });
         localCanvas.addEventListener('mouseenter', onMouseEnter);
+
         const onMouseLeave = (event: MouseEvent) =>
             engineRef.current?.onMouseLeave('mouseleave', canvasID, {
                 target: event.target,
@@ -81,6 +86,7 @@ export function CanvasTracker({
                 y: event.offsetY,
             });
         localCanvas.addEventListener('mouseleave', onMouseLeave);
+
         const onMouseOver = (event: MouseEvent) =>
             engineRef.current?.onMouseOver('mouseover', canvasID, {
                 from: event.relatedTarget,
@@ -98,25 +104,15 @@ export function CanvasTracker({
         };
         localCanvas.addEventListener('dragover', onDragOver);
 
-        const onDrop = (event: DragEvent) => {
-            event.preventDefault();
-            const entityType = event.dataTransfer?.getData('entityType');
-            if (!entityType || !engineRef.current) {
-                return;
-            }
-        };
-        localCanvas.addEventListener('drop', onDrop);
-
         return () => {
-            localCanvas.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mousemove', onMouseMove);
             localCanvas.removeEventListener('wheel', onMouseWheel);
-            localCanvas.removeEventListener('mousedown', onMouseDown);
+            window.removeEventListener('mousedown', onMouseDown);
             localCanvas.removeEventListener('mouseup', onMouseUp);
             localCanvas.removeEventListener('mouseenter', onMouseEnter);
             localCanvas.removeEventListener('mouseleave', onMouseLeave);
             localCanvas.removeEventListener('mouseover', onMouseOver);
             localCanvas.removeEventListener('dragover', onDragOver);
-            localCanvas.removeEventListener('drop', onDrop);
         };
     }, [canvasID, engineRef, scrollDirection, scrollSensitivity]);
 

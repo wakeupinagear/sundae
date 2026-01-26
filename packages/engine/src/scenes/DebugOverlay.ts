@@ -492,6 +492,7 @@ export class DebugOverlayScene<
         this.createEntity({
             type: E_MouseDebug,
             name: 'mouseDebug',
+            scaleRelativeToCamera: true,
         });
 
         this.createEntity({

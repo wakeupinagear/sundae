@@ -283,7 +283,7 @@ export class CameraSystem<
         const canvasPointer = this._engine.getCanvasPointer(
             this.#options.canvasID,
         );
-        this.#updatePointer(canvasPointer);
+        const updated = this.#updatePointer(canvasPointer);
 
         const worldPosition = this.screenToWorld(
             canvasPointer.currentState.position,
@@ -319,6 +319,8 @@ export class CameraSystem<
             this.#canvasSize = null;
             this.#size = null;
         }
+
+        return updated;
     }
 
     #updateTarget(target: CameraTarget): void {
@@ -340,7 +342,8 @@ export class CameraSystem<
         }
     }
 
-    #updatePointer(canvasPointer: CanvasPointer): void {
+    #updatePointer(canvasPointer: CanvasPointer): boolean {
+        let updated = false;
         if (canvasPointer.currentState.scrollDelta !== 0) {
             const scrollMode = this.#options.scrollMode;
             const meta =
@@ -351,11 +354,16 @@ export class CameraSystem<
                 (scrollMode === 'meta' && meta) ||
                 (scrollMode === 'no-meta' && !meta)
             ) {
-                this._engine.zoomCamera(
-                    canvasPointer.currentState.scrollDelta,
+                const worldPosition = this.screenToWorld(
                     canvasPointer.currentState.position,
-                    this.#cameraID,
                 );
+                if (worldPosition) {
+                    this._engine.zoomCamera(
+                        canvasPointer.currentState.scrollDelta,
+                        worldPosition,
+                        this.#cameraID,
+                    );
+                }
             }
 
             canvasPointer.accumulatedScrollDelta +=
@@ -366,6 +374,8 @@ export class CameraSystem<
             canvasPointer.accumulatedScrollDelta -=
                 canvasPointer.scrollSteps * SCROLL_DELTA_PER_STEP;
             canvasPointer.currentState.scrollDelta = 0;
+
+            updated = true;
         } else {
             canvasPointer.scrollSteps = 0;
         }
@@ -384,6 +394,7 @@ export class CameraSystem<
                 canvasPointer.dragStartCameraPosition = new Vector(
                     this.#position,
                 );
+                updated = true;
             }
 
             if (canvasPointer.currentState.justMoved) {
@@ -395,17 +406,13 @@ export class CameraSystem<
                     const screenDelta = canvasPointer.currentState.position.sub(
                         canvasPointer.dragStartMousePosition,
                     );
-                    const scale = zoomToScale(this.#zoom);
-                    // Convert screen delta to world delta (accounting for zoom)
-                    const worldDelta = screenDelta.scaleBy(1 / scale);
-                    // Account for camera rotation
                     const rotationRad = (-this.#rotation * Math.PI) / 180;
-                    const rotatedDelta = worldDelta.rotate(rotationRad);
-                    // Subtract because dragging content right means camera moves left
+                    const rotatedDelta = screenDelta.rotate(rotationRad);
                     this.setPosition(
                         canvasPointer.dragStartCameraPosition.sub(rotatedDelta),
                     );
                     this.#cancelCameraTarget();
+                    updated = true;
                 }
             }
 
@@ -415,6 +422,7 @@ export class CameraSystem<
             ) {
                 canvasPointer.dragStartMousePosition = null;
                 canvasPointer.dragStartCameraPosition = null;
+                updated = true;
             }
 
             if (canvasPointer.dragStartMousePosition) {
@@ -426,6 +434,8 @@ export class CameraSystem<
                 );
             }
         }
+
+        return updated;
     }
 
     #updateAllPointerTargets(

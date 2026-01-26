@@ -268,6 +268,14 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this._children as Entity<TEngine>[];
     }
 
+    get scaleRelativeToCamera(): IVector<boolean> {
+        return this._scaleRelativeToCamera;
+    }
+
+    get positionRelativeToCamera(): IVector<PositionRelativeToCamera> {
+        return this._positionRelativeToCamera;
+    }
+
     addChild<TCtor extends EntityConstructor>(
         child: CustomEntityJSON<TCtor>,
     ): InstanceType<TCtor>;
@@ -641,7 +649,6 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             return;
         }
 
-        // Apply camera scaling only if we need to render
         if (this._scaleRelativeToCamera.x || this._scaleRelativeToCamera.y) {
             const scale = zoomToScale(camera.zoom);
             this.transform.setScaleMult(
@@ -656,72 +663,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             this._positionRelativeToCamera.x !== 'none' ||
             this._positionRelativeToCamera.y !== 'none'
         ) {
-            const cameraSize = camera.size;
-            if (cameraSize) {
-                const scale = zoomToScale(camera.zoom);
-
-                // Calculate world center of the camera viewport
-                const worldCenterOffset = {
-                    x: camera.position.x / scale,
-                    y: camera.position.y / scale,
-                };
-
-                // Account for camera rotation
-                const rotationRad = (-camera.rotation * Math.PI) / 180;
-                const cosRot = Math.cos(rotationRad);
-                const sinRot = Math.sin(rotationRad);
-                const worldCenterX =
-                    worldCenterOffset.x * cosRot - worldCenterOffset.y * sinRot;
-                const worldCenterY =
-                    worldCenterOffset.x * sinRot + worldCenterOffset.y * cosRot;
-
-                let xOffsetLocal = 0;
-                let yOffsetLocal = 0;
-                switch (this._positionRelativeToCamera.x) {
-                    case 'start':
-                        xOffsetLocal = -cameraSize.x / 2;
-                        break;
-                    case 'center':
-                        xOffsetLocal = 0;
-                        break;
-                    case 'end':
-                        xOffsetLocal = cameraSize.x / 2;
-                        break;
-                }
-                switch (this._positionRelativeToCamera.y) {
-                    case 'start':
-                        yOffsetLocal = -cameraSize.y / 2;
-                        break;
-                    case 'center':
-                        yOffsetLocal = 0;
-                        break;
-                    case 'end':
-                        yOffsetLocal = cameraSize.y / 2;
-                        break;
-                }
-
-                const xOffsetWorld =
-                    xOffsetLocal * cosRot - yOffsetLocal * sinRot;
-                const yOffsetWorld =
-                    xOffsetLocal * sinRot + yOffsetLocal * cosRot;
-
-                this.transform.setPositionOffset({
-                    x:
-                        this._positionRelativeToCamera.x !== 'none'
-                            ? worldCenterX +
-                              xOffsetWorld -
-                              this.position.x +
-                              this.position.x * this.transform.scaleMult.x
-                            : 0,
-                    y:
-                        this._positionRelativeToCamera.y !== 'none'
-                            ? worldCenterY +
-                              yOffsetWorld -
-                              this.position.y +
-                              this.position.y * this.transform.scaleMult.y
-                            : 0,
-                });
-            }
+            this.#syncRelativePositionToCamera(camera);
         }
 
         if (this._rotateRelativeToCamera) {
@@ -846,6 +788,76 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             if (comp.enabled && typeStrings.includes(comp.typeString)) {
                 out.push(comp as T);
             }
+        }
+    }
+
+    #syncRelativePositionToCamera(camera: CameraSystem): void {
+        const cameraSize = camera.size;
+        if (cameraSize) {
+            const scale = zoomToScale(camera.zoom);
+
+            // Calculate world center of the camera viewport
+            const worldCenterOffset = {
+                x: camera.position.x / scale,
+                y: camera.position.y / scale,
+            };
+
+            // Account for camera rotation
+            const rotationRad = (-camera.rotation * Math.PI) / 180;
+            const cosRot = Math.cos(rotationRad);
+            const sinRot = Math.sin(rotationRad);
+            const worldCenterX =
+                worldCenterOffset.x * cosRot - worldCenterOffset.y * sinRot;
+            const worldCenterY =
+                worldCenterOffset.x * sinRot + worldCenterOffset.y * cosRot;
+
+            let xOffsetLocal = 0;
+            let yOffsetLocal = 0;
+            switch (this._positionRelativeToCamera.x) {
+                case 'start':
+                    xOffsetLocal = -cameraSize.x / 2;
+                    break;
+                case 'center':
+                    xOffsetLocal = 0;
+                    break;
+                case 'end':
+                    xOffsetLocal = cameraSize.x / 2;
+                    break;
+            }
+            switch (this._positionRelativeToCamera.y) {
+                case 'start':
+                    yOffsetLocal = -cameraSize.y / 2;
+                    break;
+                case 'center':
+                    yOffsetLocal = 0;
+                    break;
+                case 'end':
+                    yOffsetLocal = cameraSize.y / 2;
+                    break;
+            }
+
+            yOffsetLocal /= scale;
+            xOffsetLocal /= scale;
+
+            const xOffsetWorld = xOffsetLocal * cosRot - yOffsetLocal * sinRot;
+            const yOffsetWorld = xOffsetLocal * sinRot + yOffsetLocal * cosRot;
+
+            this.transform.setPositionOffset({
+                x:
+                    this._positionRelativeToCamera.x !== 'none'
+                        ? worldCenterX +
+                          xOffsetWorld -
+                          this.position.x +
+                          this.position.x * this.transform.scaleMult.x
+                        : 0,
+                y:
+                    this._positionRelativeToCamera.y !== 'none'
+                        ? worldCenterY +
+                          yOffsetWorld -
+                          this.position.y +
+                          this.position.y * this.transform.scaleMult.y
+                        : 0,
+            });
         }
     }
 }

@@ -7,16 +7,43 @@ const DOT_SIZE = 6;
 
 class InfiniteCanvasScene extends Scene {
     override create() {
-        this.createEntity({
-            type: 'infinite_shape',
-            name: 'grid',
-            shape: 'ELLIPSE',
-            opacity: 0.5,
-            style: { fillStyle: '#BBBBBB' },
-            tileSize: TILE_SIZE,
-            zoomCullThresh: 0.2,
-            scale: DOT_SIZE,
-        });
+        this.createEntities(
+            {
+                name: 'origin',
+                type: 'shape',
+                shape: 'ELLIPSE',
+                style: { fillStyle: 'red' },
+                scale: DOT_SIZE * 2,
+            },
+            {
+                name: 'dots',
+                type: 'infinite_shape',
+                shape: 'ELLIPSE',
+                opacity: 0.5,
+                style: { fillStyle: '#BBBBBB' },
+                tileSize: TILE_SIZE,
+                scale: DOT_SIZE,
+                offset: TILE_SIZE * 0.5,
+            },
+            {
+                type: 'infinite_shape',
+                name: 'x-axis',
+                shape: 'ELLIPSE',
+                style: { strokeStyle: 'green', lineWidth: 2 },
+                tileSize: TILE_SIZE,
+                infiniteAxes: { x: true, y: false },
+                offset: TILE_SIZE * 0.5,
+            },
+            {
+                type: 'infinite_shape',
+                name: 'y-axis',
+                shape: 'ELLIPSE',
+                style: { strokeStyle: 'blue', lineWidth: 2 },
+                tileSize: TILE_SIZE,
+                infiniteAxes: { x: false, y: true },
+                offset: TILE_SIZE * 0.5,
+            },
+        );
     }
 }
 

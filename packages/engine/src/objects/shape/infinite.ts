@@ -31,10 +31,19 @@ export class E_InfiniteShape<
     #position: Vector | null = null; // Overrides the transform
 
     constructor(options: E_InfiniteShapeOptions) {
-        const { name = 'infinite_shape', ...rest } = options;
-        super({ name, cull: 'none', ...rest });
+        const {
+            name = 'infinite_shape',
+            scale: _scale,
+            tileSize: _tileSize,
+            ...rest
+        } = options;
 
-        this.#tileSize = new Vector(options.tileSize);
+        const scale = _scale ?? _tileSize;
+        const tileSize = _tileSize ?? scale;
+
+        super({ name, cull: 'none', scale, ...rest });
+
+        this.#tileSize = new Vector(tileSize);
         this.#zoomCullThresh = options.zoomCullThresh ?? null;
         this.#offset = new Vector(options.offset ?? 0);
         this.#infiniteAxes = {

@@ -94,7 +94,7 @@ export function App() {
                             htmlFor="scenario-select"
                             className="font-medium"
                         >
-                            Select Scenario:
+                            Scenario
                         </label>
                         <select
                             id="scenario-select"

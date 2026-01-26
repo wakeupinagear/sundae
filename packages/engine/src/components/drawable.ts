@@ -113,6 +113,12 @@ export abstract class C_Drawable<
                     parentBB.x2 - parentBB.x1,
                     parentBB.y2 - parentBB.y1,
                 );
+                if (this._entity.scaleRelativeToCamera.x) {
+                    this._size.x /= this._entity.transform.scaleMult.x;
+                }
+                if (this._entity.scaleRelativeToCamera.y) {
+                    this._size.y /= this._entity.transform.scaleMult.y;
+                }
                 this._origin.set(1);
             }
 
