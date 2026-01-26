@@ -1,7 +1,7 @@
-import { C_Collider, type C_ColliderOptions } from './index';
 import { type Engine } from '../../engine';
+import { type BoundingBox } from '../../math/boundingBox';
 import { type Vector } from '../../math/vector';
-import { type BoundingBox } from '../../types';
+import { C_Collider, type C_ColliderOptions } from './index';
 
 interface C_CircleColliderOptions extends C_ColliderOptions {}
 

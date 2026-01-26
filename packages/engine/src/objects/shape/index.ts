@@ -1,12 +1,16 @@
-import { C_Collider, type C_ColliderOptions } from '../components/colliders';
-import { type C_CircleCollider } from '../components/colliders/CircleCollider';
-import { type C_RectangleCollider } from '../components/colliders/RectangleCollider';
-import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
-import type { Engine } from '../engine';
-import { Entity, type EntityOptions } from '../entities';
-import { type IVector, Vector, type VectorConstructor } from '../math/vector';
-import type { CameraSystem } from '../systems/camera';
-import type { RenderCommandStream } from '../systems/render/command';
+import { C_Collider, type C_ColliderOptions } from '../../components/colliders';
+import { type C_CircleCollider } from '../../components/colliders/CircleCollider';
+import { type C_RectangleCollider } from '../../components/colliders/RectangleCollider';
+import { C_Drawable, type C_DrawableOptions } from '../../components/drawable';
+import type { Engine } from '../../engine';
+import { Entity, type EntityOptions } from '../../entities';
+import {
+    type IVector,
+    Vector,
+    type VectorConstructor,
+} from '../../math/vector';
+import type { CameraSystem } from '../../systems/camera';
+import type { RenderCommandStream } from '../../systems/render/command';
 
 const DEFAULT_ARROW_LENGTH = 1;
 const DEFAULT_ARROW_ANGLE = 45;
@@ -258,12 +262,12 @@ export class C_Shape<
             }
 
             const lineWidth = (this._style.lineWidth ?? 1) / 2;
-            this._boundingBox = {
+            this._boundingBox.set({
                 x1: minX - lineWidth,
                 x2: maxX + lineWidth,
                 y1: minY - lineWidth,
                 y2: maxY + lineWidth,
-            };
+            });
         } else {
             super._computeBoundingBox();
         }

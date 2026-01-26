@@ -21,7 +21,12 @@ import { generatePRNG } from './math/random';
 import { type IVector, type VectorConstructor } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
-import { CameraSystem, type CameraSystemOptions } from './systems/camera';
+import {
+    type CameraOptions,
+    CameraSystem,
+    type CameraSystemOptions,
+    type CameraTargetConstructor,
+} from './systems/camera';
 import { ImageSystem, type LoadedImage } from './systems/image';
 import {
     type AxisState,
@@ -51,7 +56,7 @@ import {
 } from './systems/scene';
 import { SceneSystem } from './systems/scene';
 import { type Stats, StatsSystem } from './systems/stats';
-import { type ICanvas, type WebKey } from './types';
+import { type ICanvas, type Platform, type WebKey } from './types';
 
 const DEBUG_OVERLAY_SCENE_NAME = '__ENGINE_DEBUG_SCENE__';
 const DEBUG_OVERLAY_SCENE_Z_INDEX = 100;
@@ -120,12 +125,8 @@ export type SceneConstructor<
 > = new (options: SceneOptions<TEngine>) => T;
 
 export interface EngineOptions {
-    zoomSpeed: number;
-    minZoom: number;
-    maxZoom: number;
-
     cameras: Record<string, CameraSystemOptions>;
-    clearColor: string;
+    cameraOptions: CameraOptions;
 
     startScenes: Array<SceneConstructor>;
 
@@ -157,14 +158,12 @@ export interface EngineOptions {
 }
 
 const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
-    zoomSpeed: 0.001,
-    minZoom: -3, // 2^-3 = 0.125 (1/8x scale)
-    maxZoom: 3, // 2^3 = 8 (8x scale)
-
     cameras: {
         [DEFAULT_CAMERA_ID]: {},
     },
-    clearColor: 'black',
+    cameraOptions: {
+        clearColor: 'black',
+    },
 
     startScenes: [],
 
@@ -205,6 +204,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     protected _options: TOptions = { ...DEFAULT_ENGINE_OPTIONS } as TOptions;
     protected _devicePixelRatio: number = 1;
+    protected _platform: Platform = 'unknown';
 
     protected _rootEntity: Entity<this>;
 
@@ -242,6 +242,9 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     #frameCount: number = 0;
 
+    #primaryCameraID: string | null = null;
+    #primaryCanvasID: string | null = null;
+
     #prng!: () => number;
 
     constructor(options: Partial<TOptions> = {}) {
@@ -264,6 +267,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._statsSystem = new StatsSystem(this);
         this._renderSystem = new RenderSystem(this);
         this._logSystem = new LogSystem(this);
+
+        this.#setRandomSeed(DEFAULT_ENGINE_OPTIONS.randomSeed);
+        this.#applyOptions(DEFAULT_ENGINE_OPTIONS as Partial<TOptions>);
+        this.#applyOptions(options);
 
         this.addBrowserWindowEventHandler('keydown', (_, data) =>
             this.#setKeyDown(
@@ -304,11 +311,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this.addBrowserCanvasEventHandler('mousewheel', (_, canvasID, data) =>
             this.setPointerScrollDelta(data.delta, canvasID),
         );
-
-        this.#setRandomSeed(DEFAULT_ENGINE_OPTIONS.randomSeed);
-
-        this._options = { ...DEFAULT_ENGINE_OPTIONS, ...options } as TOptions;
-        this.#applyOptions(this._options);
 
         for (const sceneCtor of this._options.startScenes) {
             this.openScene(sceneCtor);
@@ -392,6 +394,14 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._systems.push(system);
     }
 
+    getPlatform(): Platform {
+        return this._platform;
+    }
+
+    setPlatform(platform: Platform): void {
+        this._platform = platform;
+    }
+
     createEntities(...entities: BaseEntityInput[]): Entity<this>[];
     createEntities(...entities: TypedEntityJSON[]): Entity<this>[];
     createEntities<TCtor extends EntityConstructor>(
@@ -401,6 +411,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         ...entities: Array<EntityJSON | CustomEntityJSON<EntityConstructor>>
     ): Entity<this>[] {
         return this.createEntitiesWithParent(entities, this._rootEntity);
+    }
+
+    getEntityByName(name: string): Entity<this> | null {
+        return this._rootEntity.getEntityByName(name);
     }
 
     createEntitiesWithParent(
@@ -436,9 +450,20 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._sceneSystem.closeScene(scene);
     }
 
-    setCanvas(canvas: ICanvas | null, id = DEFAULT_CANVAS_ID): void {
-        this._canvases[id] = canvas;
+    setCanvas(
+        canvas: ICanvas | null,
+        id = this.#primaryCanvasID || DEFAULT_CANVAS_ID,
+    ): void {
+        if (canvas) {
+            this._canvases[id] = canvas;
+        } else {
+            delete this._canvases[id];
+        }
+
         this.#forceRender = true;
+        if (!this.#primaryCanvasID && canvas) {
+            this.#primaryCanvasID = id;
+        }
     }
 
     getCanvas(id: string): ICanvas | null {
@@ -447,16 +472,23 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     screenToWorld(
         position: IVector<number>,
-        cameraID = DEFAULT_CAMERA_ID,
+        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
     ): IVector<number> | null {
         return this._cameraSystems[cameraID]?.screenToWorld(position) ?? null;
     }
 
     worldToScreen(
         position: IVector<number>,
-        cameraID = DEFAULT_CAMERA_ID,
+        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
     ): IVector<number> | null {
         return this._cameraSystems[cameraID]?.worldToScreen(position) ?? null;
+    }
+
+    setCameraTarget(
+        target: CameraTargetConstructor,
+        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+    ): void {
+        this._cameraSystems[cameraID]?.setTarget(target);
     }
 
     getKey(keyCode: WebKey): Readonly<KeyboardKeyState> {
@@ -475,34 +507,52 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._inputSystem.releaseAllKeys();
     }
 
+    getCamera(
+        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+    ): CameraSystem<this> | null {
+        return this._cameraSystems[cameraID] ?? null;
+    }
+
     setCameraPosition(
         position: IVector<number>,
         cancelCameraTarget: boolean = true,
-        cameraID = DEFAULT_CAMERA_ID,
+        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
     ): void {
-        this._cameraSystems[cameraID]?.setPosition(position);
-        if (cancelCameraTarget) {
-            // TODO: Cancel camera target
+        const camera = this.getCamera(cameraID);
+        if (camera) {
+            camera.setPosition(position);
+            if (cancelCameraTarget) {
+                camera.setTarget(null);
+            }
         }
     }
 
-    setCameraZoom(zoom: number, cameraID = DEFAULT_CAMERA_ID): void {
+    setCameraZoom(
+        zoom: number,
+        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+    ): void {
         this._cameraSystems[cameraID]?.setZoom(zoom);
     }
 
     zoomCamera(
         delta: number,
         focalPoint?: IVector<number>,
-        cameraID = DEFAULT_CAMERA_ID,
+        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
     ): void {
         this._cameraSystems[cameraID]?.zoomBy(delta, focalPoint);
     }
 
-    setCameraRotation(rotation: number, cameraID = DEFAULT_CAMERA_ID): void {
+    setCameraRotation(
+        rotation: number,
+        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+    ): void {
         this._cameraSystems[cameraID]?.setRotation(rotation);
     }
 
-    rotateCamera(delta: number, cameraID = DEFAULT_CAMERA_ID): void {
+    rotateCamera(
+        delta: number,
+        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+    ): void {
         this._cameraSystems[cameraID]?.rotate(delta);
     }
 
@@ -873,11 +923,16 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             this._physicsSystem.gravityDirection = newOptions.gravityDirection;
         }
 
-        if (newOptions.cameras !== undefined) {
-            const newCameraIDs = new Set(Object.keys(newOptions.cameras));
+        if (
+            newOptions.cameras !== undefined ||
+            newOptions.cameraOptions !== undefined
+        ) {
+            const newCameraIDs = Array.from(Object.keys(this._options.cameras));
+            const newCameraIDSet = new Set(newCameraIDs);
             const existingCameraIDs = new Set(Object.keys(this._cameraSystems));
+            this.#primaryCameraID = null;
 
-            for (const cameraID in newOptions.cameras) {
+            for (const cameraID in this._options.cameras) {
                 if (!(cameraID in this._cameraSystems)) {
                     this._cameraSystems[cameraID] = new CameraSystem(
                         this,
@@ -885,13 +940,22 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                     );
                 }
 
-                this._cameraSystems[cameraID].applyOptions(
-                    newOptions.cameras[cameraID],
-                );
+                const options = this._options.cameras[cameraID];
+                this._cameraSystems[cameraID].applyOptions({
+                    ...this._options.cameraOptions,
+                    ...options,
+                });
+                if (options.primary) {
+                    this.#primaryCameraID = cameraID;
+                }
+            }
+
+            if (!this.#primaryCameraID && newCameraIDSet.size > 0) {
+                this.#primaryCameraID = Array.from(newCameraIDSet)[0];
             }
 
             for (const cameraID of existingCameraIDs) {
-                if (!newCameraIDs.has(cameraID)) {
+                if (!newCameraIDSet.has(cameraID)) {
                     const system = this._cameraSystems[cameraID];
                     system.destroy();
                     delete this._cameraSystems[cameraID];

@@ -1,6 +1,7 @@
 import { type EngineScenario } from '../types';
 import { ballPit } from './ballPit';
 import { ballVortex } from './ballVortex';
+import { infiniteCanvas } from './infiniteCanvas';
 import { pong } from './pong';
 import { renderChaos } from './renderChaos';
 import { superSundaeBros } from './superSundaeBros';
@@ -34,6 +35,11 @@ export const ENGINE_SCENARIOS: Record<string, ScenarioMetadata> = {
         name: 'Super Sundae Bros',
         description: 'A simple platformer game',
         scenario: superSundaeBros,
+    },
+    infiniteCanvas: {
+        name: 'Infinite Canvas',
+        description: 'An infinite canvas',
+        scenario: infiniteCanvas,
     },
     renderChaos: {
         name: 'Render Chaos',

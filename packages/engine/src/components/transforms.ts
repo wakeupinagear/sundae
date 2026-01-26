@@ -1,8 +1,8 @@
-import { Component, type ComponentOptions } from './index';
 import { type Engine } from '../engine';
+import { BoundingBox } from '../math/boundingBox';
 import { Matrix2D } from '../math/matrix';
 import { Vector, type VectorConstructor } from '../math/vector';
-import type { BoundingBox } from '../types';
+import { Component, type ComponentOptions } from './index';
 
 export interface C_TransformOptions extends ComponentOptions {
     position: VectorConstructor;
@@ -34,7 +34,7 @@ export class C_Transform<
     #worldMatrixDirty: boolean = true;
     #worldPosition: Vector = new Vector(0);
 
-    #boundingBox: BoundingBox = { x1: 0, x2: 0, y1: 0, y2: 0 };
+    #boundingBox: BoundingBox = new BoundingBox(0);
     #corners: [Vector, Vector, Vector, Vector] = [
         new Vector(0),
         new Vector(0),

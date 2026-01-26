@@ -4,13 +4,6 @@ import type { Vector } from './math/vector';
 import type { CameraSystem } from './systems/camera';
 import type { RenderCommandStream } from './systems/render/command';
 
-export interface BoundingBox {
-    x1: number;
-    x2: number;
-    y1: number;
-    y2: number;
-}
-
 /**
  * Canvas context interface containing only the methods and properties that the engine uses.
  * This ensures compatibility between browser CanvasRenderingContext2D and skia-canvas.
@@ -171,3 +164,11 @@ export type TwoAxisAlignment =
     | 'bottom-left'
     | 'bottom-center'
     | 'bottom-right';
+
+export type Platform =
+    | 'windows'
+    | 'macos'
+    | 'linux'
+    | 'android'
+    | 'ios'
+    | 'unknown';

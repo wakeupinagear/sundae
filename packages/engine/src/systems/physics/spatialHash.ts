@@ -1,10 +1,12 @@
-import type { Entity } from '../../entities';
 import type { Engine } from '../../engine';
-import type { BoundingBox } from '../../types';
-import { boundingBoxesIntersect } from '../../utils';
+import type { Entity } from '../../entities';
+import { type BoundingBox } from '../../math/boundingBox';
 import { type IVector } from '../../math/vector';
 
-export class SpatialHashGrid<TEntity extends Entity<TEngine>, TEngine extends Engine = Engine> {
+export class SpatialHashGrid<
+    TEntity extends Entity<TEngine>,
+    TEngine extends Engine = Engine,
+> {
     #cellSize: number;
     #grid: Map<string, Set<TEntity>> = new Map();
     #entityCells: Map<string, string[]> = new Map();
@@ -51,7 +53,7 @@ export class SpatialHashGrid<TEntity extends Entity<TEngine>, TEngine extends En
         const oldCellKeys = this.#entityCells.get(entity.id);
         const bbox = entity.transform.boundingBox;
         const newCellKeys = this.#getCellKeysForBounds(bbox);
-        
+
         if (oldCellKeys && this.#cellKeysEqual(oldCellKeys, newCellKeys)) {
             return;
         }
@@ -81,7 +83,7 @@ export class SpatialHashGrid<TEntity extends Entity<TEngine>, TEngine extends En
                     if (checkedPairs.has(pairId)) continue;
 
                     checkedPairs.add(pairId);
-                    if (boundingBoxesIntersect(bboxA, entityB.transform.boundingBox)) {
+                    if (bboxA.intersects(entityB.transform.boundingBox)) {
                         pairs.push([entityA, entityB]);
                     }
                 }
@@ -99,7 +101,7 @@ export class SpatialHashGrid<TEntity extends Entity<TEngine>, TEngine extends En
             const cell = this.#grid.get(key);
             if (cell) {
                 for (const entity of cell) {
-                    if (boundingBoxesIntersect(bbox, entity.transform.boundingBox)) {
+                    if (bbox.intersects(entity.transform.boundingBox)) {
                         entities.add(entity);
                     }
                 }
@@ -142,7 +144,8 @@ export class SpatialHashGrid<TEntity extends Entity<TEngine>, TEngine extends En
         return {
             cellCount: this.#grid.size,
             entityCount: this.#entityCells.size,
-            avgEntitiesPerCell: this.#grid.size > 0 ? totalEntities / this.#grid.size : 0,
+            avgEntitiesPerCell:
+                this.#grid.size > 0 ? totalEntities / this.#grid.size : 0,
             maxEntitiesInCell: maxEntities,
         };
     }

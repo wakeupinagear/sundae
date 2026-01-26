@@ -2,6 +2,7 @@ import { type C_CircleCollider } from '../components/colliders/CircleCollider';
 import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import { type Engine } from '../engine';
 import { Entity, type EntityOptions } from '../entities';
+import type { BoundingBox } from '../math/boundingBox';
 import { E_Text, type E_TextOptions } from '../objects/text';
 import type { CameraSystem } from '../systems/camera';
 import type {
@@ -11,7 +12,7 @@ import type {
 import type { RenderStyle } from '../systems/render/style';
 import { Scene } from '../systems/scene';
 import type { TraceFrame } from '../systems/stats';
-import type { BoundingBox, CacheStats } from '../types';
+import type { CacheStats } from '../types';
 import { zoomToScale } from '../utils';
 
 const IMPORTANT_TRACE_THRESHOLD = 0.2;

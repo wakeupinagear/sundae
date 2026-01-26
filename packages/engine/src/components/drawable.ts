@@ -109,10 +109,10 @@ export abstract class C_Drawable<
 
             if (this._fill) {
                 const parentBB = this._entity.transform.boundingBox;
-                this._size.set({
-                    x: parentBB.x2 - parentBB.x1,
-                    y: parentBB.y2 - parentBB.y1,
-                });
+                this._size.set(
+                    parentBB.x2 - parentBB.x1,
+                    parentBB.y2 - parentBB.y1,
+                );
                 this._origin.set(1);
             }
 
@@ -123,11 +123,11 @@ export abstract class C_Drawable<
     }
 
     protected override _computeBoundingBox(): void {
-        this._boundingBox = {
-            x1: -this._origin.x * this._size.x,
-            x2: (1 - this._origin.x) * this._size.x,
-            y1: -this._origin.y * this._size.y,
-            y2: (1 - this._origin.y) * this._size.y,
-        };
+        this._boundingBox.set(
+            -this._origin.x * this._size.x,
+            -this._origin.y * this._size.y,
+            (1 - this._origin.x) * this._size.x,
+            (1 - this._origin.y) * this._size.y,
+        );
     }
 }

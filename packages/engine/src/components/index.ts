@@ -1,8 +1,9 @@
 import type { Engine } from '../engine';
 import { type Entity } from '../entities';
+import { BoundingBox } from '../math/boundingBox';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
-import type { BoundingBox, CollisionContact, Renderable } from '../types';
+import type { CollisionContact, Renderable } from '../types';
 
 export interface ComponentOptions {
     name?: string;
@@ -31,7 +32,7 @@ export abstract class Component<TEngine extends Engine = Engine>
 
     protected _entity: Entity<TEngine>;
 
-    protected _boundingBox: BoundingBox | null = null;
+    protected _boundingBox: BoundingBox = new BoundingBox(0);
     protected _boundingBoxDirty: boolean = true;
 
     constructor(options: ComponentOptions) {
@@ -82,7 +83,7 @@ export abstract class Component<TEngine extends Engine = Engine>
             this._boundingBoxDirty = false;
         }
 
-        return this._boundingBox!;
+        return this._boundingBox;
     }
 
     isVisual(): boolean {
@@ -135,6 +136,6 @@ export abstract class Component<TEngine extends Engine = Engine>
     }
 
     protected _computeBoundingBox(): void {
-        this._boundingBox = { x1: 0, x2: 0, y1: 0, y2: 0 };
+        this._boundingBox.set(0);
     }
 }

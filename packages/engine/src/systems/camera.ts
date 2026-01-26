@@ -1,10 +1,10 @@
 import type { C_Collider } from '../components/colliders';
 import { DEFAULT_CANVAS_ID } from '../constants';
 import { type Engine } from '../engine';
+import { BoundingBox, type IBoundingBox } from '../math/boundingBox';
 import { Matrix2D } from '../math/matrix';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
-import type { BoundingBox } from '../types';
-import { calculateRectangleBoundingBox, zoomToScale } from '../utils';
+import { zoomToScale } from '../utils';
 import { System } from './index';
 import {
     type CameraScrollMode,
@@ -20,20 +20,14 @@ export interface CameraOptions {
     canDrag?: boolean;
     dragButtons?: PointerButton[];
     targetLerpSpeed?: number;
-    scrollMode?: CameraScrollMode;
     cullScale?: number;
     clearColor?: string;
+    scrollMode?: CameraScrollMode;
+    zoomSpeed?: number;
+    minZoom?: number;
+    maxZoom?: number;
+    bounds?: IBoundingBox;
 }
-
-const DEFAULT_CAMERA_OPTIONS: Required<CameraOptions> = {
-    canDrag: false,
-    dragButtons: [PointerButton.MIDDLE, PointerButton.RIGHT],
-    targetLerpSpeed: 0.1,
-    scrollMode: 'none',
-    cullScale: 1,
-    clearColor: '',
-    canvasID: DEFAULT_CANVAS_ID,
-};
 
 export interface CameraSystemOptions extends CameraOptions {
     position?: VectorConstructor;
@@ -42,6 +36,8 @@ export interface CameraSystemOptions extends CameraOptions {
 
     offset?: VectorConstructor;
     scale?: VectorConstructor;
+
+    primary?: boolean;
 }
 
 type CameraTarget =
@@ -83,17 +79,36 @@ export class CameraSystem<
     #inverseWorldToScreenMatrix: Matrix2D | null = null;
     #matricesDirty: boolean = true;
 
-    #boundingBox: BoundingBox | null = null;
-    #cullBoundingBox: BoundingBox | null = null;
+    #boundingBox: BoundingBox = new BoundingBox(0);
+    #cullBoundingBox: BoundingBox = new BoundingBox(0);
     #boundsDirty: boolean = true;
 
     #worldPosition: Vector = new Vector(0);
+    #canvasSize: Vector | null = null;
+    #size: Vector | null = null;
 
     constructor(engine: TEngine, cameraID: string) {
         super(engine);
 
         this.#cameraID = cameraID;
-        this.#options = { ...DEFAULT_CAMERA_OPTIONS };
+        this.#options = {
+            canvasID: DEFAULT_CANVAS_ID,
+            canDrag: false,
+            dragButtons: [PointerButton.MIDDLE, PointerButton.RIGHT],
+            targetLerpSpeed: 0.1,
+            cullScale: 1,
+            clearColor: '',
+            scrollMode: 'none',
+            zoomSpeed: 0.001,
+            minZoom: -3, // 2^-3 = 0.125 (1/8x scale)
+            maxZoom: 3, // 2^3 = 8 (8x scale)
+            bounds: {
+                x1: -Infinity,
+                x2: Infinity,
+                y1: -Infinity,
+                y2: Infinity,
+            },
+        };
     }
 
     get position(): Readonly<Vector> {
@@ -125,25 +140,42 @@ export class CameraSystem<
     }
 
     get boundingBox(): Readonly<BoundingBox> {
-        if (!this.#boundingBox || this.#boundsDirty) {
+        if (this.#boundsDirty) {
             this.#computeBoundingBox();
             this.#boundsDirty = false;
         }
 
-        return this.#boundingBox!;
+        return this.#boundingBox;
     }
 
     get cullBoundingBox(): Readonly<BoundingBox> {
-        if (!this.#cullBoundingBox || this.#boundsDirty) {
+        if (this.#boundsDirty) {
             this.#computeBoundingBox();
             this.#boundsDirty = false;
         }
 
-        return this.#cullBoundingBox!;
+        return this.#cullBoundingBox;
+    }
+
+    get canvasSize(): Readonly<Vector> | null {
+        return this.#canvasSize;
+    }
+
+    get size(): Readonly<Vector> | null {
+        return this.#size;
     }
 
     setPosition(position: VectorConstructor): void {
-        if (this.#position.set(position)) {
+        const newPosition = new Vector(position);
+        newPosition.x = Math.max(
+            this.#options.bounds.x1,
+            Math.min(newPosition.x, this.#options.bounds.x2),
+        );
+        newPosition.y = Math.max(
+            this.#options.bounds.y1,
+            Math.min(newPosition.y, this.#options.bounds.y2),
+        );
+        if (this.#position.set(newPosition)) {
             this.#markDirty();
         }
     }
@@ -164,8 +196,8 @@ export class CameraSystem<
 
     setZoom(zoom: number): void {
         const clampedZoom = Math.max(
-            this._engine.options.minZoom,
-            Math.min(this._engine.options.maxZoom, zoom),
+            this.#options.minZoom,
+            Math.min(this.#options.maxZoom, zoom),
         );
         if (clampedZoom !== this.#zoom) {
             this.#zoom = clampedZoom;
@@ -176,7 +208,7 @@ export class CameraSystem<
     zoomBy(delta: number, focalPoint?: IVector<number>): void {
         const oldZoom = this.zoom;
         const oldScale = zoomToScale(oldZoom);
-        this.setZoom(this.zoom + delta * this._engine.options.zoomSpeed);
+        this.setZoom(this.zoom + delta * this.#options.zoomSpeed);
 
         if (focalPoint) {
             const newScale = zoomToScale(this.zoom);
@@ -221,44 +253,23 @@ export class CameraSystem<
     }
 
     applyOptions(options: CameraSystemOptions): void {
-        if (options.offset !== undefined) {
-            this.#offset.set(options.offset);
-        }
-        if (options.scale !== undefined) {
-            this.#scale.set(options.scale);
-        }
-        if (options.canvasID !== undefined) {
-            this.#options.canvasID = options.canvasID;
-        }
-        if (options.canDrag !== undefined) {
-            this.#options.canDrag = options.canDrag;
-        }
-        if (options.dragButtons !== undefined) {
-            this.#options.dragButtons = options.dragButtons;
-        }
-        if (options.targetLerpSpeed !== undefined) {
-            this.#options.targetLerpSpeed = options.targetLerpSpeed;
-        }
-        if (options.scrollMode !== undefined) {
-            this.#options.scrollMode = options.scrollMode;
-        }
-        if (options.cullScale !== undefined) {
-            this.#options.cullScale = options.cullScale;
-        }
-        if (options.clearColor !== undefined) {
-            this.#options.clearColor = options.clearColor;
-        } else {
-            this.#options.clearColor = this._engine.options.clearColor;
+        const { position, rotation, zoom, ...rest } = options;
+        for (const key in rest) {
+            const value = rest[key as keyof typeof rest];
+            if (value !== undefined) {
+                this.#options[key as keyof Required<CameraOptions>] =
+                    value as never;
+            }
         }
 
-        if (options.position !== undefined) {
-            this.setPosition(options.position);
+        if (position !== undefined) {
+            this.setPosition(position);
         }
-        if (options.rotation !== undefined) {
-            this.setRotation(options.rotation);
+        if (rotation !== undefined) {
+            this.setRotation(rotation);
         }
-        if (options.zoom !== undefined) {
-            this.setZoom(options.zoom);
+        if (zoom !== undefined) {
+            this.setZoom(zoom);
         }
 
         this.#markDirty();
@@ -281,13 +292,44 @@ export class CameraSystem<
             this.#worldPosition.set(worldPosition);
             this.#updateAllPointerTargets(this.#worldPosition, canvasPointer);
         }
+
+        const canvas = this._engine.getCanvas(this.#options.canvasID);
+        if (canvas) {
+            if (!this.#canvasSize) {
+                this.#canvasSize = new Vector(canvas.width, canvas.height);
+            } else {
+                this.#canvasSize.x = canvas.width;
+                this.#canvasSize.y = canvas.height;
+            }
+
+            if (!this.#size) {
+                this.#size = new Vector(
+                    this.#canvasSize
+                        .mul(this.#scale)
+                        .div(this._engine.devicePixelRatio),
+                );
+            } else {
+                this.#size.set(
+                    this.#canvasSize
+                        .mul(this.#scale)
+                        .div(this._engine.devicePixelRatio),
+                );
+            }
+        } else {
+            this.#canvasSize = null;
+            this.#size = null;
+        }
     }
 
     #updateTarget(target: CameraTarget): void {
         if (target.type === 'entity') {
+            const entity = this._engine.getEntityByName(target.name);
+            if (entity) {
+                this.#position.set(entity.position);
+            }
         } else if (target.type === 'fixed') {
             if (target.position) {
-                this.#position.set(target.position);
+                this.setPosition(target.position);
             }
             if (target.zoom) {
                 this.setZoom(target.zoom);
@@ -500,8 +542,8 @@ export class CameraSystem<
     #computeBoundingBox(): void {
         const canvas = this._engine.getCanvas(this.#options.canvasID);
         if (!canvas) {
-            this.#boundingBox = { x1: 0, x2: 0, y1: 0, y2: 0 };
-            this.#cullBoundingBox = { x1: 0, x2: 0, y1: 0, y2: 0 };
+            this.#boundingBox.set(0);
+            this.#cullBoundingBox.set(0);
             return;
         }
 
@@ -525,7 +567,7 @@ export class CameraSystem<
             .rotate(rotationRad)
             .extract();
 
-        this.#boundingBox = calculateRectangleBoundingBox(
+        this.#boundingBox = BoundingBox.fromTransformProperties(
             worldCenter,
             worldSize,
             -this.#rotation,
@@ -537,7 +579,7 @@ export class CameraSystem<
             x: worldSize.x * cullScale,
             y: worldSize.y * cullScale,
         };
-        this.#cullBoundingBox = calculateRectangleBoundingBox(
+        this.#cullBoundingBox = BoundingBox.fromTransformProperties(
             worldCenter,
             culledWorldSize,
             -this.#rotation,

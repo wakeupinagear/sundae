@@ -1,8 +1,7 @@
-import { C_Collider, type C_ColliderOptions } from './index';
 import { type Engine } from '../../engine';
+import { type BoundingBox } from '../../math/boundingBox';
 import { type Vector } from '../../math/vector';
-import { type BoundingBox } from '../../types';
-import { boundingBoxesIntersect } from '../../utils';
+import { C_Collider, type C_ColliderOptions } from './index';
 
 interface C_RectangleColliderOptions extends C_ColliderOptions {}
 
@@ -49,16 +48,16 @@ export class C_RectangleCollider<
         for (let i = 0; i < 4; i++) {
             const p1 = corners[i];
             const p2 = corners[(i + 1) % 4];
-            
+
             const edge = p2.sub(p1);
             const toPoint = worldPosition.sub(p1);
-            
+
             const cross = edge.x * toPoint.y - edge.y * toPoint.x;
             if (cross < 0) {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -68,6 +67,6 @@ export class C_RectangleCollider<
             return false;
         }
 
-        return boundingBoxesIntersect(bbox, transform.boundingBox);
+        return bbox.intersects(transform.boundingBox);
     }
 }

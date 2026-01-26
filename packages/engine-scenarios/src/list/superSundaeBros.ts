@@ -208,20 +208,15 @@ class LevelScene extends Scene {
     }
 
     update(): boolean | void {
-        // TODO: Implement camera targeting
-        /*
-        this.engine.cameraTarget = {
-            position: {
-                x: Math.max(
-                    this.engine.camera.position.x,
-                    this.#player.position.x,
-                ),
-                y: this.engine.camera.position.y,
-            },
-            zoom: this.engine.camera.zoom,
-            rotation: this.engine.camera.rotation,
-        };
-        */
+        const camera = this.engine.getCamera();
+        if (camera) {
+            this.engine.setCameraTarget({
+                position: {
+                    x: Math.max(camera.position.x, this.#player.position.x),
+                    y: camera.position.y,
+                },
+            });
+        }
     }
 
     addScore(score: number): void {
@@ -249,7 +244,11 @@ export const superSundaeBros: EngineScenario = async (harness) => {
                 down: ['ArrowDown', 's'],
             },
         },
-        clearColor: '#6185f8',
+        cameraOptions: {
+            clearColor: '#6185f8',
+            canDrag: false,
+            scrollMode: 'none',
+        },
         gravityScale: 2000,
     };
     harness.engine.openScene(LevelScene);

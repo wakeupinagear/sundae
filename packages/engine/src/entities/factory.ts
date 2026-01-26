@@ -1,7 +1,15 @@
-import { Entity, type EntityOptions, type InternalEntityOptions } from '../entities';
 import { type Engine } from '../engine';
+import {
+    Entity,
+    type EntityOptions,
+    type InternalEntityOptions,
+} from '../entities';
 import { E_Image, type E_ImageJSON } from '../objects/image';
 import { E_Shape, type E_ShapeJSON } from '../objects/shape';
+import {
+    E_InfiniteShape,
+    type E_InfiniteShapeJSON,
+} from '../objects/shape/infinite';
 import { E_Text, type E_TextJSON } from '../objects/text';
 
 export type BaseEntityJSON = EntityOptions & { type?: 'entity' };
@@ -31,6 +39,7 @@ export type CustomEntityJSON<TCtor extends EntityConstructor> =
 export type StringEntityJSON =
     | E_TextJSON
     | E_ShapeJSON
+    | E_InfiniteShapeJSON
     | E_ImageJSON
     | BaseEntityJSON;
 
@@ -58,6 +67,8 @@ export function createEntityFromJSON<TEngine extends Engine = Engine>(
             return new E_Text<TEngine>(json);
         case 'shape':
             return new E_Shape<TEngine>(json);
+        case 'infinite_shape':
+            return new E_InfiniteShape<TEngine>(json);
         case 'image':
             return new E_Image<TEngine>(json);
         default:

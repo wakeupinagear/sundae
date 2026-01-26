@@ -1,8 +1,3 @@
-import {
-    Component,
-    type ComponentOptions,
-    type InternalComponentOptions,
-} from './index';
 import type { Engine } from '../engine';
 import { C_Image, type C_ImageJSON } from '../objects/image';
 import { C_Shape, type C_ShapeJSON } from '../objects/shape';
@@ -15,6 +10,11 @@ import {
     C_RectangleCollider,
     type C_RectangleColliderJSON,
 } from './colliders/RectangleCollider';
+import {
+    Component,
+    type ComponentOptions,
+    type InternalComponentOptions,
+} from './index';
 import {
     C_Lerp,
     type C_LerpJSON,

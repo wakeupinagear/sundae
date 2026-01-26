@@ -8,6 +8,7 @@ import {
 import type { C_Rigidbody } from '../components/rigidbody';
 import type { C_Transform } from '../components/transforms';
 import { type Engine } from '../engine';
+import type { BoundingBox } from '../math/boundingBox';
 import {
     type IVector,
     type ImmutableVector,
@@ -17,12 +18,10 @@ import {
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
 import {
-    type BoundingBox,
     type CollisionContact,
     type OneAxisAlignment,
     type Renderable,
 } from '../types';
-import { boundingBoxesIntersect } from '../utils';
 import { zoomToScale } from '../utils';
 import {
     type CustomEntityJSON,
@@ -399,6 +398,19 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         return this._rigidbody as C_Rigidbody<TEngine> | null;
     }
 
+    // TODO: cache or smth
+    getEntityByName(name: string): Entity<TEngine> | null {
+        if (this._name === name) {
+            return this;
+        }
+        for (const child of this._children) {
+            const result = child.getEntityByName(name);
+            if (result) return result;
+        }
+
+        return null;
+    }
+
     childColliderChanged(added: boolean): void {
         if (added) {
             this.#childColliderCount++;
@@ -640,79 +652,77 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             );
         }
 
-        // TODO: re-enable this when we have a way to handle camera position offset
-        /*
-        // Apply camera position offset only if we need to render
         if (
             this._positionRelativeToCamera.x !== 'none' ||
             this._positionRelativeToCamera.y !== 'none'
         ) {
-            const scale = zoomToScale(camera.zoom);
+            const cameraSize = camera.size;
+            if (cameraSize) {
+                const scale = zoomToScale(camera.zoom);
 
-            // Calculate world center of the camera viewport
-            const worldCenterOffset = {
-                x: camera.position.x / scale,
-                y: camera.position.y / scale,
-            };
+                // Calculate world center of the camera viewport
+                const worldCenterOffset = {
+                    x: camera.position.x / scale,
+                    y: camera.position.y / scale,
+                };
 
-            // Account for camera rotation
-            const rotationRad = (-camera.rotation * Math.PI) / 180;
-            const cosRot = Math.cos(rotationRad);
-            const sinRot = Math.sin(rotationRad);
-            const worldCenterX =
-                worldCenterOffset.x * cosRot - worldCenterOffset.y * sinRot;
-            const worldCenterY =
-                worldCenterOffset.x * sinRot + worldCenterOffset.y * cosRot;
+                // Account for camera rotation
+                const rotationRad = (-camera.rotation * Math.PI) / 180;
+                const cosRot = Math.cos(rotationRad);
+                const sinRot = Math.sin(rotationRad);
+                const worldCenterX =
+                    worldCenterOffset.x * cosRot - worldCenterOffset.y * sinRot;
+                const worldCenterY =
+                    worldCenterOffset.x * sinRot + worldCenterOffset.y * cosRot;
 
-            // Calculate offset based on anchor position (in world space, before rotation)
-            let xOffsetLocal = 0;
-            let yOffsetLocal = 0;
-            switch (this._positionRelativeToCamera.x) {
-                case 'start':
-                    xOffsetLocal = -camera.size.x / 2;
-                    break;
-                case 'center':
-                    xOffsetLocal = 0;
-                    break;
-                case 'end':
-                    xOffsetLocal = camera.size.x / 2;
-                    break;
+                let xOffsetLocal = 0;
+                let yOffsetLocal = 0;
+                switch (this._positionRelativeToCamera.x) {
+                    case 'start':
+                        xOffsetLocal = -cameraSize.x / 2;
+                        break;
+                    case 'center':
+                        xOffsetLocal = 0;
+                        break;
+                    case 'end':
+                        xOffsetLocal = cameraSize.x / 2;
+                        break;
+                }
+                switch (this._positionRelativeToCamera.y) {
+                    case 'start':
+                        yOffsetLocal = -cameraSize.y / 2;
+                        break;
+                    case 'center':
+                        yOffsetLocal = 0;
+                        break;
+                    case 'end':
+                        yOffsetLocal = cameraSize.y / 2;
+                        break;
+                }
+
+                const xOffsetWorld =
+                    xOffsetLocal * cosRot - yOffsetLocal * sinRot;
+                const yOffsetWorld =
+                    xOffsetLocal * sinRot + yOffsetLocal * cosRot;
+
+                this.transform.setPositionOffset({
+                    x:
+                        this._positionRelativeToCamera.x !== 'none'
+                            ? worldCenterX +
+                              xOffsetWorld -
+                              this.position.x +
+                              this.position.x * this.transform.scaleMult.x
+                            : 0,
+                    y:
+                        this._positionRelativeToCamera.y !== 'none'
+                            ? worldCenterY +
+                              yOffsetWorld -
+                              this.position.y +
+                              this.position.y * this.transform.scaleMult.y
+                            : 0,
+                });
             }
-            switch (this._positionRelativeToCamera.y) {
-                case 'start':
-                    yOffsetLocal = -camera.size.y / 2;
-                    break;
-                case 'center':
-                    yOffsetLocal = 0;
-                    break;
-                case 'end':
-                    yOffsetLocal = camera.size.y / 2;
-                    break;
-            }
-
-            // Rotate the offset by camera rotation to get world space offset
-            const xOffsetWorld = xOffsetLocal * cosRot - yOffsetLocal * sinRot;
-            const yOffsetWorld = xOffsetLocal * sinRot + yOffsetLocal * cosRot;
-
-            // Final position offset is: world center + rotated offset
-            this.transform.setPositionOffset({
-                x:
-                    this._positionRelativeToCamera.x !== 'none'
-                        ? worldCenterX +
-                          xOffsetWorld -
-                          this.position.x +
-                          this.position.x * this.transform.scaleMult.x
-                        : 0,
-                y:
-                    this._positionRelativeToCamera.y !== 'none'
-                        ? worldCenterY +
-                          yOffsetWorld -
-                          this.position.y +
-                          this.position.y * this.transform.scaleMult.y
-                        : 0,
-            });
         }
-            */
 
         if (this._rotateRelativeToCamera) {
             this.transform.setRotationOffset(-camera.rotation);
@@ -769,10 +779,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     }
 
     isCulled(cameraBoundingBox: BoundingBox): boolean {
-        return !boundingBoxesIntersect(
-            this.transform.boundingBox,
-            cameraBoundingBox,
-        );
+        return !cameraBoundingBox.intersects(this.transform.boundingBox);
     }
 
     isVisual(): boolean {

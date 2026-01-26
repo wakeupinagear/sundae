@@ -10,6 +10,7 @@ export {
     type WebKey,
     type TwoAxisAlignment,
     type CollisionContact,
+    type Platform,
 } from '../src/types';
 export { Matrix2D } from '../src/math/matrix';
 export { type ICanvas, type ICanvasRenderingContext2D } from '../src/types';

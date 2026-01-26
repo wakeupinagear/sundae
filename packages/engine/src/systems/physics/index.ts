@@ -1,12 +1,16 @@
-import { System } from '../index';
 import { type C_Collider } from '../../components/colliders';
 import { type C_CircleCollider } from '../../components/colliders/CircleCollider';
 import { type C_RectangleCollider } from '../../components/colliders/RectangleCollider';
 import type { Engine } from '../../engine';
 import { type Entity } from '../../entities';
-import { type IVector, type ImmutableVector, Vector, type VectorConstructor } from '../../math/vector';
-import { boundingBoxesIntersect } from '../../utils';
+import {
+    type IVector,
+    type ImmutableVector,
+    Vector,
+    type VectorConstructor,
+} from '../../math/vector';
 import type { CollisionContact } from '../../types';
+import { System } from '../index';
 import { SpatialHashGrid } from './spatialHash';
 
 const INV_MASS_EPSILON = 1e-6;
@@ -37,8 +41,8 @@ export class PhysicsSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
     #gravityScale: number = 0;
-    #gravityDirection: Vector = new Vector(0)
-    #currentGravity: Vector = new Vector(0)
+    #gravityDirection: Vector = new Vector(0);
+    #currentGravity: Vector = new Vector(0);
 
     #physicsEntities: Map<string, Entity<TEngine>> = new Map();
 
@@ -47,13 +51,15 @@ export class PhysicsSystem<
     #timeAccumulator: number = 0;
 
     #raycasts: Raycast<TEngine>[] = [];
-    
+
     #spatialGrid: SpatialHashGrid<Entity<TEngine>>;
 
     constructor(engine: TEngine) {
         super(engine);
 
-        this.#spatialGrid = new SpatialHashGrid(engine.options.spatialHashCellSize);
+        this.#spatialGrid = new SpatialHashGrid(
+            engine.options.spatialHashCellSize,
+        );
     }
 
     get gravityScale() {
@@ -92,17 +98,20 @@ export class PhysicsSystem<
     }
 
     override lateUpdate(deltaTime: number): boolean | void {
-        this.#timeAccumulator = Math.min(this.#timeAccumulator + deltaTime, MAX_TIMESTEP_ACCUMULATION);
-        
+        this.#timeAccumulator = Math.min(
+            this.#timeAccumulator + deltaTime,
+            MAX_TIMESTEP_ACCUMULATION,
+        );
+
         const fixedTimeStep = 1 / this._engine.options.physicsPerSecond;
         while (this.#timeAccumulator >= fixedTimeStep) {
+            this.#physicsUpdate(fixedTimeStep);
+
             this.#buildSpatialGrid();
-            
+
             this.#broadPhase();
             this.#narrowPhase();
 
-            this.#physicsUpdate(fixedTimeStep);
-            
             this.#timeAccumulator -= fixedTimeStep;
         }
     }
@@ -117,26 +126,42 @@ export class PhysicsSystem<
     }
 
     raycast(request: RaycastRequest<TEngine>): Raycast<TEngine>['result'] {
-        const { origin: _origin, direction, maxDistance, ignoreEntity } = request;
+        const {
+            origin: _origin,
+            direction,
+            maxDistance,
+            ignoreEntity,
+        } = request;
         const origin = new Vector(_origin);
         const dir = new Vector(direction).normalize();
         let closest: RaycastResult<TEngine> | null = null;
         let closestDist = maxDistance;
-        
+
         const checkEntity = (entity: Readonly<Entity<TEngine>>): void => {
             if (entity === ignoreEntity) return;
-            
+
             if (entity.collider) {
-                const result = entity.collider.type === 'circle'
-                    ? this.#raycastCircle(entity.collider as C_CircleCollider<TEngine>, origin, dir, closestDist)
-                    : this.#raycastRectangle(entity.collider as C_RectangleCollider<TEngine>, origin, dir, closestDist);
-                
+                const result =
+                    entity.collider.type === 'circle'
+                        ? this.#raycastCircle(
+                              entity.collider as C_CircleCollider<TEngine>,
+                              origin,
+                              dir,
+                              closestDist,
+                          )
+                        : this.#raycastRectangle(
+                              entity.collider as C_RectangleCollider<TEngine>,
+                              origin,
+                              dir,
+                              closestDist,
+                          );
+
                 if (result && result.distance < closestDist) {
                     closest = result;
                     closestDist = result.distance;
                 }
             }
-            
+
             for (const child of entity.children) {
                 if (child.collider || child.childColliderCount > 0) {
                     checkEntity(child);
@@ -152,7 +177,7 @@ export class PhysicsSystem<
 
         return closest;
     }
-    
+
     #raycastCircle(
         collider: C_CircleCollider<TEngine>,
         origin: ImmutableVector,
@@ -164,14 +189,14 @@ export class PhysicsSystem<
         const toCenter = center.sub(origin);
         const projection = toCenter.dot(direction);
         if (projection < 0) return null;
-        
+
         const distSq = toCenter.lengthSquared() - projection * projection;
         const radiusSq = radius * radius;
         if (distSq > radiusSq) return null;
-        
+
         const distance = projection - Math.sqrt(radiusSq - distSq);
         if (distance < 0 || distance > maxDistance) return null;
-        
+
         const point = origin.add(direction.scaleBy(distance));
 
         return {
@@ -180,7 +205,7 @@ export class PhysicsSystem<
             distance,
         };
     }
-    
+
     #raycastRectangle(
         collider: C_RectangleCollider<TEngine>,
         origin: ImmutableVector,
@@ -190,29 +215,31 @@ export class PhysicsSystem<
         const corners = collider.entity.transform.corners;
         let closestT = Infinity;
         let closestNormal: Vector | null = null;
-        
+
         for (let i = 0; i < 4; i++) {
             const start = corners[i];
             const edge = corners[(i + 1) % 4].sub(start);
             const normal = new Vector(-edge.y, edge.x).normalize();
             const denom = direction.dot(normal);
             if (Math.abs(denom) < 1e-10) continue;
-            
+
             const t = start.sub(origin).dot(normal) / denom;
             if (t < 0 || t > maxDistance || t >= closestT) continue;
-            
+
             const proj = origin.add(direction.scaleBy(t)).sub(start).dot(edge);
             if (proj >= 0 && proj <= edge.lengthSquared()) {
                 closestT = t;
                 closestNormal = denom < 0 ? normal : normal.negate();
             }
         }
-        
-        return closestNormal ? {
-            collider,
-            point: origin.add(direction.scaleBy(closestT)),
-            distance: closestT,
-        } : null;
+
+        return closestNormal
+            ? {
+                  collider,
+                  point: origin.add(direction.scaleBy(closestT)),
+                  distance: closestT,
+              }
+            : null;
     }
 
     #physicsUpdate(deltaTime: number): void {
@@ -262,13 +289,13 @@ export class PhysicsSystem<
 
         const bboxA = entityA.transform.boundingBox;
         const bboxB = entityB.transform.boundingBox;
-    
+
         const childrenA = entityA.children;
         for (let i = 0; i < childrenA.length; i++) {
             const child = childrenA[i];
             if (
                 child.childColliderCount > 0 &&
-                boundingBoxesIntersect(child.transform.boundingBox, bboxB)
+                child.transform.boundingBox.intersects(bboxB)
             ) {
                 this.#broadPhaseDescend(child, entityB);
             }
@@ -279,7 +306,7 @@ export class PhysicsSystem<
             const child = childrenB[i];
             if (
                 child.childColliderCount > 0 &&
-                boundingBoxesIntersect(bboxA, child.transform.boundingBox)
+                bboxA.intersects(child.transform.boundingBox)
             ) {
                 this.#broadPhaseDescend(entityA, child);
             }
@@ -289,21 +316,24 @@ export class PhysicsSystem<
     #narrowPhase() {
         let resolvedAny = false;
         const pairCount = this.#pairIndex;
-        
+
         for (let i = 0; i < this._engine.options.maxCollisionIterations; i++) {
             resolvedAny = false;
             const isFirstIteration = i === 0;
-            
+
             for (let p = 0; p < pairCount; p++) {
                 const [collA, collB] = this.#pairs[p];
                 const isTriggerPair = collA.isTrigger || collB.isTrigger;
-                const contact = !isTriggerPair || isFirstIteration ? collA.resolveCollision(collB) : null;
+                const contact =
+                    !isTriggerPair || isFirstIteration
+                        ? collA.resolveCollision(collB)
+                        : null;
                 if (contact) {
                     if (isFirstIteration) {
                         if (collA.entity.onCollision) {
                             collA.entity.onCollision(contact);
                         }
-                        
+
                         const componentsA = collA.entity.components;
                         for (let c = 0; c < componentsA.length; c++) {
                             componentsA[c].onCollision?.(contact);
@@ -315,11 +345,11 @@ export class PhysicsSystem<
                             self: contact.other,
                             other: contact.self,
                         };
-                        
+
                         if (collB.entity.onCollision) {
                             collB.entity.onCollision(flippedContact);
                         }
-                        
+
                         const componentsB = collB.entity.components;
                         for (let c = 0; c < componentsB.length; c++) {
                             componentsB[c].onCollision?.(flippedContact);
@@ -348,7 +378,7 @@ export class PhysicsSystem<
         if (penetrationDepth < MIN_PENETRATION_DEPTH) {
             return;
         }
-        
+
         const collARigidbody = collA.rigidbody;
         const collBRigidbody = collB.rigidbody;
         const invMassA = collARigidbody ? collARigidbody.invMass : 0;
@@ -378,23 +408,28 @@ export class PhysicsSystem<
         }
 
         if (collARigidbody || collBRigidbody) {
-            const velocityA = collARigidbody ? collARigidbody.velocity : ZERO_VECTOR;
-            const velocityB = collBRigidbody ? collBRigidbody.velocity : ZERO_VECTOR;
-            
+            const velocityA = collARigidbody
+                ? collARigidbody.velocity
+                : ZERO_VECTOR;
+            const velocityB = collBRigidbody
+                ? collBRigidbody.velocity
+                : ZERO_VECTOR;
+
             const relativeVelocity = velocityA.sub(velocityB);
             const velocityAlongNormal = relativeVelocity.dot(contactNormal);
-            
+
             if (velocityAlongNormal > 0) {
                 return;
             }
-            
+
             const bounceA = collARigidbody ? collARigidbody.bounce : 0;
             const bounceB = collBRigidbody ? collBRigidbody.bounce : 0;
             const bounce = Math.min(bounceA, bounceB);
-            
-            const impulseScalar = -(1 + bounce) * velocityAlongNormal / totalInvMass;
+
+            const impulseScalar =
+                (-(1 + bounce) * velocityAlongNormal) / totalInvMass;
             const impulse = contactNormal.scaleBy(impulseScalar);
-            
+
             if (collARigidbody) {
                 collARigidbody.addImpulse(impulse);
             }

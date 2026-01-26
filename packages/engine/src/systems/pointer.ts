@@ -93,8 +93,8 @@ export interface CanvasPointer {
     prevState: CanvasPointerState;
     accumulatedScrollDelta: number;
     scrollSteps: number;
-    dragStartMousePosition: IVector<number> | null;
-    dragStartCameraPosition: IVector<number> | null;
+    dragStartMousePosition: Vector | null;
+    dragStartCameraPosition: Vector | null;
 }
 
 export interface I_PointerSystem {

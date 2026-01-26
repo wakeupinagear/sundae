@@ -1,10 +1,11 @@
 import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
 import { Entity, type EntityOptions } from '../entities';
+import { BoundingBox } from '../math/boundingBox';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
-import type { BoundingBox, TwoAxisAlignment } from '../types';
+import type { TwoAxisAlignment } from '../types';
 import { type C_Shape, type C_ShapeOptions } from './shape';
 
 const MONOSPACE_WIDTH_RATIO = 0.6;
@@ -106,7 +107,8 @@ export class C_Text<
     #italic: boolean;
     #bold: boolean;
     #opacity: number;
-    #padding!: BoundingBox;
+
+    #padding: BoundingBox = new BoundingBox(0);
 
     #textDirty: boolean = true;
     #drawActions: TextDrawAction[] = [];
@@ -316,12 +318,12 @@ export class C_Text<
             this.#textDirty = false;
         }
 
-        this._boundingBox = {
+        this._boundingBox.set({
             x1: this.#textPosition.x,
             x2: this.#textPosition.x + this.#textSize.x,
             y1: this.#textPosition.y,
             y2: this.#textPosition.y + this.#textSize.y,
-        };
+        });
     }
 
     #computeTextLines() {
@@ -899,22 +901,15 @@ export class C_Text<
     }
 
     #setPadding(padding: Padding) {
-        if (typeof padding === 'number') {
-            this.#padding = {
-                x1: padding,
-                x2: padding,
-                y1: padding,
-                y2: padding,
-            };
-        } else if ('x' in padding) {
-            this.#padding = {
+        if (typeof padding === 'object' && 'x' in padding) {
+            this.#padding.set({
                 x1: padding.x,
                 x2: padding.x,
                 y1: padding.y,
                 y2: padding.y,
-            };
+            });
         } else {
-            this.#padding = padding;
+            this.#padding.set(padding);
         }
     }
 

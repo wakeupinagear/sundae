@@ -169,5 +169,10 @@ class ChaosScene extends Scene {
 }
 
 export const renderChaos: EngineScenario = async (harness) => {
+    harness.engine.options = {
+        cameraOptions: {
+            cullScale: 0.85,
+        },
+    };
     harness.engine.openScene(ChaosScene);
 };

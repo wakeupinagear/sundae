@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { Engine, type WebKey } from '@repo/engine';
-import { DEFAULT_CANVAS_ID } from '@repo/engine';
+import {
+    DEFAULT_CANVAS_ID,
+    Engine,
+    type Platform,
+    type WebKey,
+} from '@repo/engine';
 
 import { type CanvasOptions, CanvasTracker } from './CanvasTracker';
+import { getPlatform } from './platform';
 
 interface SizeState {
     width: number;
@@ -15,6 +20,7 @@ interface HarnessProps<TEngine extends Engine = Engine>
     extends React.CanvasHTMLAttributes<HTMLCanvasElement>,
         Partial<CanvasOptions> {
     engine?: TEngine | (new (options?: Partial<TEngine['options']>) => TEngine);
+    initialEngineOptions?: Partial<TEngine['options']>;
     engineOptions?: Partial<TEngine['options']>;
     width?: number;
     height?: number;
@@ -24,10 +30,11 @@ interface HarnessProps<TEngine extends Engine = Engine>
 
 export function Harness<TEngine extends Engine = Engine>({
     engine,
+    initialEngineOptions,
     engineOptions,
     width: widthProp = -1,
     height: heightProp = -1,
-    scrollDirection = 1,
+    scrollDirection: scrollDirectionProp,
     scrollSensitivity = 1,
     onInitialized,
     canvases,
@@ -58,6 +65,7 @@ export function Harness<TEngine extends Engine = Engine>({
     const engineRef = useRef<TEngine | null>(null);
     const requestedAnimationFrame = useRef<number>(-1);
     const initializedRef = useRef(false);
+    const platformRef = useRef<Platform>('unknown');
 
     if (!engineRef.current) {
         const options: Partial<TEngine['options']> = {
@@ -74,6 +82,7 @@ export function Harness<TEngine extends Engine = Engine>({
                 }
             },
             devicePixelRatio: size.dpr,
+            ...initialEngineOptions,
             ...engineOptions,
         };
 
@@ -91,6 +100,9 @@ export function Harness<TEngine extends Engine = Engine>({
             engineRef.current = engine as TEngine;
             engineRef.current.options = options;
         }
+
+        platformRef.current = getPlatform();
+        engineRef.current.setPlatform(platformRef.current);
     }
 
     useEffect(() => {
@@ -179,7 +191,7 @@ export function Harness<TEngine extends Engine = Engine>({
                 onVisibilityChange,
             );
         };
-    }, [size, engineRef, scrollDirection, scrollSensitivity, engineOptions]);
+    }, [size, engineRef, scrollSensitivity, engineOptions]);
 
     useEffect(() => {
         return () => {
@@ -192,6 +204,9 @@ export function Harness<TEngine extends Engine = Engine>({
     if (engineRef.current) {
         engineRef.current.options = { ...engineOptions };
     }
+
+    const scrollDirection =
+        scrollDirectionProp ?? (platformRef.current === 'windows' ? 1 : -1);
 
     if (canvases) {
         return (

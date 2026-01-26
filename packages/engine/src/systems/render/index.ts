@@ -74,7 +74,7 @@ export class RenderSystem<
 
     render(
         ctx: ICanvasRenderingContext2D,
-        rootEntity: Entity<TEngine>,
+        rootEntity: Readonly<Entity<TEngine>>,
         camera: CameraSystem,
     ) {
         if (!this.#stream) {

@@ -1,7 +1,8 @@
 import { type Engine } from '../../engine';
+import { type BoundingBox } from '../../math/boundingBox';
 import { type Vector } from '../../math/vector';
 import type { CursorType } from '../../systems/pointer';
-import { type BoundingBox, type CollisionContact } from '../../types';
+import { type CollisionContact } from '../../types';
 import { Component, type ComponentOptions } from '../index';
 import { type C_Rigidbody } from '../rigidbody';
 import type { C_CircleCollider } from './CircleCollider';

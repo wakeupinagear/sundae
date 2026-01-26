@@ -16,6 +16,19 @@ const SCENARIOS = Object.fromEntries(
 
 const DEFAULT_SCENARIO = 'renderChaos';
 
+const INITIAL_ENGINE_OPTIONS: Partial<EngineOptions> = {
+    cameraOptions: {
+        canDrag: true,
+        bounds: {
+            x1: -400,
+            x2: 400,
+            y1: -300,
+            y2: 300,
+        },
+        scrollMode: 'all',
+    },
+};
+
 export function App() {
     const debugMode = useAppStore((state) => state.debugMode);
     const setDebugMode = useAppStore((state) => state.setDebugMode);
@@ -72,6 +85,7 @@ export function App() {
                     onInitialized={onEngineReady}
                     width={800}
                     height={600}
+                    initialEngineOptions={INITIAL_ENGINE_OPTIONS}
                     engineOptions={engineOptions}
                 />
                 <div className="flex justify-between w-full">
