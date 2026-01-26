@@ -46,7 +46,9 @@ export class C_Rigidbody<
     override destroy(): void {
         super.destroy();
 
-        this._engine.physicsSystem.unregisterPhysicsEntity(this.entity);
+        if (!this.entity.collider) {
+            this._engine.physicsSystem.unregisterPhysicsEntity(this.entity);
+        }
     }
 
     get mass(): number {
@@ -92,8 +94,7 @@ export class C_Rigidbody<
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    override onCollision(_contact: CollisionContact<TEngine>): void {
-    }
+    override onCollision(_contact: CollisionContact<TEngine>): void {}
 
     addImpulse(impulse: VectorConstructor): void {
         if (this.#invMass > 0) {
@@ -106,7 +107,9 @@ export class C_Rigidbody<
     }
 
     physicsUpdate(deltaTime: number, currentGravity: Vector): void {
-        this.addForce(currentGravity.scaleBy(this.#mass).scaleBy(this.#gravityScale));
+        this.addForce(
+            currentGravity.scaleBy(this.#mass).scaleBy(this.#gravityScale),
+        );
 
         this.#acceleration.set(this.#force.scaleBy(this.#invMass));
         this.#velocity.addMut(this.#acceleration.scaleBy(deltaTime));

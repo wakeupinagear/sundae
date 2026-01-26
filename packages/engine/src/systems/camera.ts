@@ -67,6 +67,7 @@ export class CameraSystem<
     #position: Vector = new Vector(0);
     #rotation: number = 0;
     #zoom: number = 0;
+    #scaledZoom: number = zoomToScale(0);
     #target: CameraTarget | null = null;
 
     #offset: Vector = new Vector(0);
@@ -168,15 +169,23 @@ export class CameraSystem<
 
     setPosition(position: VectorConstructor): void {
         const newPosition = new Vector(position);
-        newPosition.x = Math.max(
+        const scale = this.#scaledZoom;
+        const rotationRad = (this.#rotation * Math.PI) / 180;
+        const worldCenter = new Vector(newPosition)
+            .rotate(-rotationRad)
+            .div(scale);
+        worldCenter.x = Math.max(
             this.#options.bounds.x1,
-            Math.min(newPosition.x, this.#options.bounds.x2),
+            Math.min(worldCenter.x, this.#options.bounds.x2),
         );
-        newPosition.y = Math.max(
+        worldCenter.y = Math.max(
             this.#options.bounds.y1,
-            Math.min(newPosition.y, this.#options.bounds.y2),
+            Math.min(worldCenter.y, this.#options.bounds.y2),
         );
-        if (this.#position.set(newPosition)) {
+        const clampedPosition = new Vector(worldCenter)
+            .mul(scale)
+            .rotate(rotationRad);
+        if (this.#position.set(clampedPosition)) {
             this.#markDirty();
         }
     }
@@ -202,17 +211,17 @@ export class CameraSystem<
         );
         if (clampedZoom !== this.#zoom) {
             this.#zoom = clampedZoom;
+            this.#scaledZoom = zoomToScale(clampedZoom);
             this.#markDirty();
         }
     }
 
     zoomBy(delta: number, focalPoint?: IVector<number>): void {
-        const oldZoom = this.zoom;
-        const oldScale = zoomToScale(oldZoom);
+        const oldScale = this.#scaledZoom;
         this.setZoom(this.zoom + delta * this.#options.zoomSpeed);
 
         if (focalPoint) {
-            const newScale = zoomToScale(this.zoom);
+            const newScale = this.#scaledZoom;
             const scaleDelta = newScale - oldScale;
             const rotationRad = (this.rotation * Math.PI) / 180;
             const rotatedFocalPoint = new Vector(focalPoint).rotate(
@@ -337,6 +346,55 @@ export class CameraSystem<
         return updated;
     }
 
+    render(): void {
+        const canvas = this._engine.getCanvas(this.#options.canvasID);
+        if (!canvas) {
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            return;
+        }
+
+        const dpr = this._engine.devicePixelRatio;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.textAlign = 'left';
+
+        const cssWidth = canvas.width / dpr;
+        const cssHeight = canvas.height / dpr;
+        const x = Math.floor(this.#offset.x * cssWidth);
+        const y = Math.floor(this.#offset.y * cssHeight);
+        const w = Math.floor(this.#scale.x * cssWidth);
+        const h = Math.floor(this.#scale.y * cssHeight);
+        if (
+            this.#options.clearColor &&
+            this.#options.clearColor !== 'transparent'
+        ) {
+            ctx.fillStyle = this.#options.clearColor;
+            ctx.fillRect(x, y, w, h);
+        } else {
+            ctx.clearRect(x, y, w, h);
+        }
+
+        const isFullScreen =
+            w === canvas.width && h === canvas.height && x === 0 && y === 0;
+        if (!isFullScreen) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x, y, w, h);
+            ctx.clip();
+        }
+
+        ctx.translate(x + w / 2, y + h / 2);
+
+        this._engine.renderSystem.render(ctx, this._engine.rootEntity, this);
+
+        if (!isFullScreen) {
+            ctx.restore();
+        }
+    }
+
     #updateTarget(target: CameraTarget): void {
         if (target.type === 'entity') {
             const entity = this._engine.getEntityByName(target.name);
@@ -344,13 +402,13 @@ export class CameraSystem<
                 this.#position.set(entity.position);
             }
         } else if (target.type === 'fixed') {
-            if (target.position) {
+            if (target.position !== undefined) {
                 this.setPosition(target.position);
             }
-            if (target.zoom) {
+            if (target.zoom !== undefined) {
                 this.setZoom(target.zoom);
             }
-            if (target.rotation) {
+            if (target.rotation !== undefined) {
                 this.setRotation(target.rotation);
             }
         }
@@ -420,10 +478,8 @@ export class CameraSystem<
                     const screenDelta = canvasPointer.currentState.position.sub(
                         canvasPointer.dragStartMousePosition,
                     );
-                    const rotationRad = (-this.#rotation * Math.PI) / 180;
-                    const rotatedDelta = screenDelta.rotate(rotationRad);
                     this.setPosition(
-                        canvasPointer.dragStartCameraPosition.sub(rotatedDelta),
+                        canvasPointer.dragStartCameraPosition.sub(screenDelta),
                     );
                     this.#cancelCameraTarget();
                     updated = true;
@@ -477,55 +533,6 @@ export class CameraSystem<
             .filter(Boolean) as C_Collider<TEngine>[];
     }
 
-    render(): void {
-        const canvas = this._engine.getCanvas(this.#options.canvasID);
-        if (!canvas) {
-            return;
-        }
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            return;
-        }
-
-        const dpr = this._engine.devicePixelRatio;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.textAlign = 'left';
-
-        const cssWidth = canvas.width / dpr;
-        const cssHeight = canvas.height / dpr;
-        const x = Math.floor(this.#offset.x * cssWidth);
-        const y = Math.floor(this.#offset.y * cssHeight);
-        const w = Math.floor(this.#scale.x * cssWidth);
-        const h = Math.floor(this.#scale.y * cssHeight);
-        if (
-            this.#options.clearColor &&
-            this.#options.clearColor !== 'transparent'
-        ) {
-            ctx.fillStyle = this.#options.clearColor;
-            ctx.fillRect(x, y, w, h);
-        } else {
-            ctx.clearRect(x, y, w, h);
-        }
-
-        const isFullScreen =
-            w === canvas.width && h === canvas.height && x === 0 && y === 0;
-        if (!isFullScreen) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(x, y, w, h);
-            ctx.clip();
-        }
-
-        ctx.translate(x + w / 2, y + h / 2);
-
-        this._engine.renderSystem.render(ctx, this._engine.rootEntity, this);
-
-        if (!isFullScreen) {
-            ctx.restore();
-        }
-    }
-
     #markDirty(): void {
         this.#matricesDirty = true;
         this.#boundsDirty = true;
@@ -546,7 +553,7 @@ export class CameraSystem<
             this.#worldToScreenMatrix.identity();
         }
 
-        const scale = zoomToScale(this.#zoom);
+        const scale = this.#scaledZoom;
         const dpr = this._engine.devicePixelRatio;
         const cssWidth = canvas.width / dpr;
         const cssHeight = canvas.height / dpr;
@@ -571,7 +578,7 @@ export class CameraSystem<
             return;
         }
 
-        const scale = zoomToScale(this.#zoom);
+        const scale = this.#scaledZoom;
         const dpr = this._engine.devicePixelRatio;
         const cssWidth = canvas.width / dpr;
         const cssHeight = canvas.height / dpr;

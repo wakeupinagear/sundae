@@ -286,7 +286,6 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             parent: this,
             ...child,
         });
-        this._children.push(createdEntity);
 
         return createdEntity as IEntity;
     }

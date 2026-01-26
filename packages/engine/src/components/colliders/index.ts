@@ -60,7 +60,9 @@ export abstract class C_Collider<
     override destroy(): void {
         super.destroy();
 
-        this._engine.physicsSystem.unregisterPhysicsEntity(this.entity);
+        if (!this.entity.rigidbody) {
+            this._engine.physicsSystem.unregisterPhysicsEntity(this.entity);
+        }
     }
 
     get type(): ColliderType {

@@ -247,6 +247,14 @@ export class C_Transform<
     }
 
     #computeBoundingBox() {
+        if (
+            this.entity.visualComponents.length === 0 &&
+            this.entity.children.length === 0
+        ) {
+            this.#boundingBox.set(0);
+            return;
+        }
+
         let minX = Infinity;
         let maxX = -Infinity;
         let minY = Infinity;

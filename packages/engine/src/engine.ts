@@ -18,7 +18,7 @@ import {
     createEntityFromJSON,
 } from './entities/factory';
 import { generatePRNG } from './math/random';
-import { type IVector, type VectorConstructor } from './math/vector';
+import { type IVector, Vector, type VectorConstructor } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import {
@@ -468,6 +468,18 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     getCanvas(id: string): ICanvas | null {
         return this._canvases[id] ?? null;
+    }
+
+    getCanvasSize(id: string): IVector<number> | null {
+        const canvas = this.getCanvas(id);
+        if (canvas) {
+            return {
+                x: canvas.width / this.devicePixelRatio,
+                y: canvas.height / this.devicePixelRatio,
+            };
+        }
+
+        return null;
     }
 
     screenToWorld(

@@ -39,11 +39,14 @@ export function CanvasTracker({
             return;
         }
 
-        const onMouseMove = (event: MouseEvent) =>
+        const onMouseMove = (event: MouseEvent) => {
+            const x = event.clientX - localCanvas.offsetLeft,
+                y = event.clientY - localCanvas.offsetTop;
             engineRef.current?.onMouseMove('mousemove', canvasID, {
-                x: event.clientX - localCanvas.offsetLeft,
-                y: event.clientY - localCanvas.offsetTop,
+                x,
+                y,
             });
+        };
         window.addEventListener('mousemove', onMouseMove);
 
         const onMouseWheel = (event: WheelEvent) => {
@@ -54,6 +57,10 @@ export function CanvasTracker({
                 delta = event.deltaY * 100;
             }
             delta *= scrollSensitivity;
+            engineRef.current?.onMouseMove('mousemove', canvasID, {
+                x: event.offsetX,
+                y: event.offsetY,
+            });
             engineRef.current?.onMouseWheel('mousewheel', canvasID, { delta });
             event.preventDefault();
         };

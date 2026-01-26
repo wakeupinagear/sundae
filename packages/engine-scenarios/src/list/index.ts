@@ -12,13 +12,13 @@ export interface ScenarioMetadata {
     description: string;
     scenario: EngineScenario;
     skipInTests?: boolean;
-    hideInDemos?: boolean;
 }
 
 export interface ScenarioCategory {
     name: string;
     description: string;
     scenarios: Record<string, ScenarioMetadata>;
+    hideInDemos?: boolean;
 }
 
 export type ScenarioList = Record<string, ScenarioCategory>;
@@ -40,7 +40,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
         description: 'Game scenarios',
         scenarios: {
             pong: {
-                name: 'pong',
+                name: 'Pong',
                 description: 'A simple pong game',
                 scenario: pong,
             },
@@ -81,6 +81,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
     internal: {
         name: 'Internal',
         description: 'Internal scenarios',
+        hideInDemos: true,
         scenarios: {
             typeErrors: {
                 name: 'Type Errors',
@@ -88,7 +89,6 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                     'Type error test case to validate engine type safety. Not an actual scenario.',
                 scenario: typeErrors,
                 skipInTests: true,
-                hideInDemos: true,
             },
         },
     },

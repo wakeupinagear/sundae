@@ -199,6 +199,17 @@ export class PointerSystem<TEngine extends Engine = Engine>
     ) => {
         const pointer = this.#getCanvasPointer(canvasID);
         pointer.currentState.position.set(position);
+        const canvasSize = this._engine.getCanvasSize(canvasID);
+        if (canvasSize) {
+            this.setPointerOnScreen(
+                position.x >= 0 &&
+                    position.y >= 0 &&
+                    position.x < canvasSize.x &&
+                    position.y < canvasSize.y,
+                position,
+                canvasID,
+            );
+        }
     };
 
     setPointerOnScreen: I_PointerSystem['setPointerOnScreen'] = (
@@ -207,12 +218,13 @@ export class PointerSystem<TEngine extends Engine = Engine>
         canvasID = DEFAULT_CANVAS_ID,
     ) => {
         const pointer = this.#getCanvasPointer(canvasID);
-        pointer.currentState.onScreen = onScreen;
-        pointer.currentState.position.set(position);
-        pointer.currentState.justMovedOnScreen =
-            !pointer.currentState.onScreen && onScreen;
-        pointer.currentState.justMovedOffScreen =
-            pointer.currentState.onScreen && !onScreen;
+        const prevOnScreen = pointer.currentState.onScreen;
+        if (prevOnScreen !== onScreen) {
+            pointer.currentState.justMovedOnScreen = !prevOnScreen && onScreen;
+            pointer.currentState.justMovedOffScreen = prevOnScreen && !onScreen;
+            pointer.currentState.onScreen = onScreen;
+            pointer.currentState.position.set(position);
+        }
     };
 
     setPointerScrollDelta: I_PointerSystem['setPointerScrollDelta'] = (

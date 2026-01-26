@@ -56,13 +56,16 @@ export function ExampleList({
             />
             <div className="flex flex-col p-2 gap-4">
                 {Object.entries(filteredScenarios).map(
-                    ([categoryID, category]) => (
-                        <div key={categoryID} className="flex flex-col gap-2">
-                            <h2 className="text-lg">{category.name}</h2>
-                            <div className="flex flex-col gap-2 pl-2">
-                                {Object.entries(category.scenarios).map(
-                                    ([scenarioID, scenario]) =>
-                                        !scenario.hideInDemos ? (
+                    ([categoryID, category]) =>
+                        category.hideInDemos ? null : (
+                            <div
+                                key={categoryID}
+                                className="flex flex-col gap-2"
+                            >
+                                <h2 className="text-lg">{category.name}</h2>
+                                <div className="flex flex-col gap-2 pl-2">
+                                    {Object.entries(category.scenarios).map(
+                                        ([scenarioID, scenario]) => (
                                             <a
                                                 key={scenarioID}
                                                 id={scenarioToID(
@@ -83,11 +86,11 @@ export function ExampleList({
                                             >
                                                 {scenario.name}
                                             </a>
-                                        ) : null,
-                                )}
+                                        ),
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ),
+                        ),
                 )}
             </div>
         </div>
