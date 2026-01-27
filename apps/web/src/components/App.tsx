@@ -21,6 +21,7 @@ const INITIAL_ENGINE_OPTIONS: Partial<EngineOptions> = {
             y2: 300,
         },
         scrollMode: 'all',
+        clearColor: 'black',
     },
 };
 

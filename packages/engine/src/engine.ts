@@ -18,7 +18,7 @@ import {
     createEntityFromJSON,
 } from './entities/factory';
 import { generatePRNG } from './math/random';
-import { type IVector, Vector, type VectorConstructor } from './math/vector';
+import { type IVector, type VectorConstructor } from './math/vector';
 import { DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import {
@@ -394,6 +394,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._systems.push(system);
     }
 
+    removeSystem(system: System): void {
+        this._systems = this._systems.filter((s) => s !== system);
+    }
+
     getPlatform(): Platform {
         return this._platform;
     }
@@ -655,15 +659,19 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._pointerSystem.getCanvasPointer(canvasID);
     };
 
-    getIsCameraDragging: I_PointerSystem['getIsCameraDragging'] = (
-        threshold,
-        canvasID,
-    ) => {
-        return this._pointerSystem.getIsCameraDragging(threshold, canvasID);
+    getCameraPointer: I_PointerSystem['getCameraPointer'] = (cameraID) => {
+        return this._pointerSystem.getCameraPointer(cameraID);
     };
 
-    getScrollSteps: I_PointerSystem['getScrollSteps'] = (canvasID) => {
-        return this._pointerSystem.getScrollSteps(canvasID);
+    getIsCameraDragging: I_PointerSystem['getIsCameraDragging'] = (
+        cameraID,
+        threshold,
+    ) => {
+        return this._pointerSystem.getIsCameraDragging(cameraID, threshold);
+    };
+
+    getScrollSteps: I_PointerSystem['getScrollSteps'] = (cameraID) => {
+        return this._pointerSystem.getScrollSteps(cameraID);
     };
 
     setPointerButtonDown: I_PointerSystem['setPointerButtonDown'] = (

@@ -130,7 +130,10 @@ export function Harness<TEngine extends Engine = Engine>({
             return;
         }
 
-        engineRef.current.options = { ...engineOptions };
+        engineRef.current.options = {
+            devicePixelRatio: size.dpr,
+            ...engineOptions,
+        };
 
         const isInputFocused = (): boolean => {
             const activeElement = document.activeElement;

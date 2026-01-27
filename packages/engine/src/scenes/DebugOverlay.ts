@@ -1,7 +1,7 @@
 import { type C_CircleCollider } from '../components/colliders/CircleCollider';
 import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import { type Engine } from '../engine';
-import { Entity, type EntityOptions } from '../entities';
+import { type Entity } from '../entities';
 import type { BoundingBox } from '../math/boundingBox';
 import { E_Text, type E_TextOptions } from '../objects/text';
 import type { CameraSystem } from '../systems/camera';
@@ -159,6 +159,8 @@ export class E_StatsDebug<
     }
 }
 
+const MOUSE_HALF_AXIS = 12;
+
 interface BoundingBoxDebugOptions extends C_DrawableOptions {
     sceneEntityName: string;
 }
@@ -191,9 +193,19 @@ export class C_BoundingBoxDebug<
         stream.popTransform();
 
         this.#drawBoundingBox(camera.cullBoundingBox, stream, {
-            strokeStyle: 'blue',
+            strokeStyle: camera.isPointerOverCamera ? 'yellow' : 'blue',
             lineWidth: 4 / zoomToScale(camera.zoom),
         });
+
+        const pointerPosition = camera.getPointerPosition()
+        if (pointerPosition) {
+            stream.setStyle({
+                strokeStyle: 'white',
+                lineWidth: 2,
+            });
+            stream.drawLine(pointerPosition.x - MOUSE_HALF_AXIS, pointerPosition.y, pointerPosition.x + MOUSE_HALF_AXIS, pointerPosition.y, 1, 1, 1, 1);
+            stream.drawLine(pointerPosition.x, pointerPosition.y - MOUSE_HALF_AXIS, pointerPosition.x, pointerPosition.y + MOUSE_HALF_AXIS, 1, 1, 1, 1);
+        }
 
         return true;
     }
@@ -424,46 +436,6 @@ class C_RaycastDebug<
     }
 }
 
-const MOUSE_HALF_AXIS = 12;
-
-class E_MouseDebug<TEngine extends Engine = Engine> extends Entity<TEngine> {
-    constructor(options: EntityOptions) {
-        super(options);
-
-        this.addComponents(
-            {
-                type: 'shape',
-                shape: 'LINE',
-                start: { x: -MOUSE_HALF_AXIS, y: 0 },
-                end: { x: MOUSE_HALF_AXIS, y: 0 },
-                style: { strokeStyle: 'blue', lineWidth: 2 },
-            },
-            {
-                type: 'shape',
-                shape: 'LINE',
-                start: { x: 0, y: -MOUSE_HALF_AXIS },
-                end: { x: 0.5, y: MOUSE_HALF_AXIS },
-                style: { strokeStyle: 'blue', lineWidth: 2 },
-            },
-        );
-    }
-
-    update(): boolean | void {
-        const pointerState = this._engine.getCanvasPointer();
-        const worldPosition = this._engine.screenToWorld(
-            pointerState.currentState.position,
-        );
-        if (worldPosition && pointerState.currentState.onScreen) {
-            this.setPosition(worldPosition);
-            this.setOpacity(1);
-        } else {
-            this.setOpacity(0);
-        }
-
-        return true;
-    }
-}
-
 export class DebugOverlayScene<
     TEngine extends Engine = Engine,
 > extends Scene<TEngine> {
@@ -487,12 +459,6 @@ export class DebugOverlayScene<
         visualDebug.addComponent({
             type: C_RaycastDebug,
             name: 'raycastDebug',
-        });
-
-        this.createEntity({
-            type: E_MouseDebug,
-            name: 'mouseDebug',
-            scaleRelativeToCamera: true,
         });
 
         this.createEntity({

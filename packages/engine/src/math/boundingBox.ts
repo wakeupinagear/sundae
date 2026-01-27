@@ -168,4 +168,13 @@ export class BoundingBox implements IBoundingBox {
             this.y2 >= other.y1
         );
     }
+
+    contains(position: IVector<number>): boolean {
+        return (
+            position.x >= this.x1 &&
+            position.x <= this.x2 &&
+            position.y >= this.y1 &&
+            position.y <= this.y2
+        );
+    }
 }

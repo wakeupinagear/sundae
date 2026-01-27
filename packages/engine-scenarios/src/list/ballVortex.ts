@@ -68,8 +68,8 @@ class VortexScene extends Scene {
                         ],
                 },
                 position: {
-                    x: 200 * (_engine.random() - 0.5),
-                    y: 200 * (_engine.random() - 0.5),
+                    x: 300 * (_engine.random() - 0.5),
+                    y: 400 * (_engine.random() - 0.5),
                 },
                 collision: true,
                 pointerTarget: true,
@@ -105,12 +105,19 @@ export const ballVortex: EngineScenario = (harness) => {
     harness.engine.options = {
         cameras: {
             cam1: {
-                offset: { x: 0.5, y: 0 },
-                scale: { x: 0.5, y: 1 },
+                scale: { x: 0.5, y: 0.5 },
             },
             cam2: {
-                offset: { x: 0, y: 0 },
-                scale: { x: 0.5, y: 1 },
+                scale: { x: 0.5, y: 0.5 },
+                offset: { x: 0.5, y: 0 },
+            },
+            cam3: {
+                scale: { x: 0.5, y: 0.5 },
+                offset: { x: 0, y: 0.5 },
+            },
+            cam4: {
+                scale: { x: 0.5, y: 0.5 },
+                offset: { x: 0.5, y: 0.5 },
             },
         },
     };

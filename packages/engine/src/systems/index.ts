@@ -14,5 +14,7 @@ export abstract class System<TEngine extends Engine = Engine> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     lateUpdate(_deltaTime: number): boolean | void {}
 
-    destroy(): void {}
+    destroy(): void {
+        this._engine.removeSystem(this);
+    }
 }

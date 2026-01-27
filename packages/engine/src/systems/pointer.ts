@@ -45,12 +45,14 @@ export interface CanvasPointerState
     onScreen: boolean;
     justMovedOnScreen: boolean;
     justMovedOffScreen: boolean;
+    screenPosition: Vector;
     position: Vector;
     clickStartPosition: Vector | null;
     clickEndPosition: Vector | null;
 }
 
 const createCanvasPointerState = (): CanvasPointerState => ({
+    screenPosition: new Vector(0),
     position: new Vector(0),
     justMovedOnScreen: false,
     justMovedOffScreen: false,
@@ -91,6 +93,11 @@ const createCanvasPointerState = (): CanvasPointerState => ({
 export interface CanvasPointer {
     currentState: CanvasPointerState;
     prevState: CanvasPointerState;
+}
+
+export interface CameraPointer {
+    canvasPointer: CanvasPointer;
+    canvasID: string;
     accumulatedScrollDelta: number;
     scrollSteps: number;
     dragStartMousePosition: Vector | null;
@@ -102,9 +109,10 @@ export interface I_PointerSystem {
         button: PointerButton,
         canvasID?: string,
     ) => Readonly<PointerButtonState>;
-    getIsCameraDragging: (threshold?: number, canvasID?: string) => boolean;
-    getScrollSteps: (canvasID?: string) => number;
+    getIsCameraDragging: (cameraID: string, threshold?: number) => boolean;
+    getScrollSteps: (cameraID: string) => number;
     getCanvasPointer: (canvasID?: string) => CanvasPointer;
+    getCameraPointer: (cameraID: string) => CameraPointer;
 
     setPointerButtonDown: (
         button: PointerButton,
@@ -130,6 +138,7 @@ export class PointerSystem<TEngine extends Engine = Engine>
     implements I_PointerSystem
 {
     #canvasPointers: Record<string, CanvasPointer> = {};
+    #cameraPointers: Record<string, CameraPointer> = {};
 
     #currentCursor: CursorType = 'default';
     #cursorRequests: Map<string, CursorRequest> = new Map();
@@ -139,15 +148,17 @@ export class PointerSystem<TEngine extends Engine = Engine>
     }
 
     getIsCameraDragging: I_PointerSystem['getIsCameraDragging'] = (
+        cameraID: string,
         threshold = 0,
-        canvasID = DEFAULT_CANVAS_ID,
     ): boolean => {
-        const pointer = this.#getCanvasPointer(canvasID);
-        if (pointer.dragStartMousePosition === null) return false;
+        const cameraPointer = this.#getCameraPointer(cameraID);
+        if (!cameraPointer) return false;
+        if (cameraPointer.dragStartMousePosition === null) return false;
 
-        const screenDelta = pointer.currentState.position.sub(
-            pointer.dragStartMousePosition,
-        );
+        const screenDelta =
+            cameraPointer.canvasPointer.currentState.position.sub(
+                cameraPointer.dragStartMousePosition,
+            );
         return screenDelta.length() > threshold;
     };
 
@@ -160,16 +171,23 @@ export class PointerSystem<TEngine extends Engine = Engine>
     };
 
     getScrollSteps: I_PointerSystem['getScrollSteps'] = (
-        canvasID = DEFAULT_CANVAS_ID,
+        cameraID: string,
     ): number => {
-        const pointer = this.#getCanvasPointer(canvasID);
-        return pointer.scrollSteps;
+        const cameraPointer = this.#getCameraPointer(cameraID);
+        if (!cameraPointer) return 0;
+        return cameraPointer.scrollSteps;
     };
 
     getCanvasPointer: I_PointerSystem['getCanvasPointer'] = (
         canvasID = DEFAULT_CANVAS_ID,
     ): CanvasPointer => {
         return this.#getCanvasPointer(canvasID);
+    };
+
+    getCameraPointer: I_PointerSystem['getCameraPointer'] = (
+        cameraID: string,
+    ): CameraPointer => {
+        return this.#getCameraPointer(cameraID);
     };
 
     setPointerButtonDown: I_PointerSystem['setPointerButtonDown'] = (
@@ -304,13 +322,51 @@ export class PointerSystem<TEngine extends Engine = Engine>
             this.#canvasPointers[canvasID] = {
                 currentState: createCanvasPointerState(),
                 prevState: createCanvasPointerState(),
+            };
+        }
+
+        return this.#canvasPointers[canvasID];
+    }
+
+    #getCameraPointer(cameraID: string): CameraPointer {
+        const camera = this._engine.getCamera(cameraID);
+        if (!camera) {
+            const canvasID = DEFAULT_CANVAS_ID;
+            if (!(cameraID in this.#cameraPointers)) {
+                const canvasPointer = this.#getCanvasPointer(canvasID);
+                this.#cameraPointers[cameraID] = {
+                    canvasPointer,
+                    canvasID,
+                    accumulatedScrollDelta: 0,
+                    scrollSteps: 0,
+                    dragStartMousePosition: null,
+                    dragStartCameraPosition: null,
+                };
+            }
+            return this.#cameraPointers[cameraID];
+        }
+
+        const canvasID = camera.canvasID || DEFAULT_CANVAS_ID;
+
+        if (!(cameraID in this.#cameraPointers)) {
+            const canvasPointer = this.#getCanvasPointer(canvasID);
+            this.#cameraPointers[cameraID] = {
+                canvasPointer,
+                canvasID,
                 accumulatedScrollDelta: 0,
                 scrollSteps: 0,
                 dragStartMousePosition: null,
                 dragStartCameraPosition: null,
             };
+        } else {
+            // Update canvas pointer reference if canvasID changed
+            const existing = this.#cameraPointers[cameraID];
+            if (existing.canvasID !== canvasID) {
+                existing.canvasPointer = this.#getCanvasPointer(canvasID);
+                existing.canvasID = canvasID;
+            }
         }
 
-        return this.#canvasPointers[canvasID];
+        return this.#cameraPointers[cameraID];
     }
 }

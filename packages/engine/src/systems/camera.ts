@@ -7,6 +7,7 @@ import { type IVector, Vector, type VectorConstructor } from '../math/vector';
 import { zoomToScale } from '../utils';
 import { System } from './index';
 import {
+    type CameraPointer,
     type CameraScrollMode,
     type CanvasPointer,
     PointerButton,
@@ -76,18 +77,21 @@ export class CameraSystem<
     #options: Required<CameraOptions>;
     #cameraID: string;
 
-    #worldToScreenMatrix: Matrix2D | null = null;
-    #inverseWorldToScreenMatrix: Matrix2D | null = null;
+    #worldToScreenMatrix: Matrix2D = new Matrix2D();
+    #inverseWorldToScreenMatrix: Matrix2D = new Matrix2D();
     #matricesDirty: boolean = true;
 
     #boundingBox: BoundingBox = new BoundingBox(0);
     #cullBoundingBox: BoundingBox = new BoundingBox(0);
+    #canvasBoundingBox: BoundingBox = new BoundingBox(0);
     #boundsDirty: boolean = true;
 
     #worldPosition: Vector = new Vector(0);
     #canvasSize: Vector | null = null;
     #prevCanvasSize: Vector | null = null;
     #size: Vector | null = null;
+
+    #isPointerOverCamera: boolean = false;
 
     constructor(engine: TEngine, cameraID: string) {
         super(engine);
@@ -125,7 +129,7 @@ export class CameraSystem<
         return this.#zoom;
     }
 
-    get worldToScreenMatrix(): Readonly<Matrix2D> | null {
+    get worldToScreenMatrix(): Readonly<Matrix2D> {
         if (!this.#worldToScreenMatrix || this.#matricesDirty) {
             this.#computeMatrices();
         }
@@ -133,7 +137,7 @@ export class CameraSystem<
         return this.#worldToScreenMatrix;
     }
 
-    get inverseWorldToScreenMatrix(): Readonly<Matrix2D> | null {
+    get inverseWorldToScreenMatrix(): Readonly<Matrix2D> {
         if (!this.#worldToScreenMatrix || this.#matricesDirty) {
             this.#computeMatrices();
         }
@@ -159,12 +163,29 @@ export class CameraSystem<
         return this.#cullBoundingBox;
     }
 
+    get canvasBoundingBox(): Readonly<BoundingBox> {
+        if (this.#boundsDirty) {
+            this.#computeBoundingBox();
+            this.#boundsDirty = false;
+        }
+
+        return this.#canvasBoundingBox;
+    }
+
     get canvasSize(): Readonly<Vector> | null {
         return this.#canvasSize;
     }
 
     get size(): Readonly<Vector> | null {
         return this.#size;
+    }
+
+    get isPointerOverCamera(): boolean {
+        return this.#isPointerOverCamera;
+    }
+
+    get canvasID(): string {
+        return this.#options.canvasID;
     }
 
     setPosition(position: VectorConstructor): void {
@@ -245,6 +266,16 @@ export class CameraSystem<
         return this.worldToScreenMatrix?.transformPoint(position) ?? null;
     }
 
+    getPointerPosition(): IVector<number> | null {
+        const cameraPointer = this._engine.getCameraPointer(this.#cameraID);
+
+        return this.#isPointerOverCamera
+            ? this.screenToWorld(
+                  cameraPointer.canvasPointer.currentState.position,
+              )
+            : null;
+    }
+
     setTarget(target: CameraTargetConstructor): void {
         if (typeof target === 'string') {
             this.#target = { type: 'entity', name: target };
@@ -263,7 +294,10 @@ export class CameraSystem<
     }
 
     applyOptions(options: CameraSystemOptions): void {
-        const { position, rotation, zoom, ...rest } = options;
+        const { position, rotation, zoom, offset, scale, ...rest } = {
+            ...this._engine.options.cameraOptions,
+            ...options,
+        };
         for (const key in rest) {
             const value = rest[key as keyof typeof rest];
             if (value !== undefined) {
@@ -281,19 +315,28 @@ export class CameraSystem<
         if (zoom !== undefined) {
             this.setZoom(zoom);
         }
+        if (offset !== undefined) {
+            this.#offset.set(offset);
+        }
+        if (scale !== undefined) {
+            this.#scale.set(scale);
+        }
 
         this.#markDirty();
     }
 
     override earlyUpdate() {
+        if (!this._engine.getCamera(this.#cameraID)) {
+            return false;
+        }
+
         if (this.#target) {
             this.#updateTarget(this.#target);
         }
 
-        const canvasPointer = this._engine.getCanvasPointer(
-            this.#options.canvasID,
-        );
-        let updated = this.#updatePointer(canvasPointer);
+        const cameraPointer = this._engine.getCameraPointer(this.#cameraID);
+        const canvasPointer = cameraPointer.canvasPointer;
+        let updated = this.#updatePointer(cameraPointer, canvasPointer);
 
         const worldPosition = this.screenToWorld(
             canvasPointer.currentState.position,
@@ -414,9 +457,21 @@ export class CameraSystem<
         }
     }
 
-    #updatePointer(canvasPointer: CanvasPointer): boolean {
+    #updatePointer(
+        cameraPointer: CameraPointer,
+        canvasPointer: CanvasPointer,
+    ): boolean {
         let updated = false;
-        if (canvasPointer.currentState.scrollDelta !== 0) {
+        this.#isPointerOverCamera =
+            canvasPointer.currentState.onScreen &&
+            this.#canvasBoundingBox.contains(
+                canvasPointer.currentState.position,
+            );
+
+        if (
+            canvasPointer.currentState.scrollDelta !== 0 &&
+            this.#isPointerOverCamera
+        ) {
             const scrollMode = this.#options.scrollMode;
             const meta =
                 this._engine.getKey('Meta').down ||
@@ -438,18 +493,18 @@ export class CameraSystem<
                 }
             }
 
-            canvasPointer.accumulatedScrollDelta +=
+            cameraPointer.accumulatedScrollDelta +=
                 canvasPointer.currentState.scrollDelta;
-            canvasPointer.scrollSteps = Math.trunc(
-                canvasPointer.accumulatedScrollDelta / SCROLL_DELTA_PER_STEP,
+            cameraPointer.scrollSteps = Math.trunc(
+                cameraPointer.accumulatedScrollDelta / SCROLL_DELTA_PER_STEP,
             );
-            canvasPointer.accumulatedScrollDelta -=
-                canvasPointer.scrollSteps * SCROLL_DELTA_PER_STEP;
+            cameraPointer.accumulatedScrollDelta -=
+                cameraPointer.scrollSteps * SCROLL_DELTA_PER_STEP;
             canvasPointer.currentState.scrollDelta = 0;
 
             updated = true;
         } else {
-            canvasPointer.scrollSteps = 0;
+            cameraPointer.scrollSteps = 0;
         }
 
         if (this.#options.canDrag) {
@@ -458,12 +513,13 @@ export class CameraSystem<
             );
             if (
                 buttonStates.some((state) => state.pressed) &&
-                !canvasPointer.dragStartMousePosition
+                !cameraPointer.dragStartMousePosition &&
+                this.#isPointerOverCamera
             ) {
-                canvasPointer.dragStartMousePosition = new Vector(
+                cameraPointer.dragStartMousePosition = new Vector(
                     canvasPointer.currentState.position,
                 );
-                canvasPointer.dragStartCameraPosition = new Vector(
+                cameraPointer.dragStartCameraPosition = new Vector(
                     this.#position,
                 );
                 updated = true;
@@ -472,14 +528,14 @@ export class CameraSystem<
             if (canvasPointer.currentState.justMoved) {
                 if (
                     buttonStates.some((state) => state.down) &&
-                    canvasPointer.dragStartMousePosition &&
-                    canvasPointer.dragStartCameraPosition
+                    cameraPointer.dragStartMousePosition &&
+                    cameraPointer.dragStartCameraPosition
                 ) {
                     const screenDelta = canvasPointer.currentState.position.sub(
-                        canvasPointer.dragStartMousePosition,
+                        cameraPointer.dragStartMousePosition,
                     );
                     this.setPosition(
-                        canvasPointer.dragStartCameraPosition.sub(screenDelta),
+                        cameraPointer.dragStartCameraPosition.sub(screenDelta),
                     );
                     this.#cancelCameraTarget();
                     updated = true;
@@ -488,14 +544,14 @@ export class CameraSystem<
 
             if (
                 buttonStates.some((state) => state.released) &&
-                canvasPointer.dragStartMousePosition
+                cameraPointer.dragStartMousePosition
             ) {
-                canvasPointer.dragStartMousePosition = null;
-                canvasPointer.dragStartCameraPosition = null;
+                cameraPointer.dragStartMousePosition = null;
+                cameraPointer.dragStartCameraPosition = null;
                 updated = true;
             }
 
-            if (canvasPointer.dragStartMousePosition) {
+            if (cameraPointer.dragStartMousePosition) {
                 this.#cancelCameraTarget();
                 this._engine.requestCursor(
                     'camera-drag',
@@ -541,17 +597,13 @@ export class CameraSystem<
     #computeMatrices() {
         const canvas = this._engine.getCanvas(this.#options.canvasID);
         if (!canvas) {
-            this.#worldToScreenMatrix = null;
-            this.#inverseWorldToScreenMatrix = null;
+            this.#worldToScreenMatrix.identity();
+            this.#inverseWorldToScreenMatrix.identity();
             this.#matricesDirty = false;
             return;
         }
 
-        if (!this.#worldToScreenMatrix) {
-            this.#worldToScreenMatrix = new Matrix2D();
-        } else {
-            this.#worldToScreenMatrix.identity();
-        }
+        this.#worldToScreenMatrix.identity();
 
         const scale = this.#scaledZoom;
         const dpr = this._engine.devicePixelRatio;
@@ -575,6 +627,7 @@ export class CameraSystem<
         if (!canvas) {
             this.#boundingBox.set(0);
             this.#cullBoundingBox.set(0);
+            this.#canvasBoundingBox.set(0);
             return;
         }
 
@@ -616,6 +669,16 @@ export class CameraSystem<
             -this.#rotation,
             { x: culledWorldSize.x / 2, y: culledWorldSize.y / 2 },
         );
+
+        const canvasSize = this._engine.getCanvasSize(this.#options.canvasID);
+        if (canvasSize) {
+            this.#canvasBoundingBox.set(
+                Math.floor(this.#offset.x * canvasSize.x),
+                Math.floor(this.#offset.y * canvasSize.y),
+                Math.ceil((this.#offset.x + this.#scale.x) * canvasSize.x),
+                Math.ceil((this.#offset.y + this.#scale.y) * canvasSize.y),
+            );
+        }
     }
 
     #cancelCameraTarget(): void {
