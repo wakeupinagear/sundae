@@ -35,9 +35,9 @@ jobs:
             - name: Install dependencies
               run: pnpm install
 
-            # ---------- Build everything ----------
-            - name: Turbo build
-              run: pnpm turbo build
+            # ---------- Build dependencies first (without GITHUB_PAGES) ----------
+            - name: Build dependencies
+              run: pnpm turbo build --filter=@repo/web^...
 
             # ---------- Publish npm packages ----------
             #- name: Publish packages
@@ -49,7 +49,7 @@ jobs:
             - name: Build web
               env:
                   GITHUB_PAGES: 'true'
-              run: pnpm turbo build --filter=@repo/web
+              run: pnpm turbo build --filter=@repo/web --force
 
             # ---------- Deploy to GitHub Pages ----------
             - name: Configure Pages
