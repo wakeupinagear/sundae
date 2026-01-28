@@ -43,6 +43,7 @@ import {
     type RaycastRequest,
 } from './systems/physics';
 import {
+    type CameraPointer,
     type CursorType,
     type I_PointerSystem,
     type PointerButton,
@@ -488,21 +489,21 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     screenToWorld(
         position: IVector<number>,
-        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+        cameraID = this.#getPrimaryCameraID(),
     ): IVector<number> | null {
         return this._cameraSystems[cameraID]?.screenToWorld(position) ?? null;
     }
 
     worldToScreen(
         position: IVector<number>,
-        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+        cameraID = this.#getPrimaryCameraID(),
     ): IVector<number> | null {
         return this._cameraSystems[cameraID]?.worldToScreen(position) ?? null;
     }
 
     setCameraTarget(
         target: CameraTargetConstructor,
-        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+        cameraID = this.#getPrimaryCameraID(),
     ): void {
         this._cameraSystems[cameraID]?.setTarget(target);
     }
@@ -524,7 +525,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     }
 
     getCamera(
-        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+        cameraID = this.#getPrimaryCameraID(),
     ): CameraSystem<this> | null {
         return this._cameraSystems[cameraID] ?? null;
     }
@@ -532,7 +533,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     setCameraPosition(
         position: IVector<number>,
         cancelCameraTarget: boolean = true,
-        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+        cameraID = this.#getPrimaryCameraID(),
     ): void {
         const camera = this.getCamera(cameraID);
         if (camera) {
@@ -543,32 +544,26 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         }
     }
 
-    setCameraZoom(
-        zoom: number,
-        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
-    ): void {
+    setCameraZoom(zoom: number, cameraID = this.#getPrimaryCameraID()): void {
         this._cameraSystems[cameraID]?.setZoom(zoom);
     }
 
     zoomCamera(
         delta: number,
         focalPoint?: IVector<number>,
-        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+        cameraID = this.#getPrimaryCameraID(),
     ): void {
         this._cameraSystems[cameraID]?.zoomBy(delta, focalPoint);
     }
 
     setCameraRotation(
         rotation: number,
-        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
+        cameraID = this.#getPrimaryCameraID(),
     ): void {
         this._cameraSystems[cameraID]?.setRotation(rotation);
     }
 
-    rotateCamera(
-        delta: number,
-        cameraID = this.#primaryCameraID || DEFAULT_CAMERA_ID,
-    ): void {
+    rotateCamera(delta: number, cameraID = this.#getPrimaryCameraID()): void {
         this._cameraSystems[cameraID]?.rotate(delta);
     }
 
@@ -648,31 +643,19 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     onMouseOver: BrowserCanvasEventHandler<'mouseover'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
 
-    getPointerButton: I_PointerSystem['getPointerButton'] = (
-        button,
-        canvasID,
-    ) => {
-        return this._pointerSystem.getPointerButton(button, canvasID);
-    };
+    getPointerPosition(
+        cameraID = this.#getPrimaryCameraID(),
+    ): IVector<number> | null {
+        return this._cameraSystems[cameraID]?.getPointerPosition() ?? null;
+    }
 
-    getCanvasPointer: I_PointerSystem['getCanvasPointer'] = (canvasID) => {
-        return this._pointerSystem.getCanvasPointer(canvasID);
-    };
+    getPointerOnScreen(cameraID = this.#getPrimaryCameraID()): boolean {
+        return this._cameraSystems[cameraID]?.getPointerOnScreen() ?? false;
+    }
 
-    getCameraPointer: I_PointerSystem['getCameraPointer'] = (cameraID) => {
+    getPointer(cameraID = this.#getPrimaryCameraID()): CameraPointer {
         return this._pointerSystem.getCameraPointer(cameraID);
-    };
-
-    getIsCameraDragging: I_PointerSystem['getIsCameraDragging'] = (
-        cameraID,
-        threshold,
-    ) => {
-        return this._pointerSystem.getIsCameraDragging(cameraID, threshold);
-    };
-
-    getScrollSteps: I_PointerSystem['getScrollSteps'] = (cameraID) => {
-        return this._pointerSystem.getScrollSteps(cameraID);
-    };
+    }
 
     setPointerButtonDown: I_PointerSystem['setPointerButtonDown'] = (
         button,
@@ -986,5 +969,11 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     #setRandomSeed(seed: number): void {
         this.#prng = generatePRNG(seed);
+    }
+
+    #getPrimaryCameraID(): string {
+        return this.#primaryCameraID !== null
+            ? this.#primaryCameraID
+            : DEFAULT_CAMERA_ID;
     }
 }

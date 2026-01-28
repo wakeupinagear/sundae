@@ -190,10 +190,10 @@ export class RenderCommandStream {
         y1: number,
         x2: number,
         y2: number,
-        rx: number,
-        ry: number,
-        gx: number,
-        gy: number,
+        rx = 1,
+        ry = 1,
+        gx = 1,
+        gy = 1,
     ) {
         if (this.#currentOpacity < OPACITY_THRESHOLD) {
             return;
@@ -211,10 +211,10 @@ export class RenderCommandStream {
         y1: number,
         x2: number,
         y2: number,
-        rx: number,
-        ry: number,
-        gx: number,
-        gy: number,
+        rx = 1,
+        ry = 1,
+        gx = 1,
+        gy = 1,
     ) {
         if (this.#currentOpacity < OPACITY_THRESHOLD) {
             return;
@@ -232,10 +232,10 @@ export class RenderCommandStream {
         y1: number,
         x2: number,
         y2: number,
-        rx: number,
-        ry: number,
-        gx: number,
-        gy: number,
+        rx = 1,
+        ry = 1,
+        gx = 1,
+        gy = 1,
     ) {
         if (this.#currentOpacity < OPACITY_THRESHOLD) {
             return;
@@ -254,10 +254,10 @@ export class RenderCommandStream {
         x2: number,
         y2: number,
         image: string,
-        rx: number,
-        ry: number,
-        gx: number,
-        gy: number,
+        rx = 1,
+        ry = 1,
+        gx = 1,
+        gy = 1,
     ) {
         if (this.#currentOpacity < OPACITY_THRESHOLD) {
             return;

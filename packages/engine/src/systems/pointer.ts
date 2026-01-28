@@ -1,4 +1,4 @@
-import { DEFAULT_CANVAS_ID } from '../constants';
+import { DEFAULT_CAMERA_ID, DEFAULT_CANVAS_ID } from '../constants';
 import { type Engine } from '../engine';
 import { type IVector, Vector } from '../math/vector';
 import { System } from './index';
@@ -105,15 +105,6 @@ export interface CameraPointer {
 }
 
 export interface I_PointerSystem {
-    getPointerButton: (
-        button: PointerButton,
-        canvasID?: string,
-    ) => Readonly<PointerButtonState>;
-    getIsCameraDragging: (cameraID: string, threshold?: number) => boolean;
-    getScrollSteps: (cameraID: string) => number;
-    getCanvasPointer: (canvasID?: string) => CanvasPointer;
-    getCameraPointer: (cameraID: string) => CameraPointer;
-
     setPointerButtonDown: (
         button: PointerButton,
         down: boolean,
@@ -147,46 +138,11 @@ export class PointerSystem<TEngine extends Engine = Engine>
         return this.#currentCursor;
     }
 
-    getIsCameraDragging: I_PointerSystem['getIsCameraDragging'] = (
-        cameraID: string,
-        threshold = 0,
-    ): boolean => {
-        const cameraPointer = this.#getCameraPointer(cameraID);
-        if (!cameraPointer) return false;
-        if (cameraPointer.dragStartMousePosition === null) return false;
-
-        const screenDelta =
-            cameraPointer.canvasPointer.currentState.position.sub(
-                cameraPointer.dragStartMousePosition,
-            );
-        return screenDelta.length() > threshold;
-    };
-
-    getPointerButton: I_PointerSystem['getPointerButton'] = (
-        button,
-        canvasID = DEFAULT_CANVAS_ID,
-    ): PointerButtonState => {
-        const pointer = this.#getCanvasPointer(canvasID);
-        return pointer.currentState[button];
-    };
-
-    getScrollSteps: I_PointerSystem['getScrollSteps'] = (
-        cameraID: string,
-    ): number => {
-        const cameraPointer = this.#getCameraPointer(cameraID);
-        if (!cameraPointer) return 0;
-        return cameraPointer.scrollSteps;
-    };
-
-    getCanvasPointer: I_PointerSystem['getCanvasPointer'] = (
-        canvasID = DEFAULT_CANVAS_ID,
-    ): CanvasPointer => {
+    getCanvasPointer = (canvasID = DEFAULT_CANVAS_ID): CanvasPointer => {
         return this.#getCanvasPointer(canvasID);
     };
 
-    getCameraPointer: I_PointerSystem['getCameraPointer'] = (
-        cameraID: string,
-    ): CameraPointer => {
+    getCameraPointer = (cameraID = DEFAULT_CAMERA_ID): CameraPointer => {
         return this.#getCameraPointer(cameraID);
     };
 

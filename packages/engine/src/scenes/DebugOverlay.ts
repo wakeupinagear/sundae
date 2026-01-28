@@ -197,14 +197,24 @@ export class C_BoundingBoxDebug<
             lineWidth: 4 / zoomToScale(camera.zoom),
         });
 
-        const pointerPosition = camera.getPointerPosition()
+        const pointerPosition = camera.getPointerPosition();
         if (pointerPosition) {
             stream.setStyle({
                 strokeStyle: 'white',
                 lineWidth: 2,
             });
-            stream.drawLine(pointerPosition.x - MOUSE_HALF_AXIS, pointerPosition.y, pointerPosition.x + MOUSE_HALF_AXIS, pointerPosition.y, 1, 1, 1, 1);
-            stream.drawLine(pointerPosition.x, pointerPosition.y - MOUSE_HALF_AXIS, pointerPosition.x, pointerPosition.y + MOUSE_HALF_AXIS, 1, 1, 1, 1);
+            stream.drawLine(
+                pointerPosition.x - MOUSE_HALF_AXIS,
+                pointerPosition.y,
+                pointerPosition.x + MOUSE_HALF_AXIS,
+                pointerPosition.y,
+            );
+            stream.drawLine(
+                pointerPosition.x,
+                pointerPosition.y - MOUSE_HALF_AXIS,
+                pointerPosition.x,
+                pointerPosition.y + MOUSE_HALF_AXIS,
+            );
         }
 
         return true;
@@ -247,16 +257,7 @@ export class C_BoundingBoxDebug<
     ): void {
         stream.setOpacity(1);
         stream.setStyle(style);
-        stream.drawRect(
-            bbox.x1,
-            bbox.y1,
-            bbox.x2 - bbox.x1,
-            bbox.y2 - bbox.y1,
-            1,
-            1,
-            1,
-            1,
-        );
+        stream.drawRect(bbox.x1, bbox.y1, bbox.x2 - bbox.x1, bbox.y2 - bbox.y1);
     }
 }
 
@@ -327,26 +328,13 @@ export class C_ColliderDebug<
                     centerY,
                     centerX + radius * 2,
                     centerY + radius * 2,
-                    1,
-                    1,
-                    1,
-                    1,
                 );
             } else if (collider.type === 'rectangle') {
                 const bounds = collider.collisionBounds;
                 for (let i = 0; i < bounds.length + 1; i++) {
                     const point1 = bounds[i % bounds.length];
                     const point2 = bounds[(i + 1) % bounds.length];
-                    stream.drawLine(
-                        point1.x,
-                        point1.y,
-                        point2.x,
-                        point2.y,
-                        1,
-                        1,
-                        1,
-                        1,
-                    );
+                    stream.drawLine(point1.x, point1.y, point2.x, point2.y);
                 }
             }
 
@@ -356,16 +344,7 @@ export class C_ColliderDebug<
 
             const bounds = collider.collisionBounds;
             for (const bound of bounds) {
-                stream.drawEllipse(
-                    bound.x,
-                    bound.y,
-                    bound.x + 8,
-                    bound.y + 8,
-                    1,
-                    1,
-                    1,
-                    1,
-                );
+                stream.drawEllipse(bound.x, bound.y, bound.x + 8, bound.y + 8);
             }
         }
 
@@ -406,10 +385,6 @@ class C_RaycastDebug<
                     raycast.request.origin.y +
                         raycast.request.direction.y *
                             raycast.request.maxDistance,
-                    1,
-                    1,
-                    1,
-                    1,
                 );
 
                 if (raycast.result) {
@@ -423,10 +398,6 @@ class C_RaycastDebug<
                         raycast.result.point.y,
                         raycast.result.point.x + 10,
                         raycast.result.point.y + 10,
-                        1,
-                        1,
-                        1,
-                        1,
                     );
                 }
             }

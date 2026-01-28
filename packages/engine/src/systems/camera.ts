@@ -267,13 +267,17 @@ export class CameraSystem<
     }
 
     getPointerPosition(): IVector<number> | null {
-        const cameraPointer = this._engine.getCameraPointer(this.#cameraID);
+        const cameraPointer = this._engine.getPointer(this.#cameraID);
 
         return this.#isPointerOverCamera
             ? this.screenToWorld(
                   cameraPointer.canvasPointer.currentState.position,
               )
             : null;
+    }
+
+    getPointerOnScreen(): boolean {
+        return this.#isPointerOverCamera;
     }
 
     setTarget(target: CameraTargetConstructor): void {
@@ -334,7 +338,7 @@ export class CameraSystem<
             this.#updateTarget(this.#target);
         }
 
-        const cameraPointer = this._engine.getCameraPointer(this.#cameraID);
+        const cameraPointer = this._engine.getPointer(this.#cameraID);
         const canvasPointer = cameraPointer.canvasPointer;
         let updated = this.#updatePointer(cameraPointer, canvasPointer);
 
