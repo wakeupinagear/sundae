@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { type Engine, type EngineOptions } from '@repo/engine';
@@ -10,6 +11,7 @@ import { idToScenario, scenarioToID } from '../utils/scenarios';
 import { ExampleList } from './ExampleList';
 
 const DEFAULT_SCENARIO = 'stressTests-renderChaos';
+const MAX_CAMERAS = 64;
 
 const INITIAL_ENGINE_OPTIONS: Partial<EngineOptions> = {
     cameraOptions: {
@@ -29,7 +31,41 @@ const readScenarioFromHash = () => {
     return idToScenario(window.location.hash.slice(1) || DEFAULT_SCENARIO);
 };
 
+type NormalizedRect = {
+    offset: { x: number; y: number };
+    scale: { x: number; y: number };
+};
+
+function makeGridCameras(count: number): Record<string, NormalizedRect> {
+    const hash = (Math.random() * 2 ** 32) >>> 0;
+    if (count <= 1) {
+        return {
+            [`0-${hash}`]: { offset: { x: 0, y: 0 }, scale: { x: 1, y: 1 } },
+        };
+    }
+
+    const cols = Math.ceil(Math.sqrt(count));
+    const fullRows = Math.floor(count / cols);
+    const remainder = count - fullRows * cols;
+    const totalRows = fullRows + (remainder > 0 ? 1 : 0);
+    const cameras: Record<string, NormalizedRect> = {};
+    for (let i = 0; i < count; i++) {
+        const row = Math.floor(i / cols);
+        const isRemainderRow = remainder > 0 && row === fullRows;
+        const rowWidth = isRemainderRow ? remainder : cols;
+        const col = isRemainderRow ? i - fullRows * cols : i % cols;
+        cameras[`${i}-${hash}`] = {
+            offset: { x: col / rowWidth, y: row / totalRows },
+            scale: { x: 1 / rowWidth, y: 1 / totalRows },
+        };
+    }
+
+    return cameras;
+}
+
 export function App() {
+    const cameraCount = useAppStore((state) => state.cameraCount);
+    const setCameraCount = useAppStore((state) => state.setCameraCount);
     const debugMode = useAppStore((state) => state.debugMode);
     const setDebugMode = useAppStore((state) => state.setDebugMode);
     const trueRandom = useAppStore((state) => state.trueRandom);
@@ -48,26 +84,37 @@ export function App() {
         };
     }, []);
 
-    const { scenario, scenarioKey } = useMemo(() => {
-        const scenario =
-            ENGINE_SCENARIOS[categoryID]?.scenarios[scenarioID] || null;
-        const scenarioKey = scenarioToID(categoryID, scenarioID);
-        const url = new URL(window.location.href);
-        url.hash = scenarioKey;
-        window.history.replaceState({}, '', url.toString());
+    const { scenario, scenarioKey, maxCameras, canChangeCameraCount } =
+        useMemo(() => {
+            const scenario =
+                ENGINE_SCENARIOS[categoryID]?.scenarios[scenarioID] || null;
+            const scenarioKey = scenarioToID(categoryID, scenarioID);
+            const url = new URL(window.location.href);
+            url.hash = scenarioKey;
+            window.history.replaceState({}, '', url.toString());
 
-        return { scenario, scenarioKey };
-    }, [categoryID, scenarioID]);
+            const maxCameras = scenario?.maxCameras ?? MAX_CAMERAS;
+
+            return {
+                scenario,
+                scenarioKey,
+                maxCameras,
+                canChangeCameraCount: maxCameras > 1,
+            };
+        }, [categoryID, scenarioID]);
 
     const engineOptions = useMemo<Partial<EngineOptions>>(() => {
-        return {
+        const options: Partial<EngineOptions> = {
+            cameras: makeGridCameras(cameraCount),
             debugOverlayEnabled: debugMode,
             engineTracesEnabled: debugMode,
             randomSeed: trueRandom
                 ? (Math.random() * 2 ** 32) >>> 0
                 : undefined,
         };
-    }, [debugMode, trueRandom]);
+
+        return options;
+    }, [debugMode, trueRandom, cameraCount]);
 
     const onEngineReady = useCallback(
         (engine: Engine) => {
@@ -90,6 +137,40 @@ export function App() {
                         selectedScenarioID={scenarioID}
                     />
                     <div className="mt-auto flex flex-col gap-2 p-2">
+                        <div
+                            className={clsx(
+                                'flex gap-2 items-center transition-opacity',
+                                {
+                                    'opacity-50': !canChangeCameraCount,
+                                },
+                            )}
+                        >
+                            <label
+                                htmlFor="cameraCount"
+                                className="font-medium"
+                            >
+                                Cameras
+                            </label>
+                            <select
+                                id="cameraCount"
+                                value={Math.max(
+                                    Math.min(cameraCount, MAX_CAMERAS),
+                                    1,
+                                )}
+                                onChange={(e) =>
+                                    setCameraCount(Number(e.target.value))
+                                }
+                                disabled={!canChangeCameraCount}
+                            >
+                                {Array(Math.min(MAX_CAMERAS, maxCameras))
+                                    .fill(0)
+                                    .map((_, index) => (
+                                        <option key={index} value={index + 1}>
+                                            {index + 1}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
                         <div className="flex gap-2 items-center">
                             <label htmlFor="debug" className="font-medium">
                                 Debug Mode

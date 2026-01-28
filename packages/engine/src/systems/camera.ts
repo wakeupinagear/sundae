@@ -76,6 +76,7 @@ export class CameraSystem<
 
     #options: Required<CameraOptions>;
     #cameraID: string;
+    #isPrimary: boolean = false;
 
     #worldToScreenMatrix: Matrix2D = new Matrix2D();
     #inverseWorldToScreenMatrix: Matrix2D = new Matrix2D();
@@ -188,6 +189,10 @@ export class CameraSystem<
         return this.#options.canvasID;
     }
 
+    get isPrimary(): boolean {
+        return this.#isPrimary;
+    }
+
     setPosition(position: VectorConstructor): void {
         const newPosition = new Vector(position);
         const scale = this.#scaledZoom;
@@ -298,10 +303,8 @@ export class CameraSystem<
     }
 
     applyOptions(options: CameraSystemOptions): void {
-        const { position, rotation, zoom, offset, scale, ...rest } = {
-            ...this._engine.options.cameraOptions,
-            ...options,
-        };
+        const { position, rotation, zoom, offset, scale, primary, ...rest } =
+            options;
         for (const key in rest) {
             const value = rest[key as keyof typeof rest];
             if (value !== undefined) {
@@ -325,6 +328,8 @@ export class CameraSystem<
         if (scale !== undefined) {
             this.#scale.set(scale);
         }
+
+        this.#isPrimary = primary ?? false;
 
         this.#markDirty();
     }
@@ -412,8 +417,8 @@ export class CameraSystem<
         const cssHeight = canvas.height / dpr;
         const x = Math.floor(this.#offset.x * cssWidth);
         const y = Math.floor(this.#offset.y * cssHeight);
-        const w = Math.floor(this.#scale.x * cssWidth);
-        const h = Math.floor(this.#scale.y * cssHeight);
+        const w = Math.ceil((this.#offset.x + this.#scale.x) * cssWidth) - x;
+        const h = Math.ceil((this.#offset.y + this.#scale.y) * cssHeight) - y;
         if (
             this.#options.clearColor &&
             this.#options.clearColor !== 'transparent'

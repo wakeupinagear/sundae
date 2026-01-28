@@ -50,6 +50,7 @@ class InfiniteCanvasScene extends Scene {
 export const infiniteCanvas: EngineScenario = async (harness) => {
     harness.engine.options = {
         cameraOptions: {
+            clearColor: 'black',
             canDrag: true,
             scrollMode: 'all',
             bounds: {

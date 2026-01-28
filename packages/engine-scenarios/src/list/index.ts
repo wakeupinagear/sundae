@@ -12,6 +12,7 @@ export interface ScenarioMetadata {
     description: string;
     scenario: EngineScenario;
     skipInTests?: boolean;
+    maxCameras?: number;
 }
 
 export interface ScenarioCategory {
@@ -48,6 +49,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Super Sundae Bros',
                 description: 'A simple platformer game',
                 scenario: superSundaeBros,
+                maxCameras: 1,
             },
         },
     },

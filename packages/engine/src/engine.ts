@@ -935,6 +935,17 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             const existingCameraIDs = new Set(Object.keys(this._cameraSystems));
             this.#primaryCameraID = null;
 
+            // find primary camera in new cameras
+            for (const cameraID in this._options.cameras) {
+                if (this._options.cameras[cameraID].primary) {
+                    this.#primaryCameraID = cameraID;
+                    break;
+                }
+            }
+            if (!this.#primaryCameraID && newCameraIDSet.size > 0) {
+                this.#primaryCameraID = Array.from(newCameraIDSet)[0];
+            }
+
             for (const cameraID in this._options.cameras) {
                 if (!(cameraID in this._cameraSystems)) {
                     this._cameraSystems[cameraID] = new CameraSystem(
@@ -947,14 +958,8 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                 this._cameraSystems[cameraID].applyOptions({
                     ...this._options.cameraOptions,
                     ...options,
+                    primary: cameraID === this.#primaryCameraID,
                 });
-                if (options.primary) {
-                    this.#primaryCameraID = cameraID;
-                }
-            }
-
-            if (!this.#primaryCameraID && newCameraIDSet.size > 0) {
-                this.#primaryCameraID = Array.from(newCameraIDSet)[0];
             }
 
             for (const cameraID of existingCameraIDs) {

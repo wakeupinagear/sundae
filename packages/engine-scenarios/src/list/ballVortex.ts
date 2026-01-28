@@ -102,24 +102,5 @@ class VortexScene extends Scene {
 }
 
 export const ballVortex: EngineScenario = (harness) => {
-    harness.engine.options = {
-        cameras: {
-            cam1: {
-                scale: { x: 0.5, y: 0.5 },
-            },
-            cam2: {
-                scale: { x: 0.5, y: 0.5 },
-                offset: { x: 0.5, y: 0 },
-            },
-            cam3: {
-                scale: { x: 0.5, y: 0.5 },
-                offset: { x: 0, y: 0.5 },
-            },
-            cam4: {
-                scale: { x: 0.5, y: 0.5 },
-                offset: { x: 0.5, y: 0.5 },
-            },
-        },
-    };
     harness.engine.openScene(VortexScene);
 };

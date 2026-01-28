@@ -42,6 +42,10 @@ export class E_StatsDebug<
         stream: RenderCommandStream,
         camera: CameraSystem,
     ) {
+        if (!camera.isPrimary) {
+            return false;
+        }
+
         const stats = this._engine.stats;
         if (!stats) {
             return false;
