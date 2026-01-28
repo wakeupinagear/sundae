@@ -10,9 +10,16 @@ export default defineConfig({
         {
             name: 'force-reload-on-folder-change',
             handleHotUpdate({ file, server }) {
-                const targetDir = path.resolve(__dirname, '../../packages');
+                const packageDir = path.resolve(__dirname, '../../packages');
+                const appIndexDir = path.resolve(
+                    __dirname,
+                    './src/components/App.tsx',
+                );
 
-                if (file.startsWith(targetDir)) {
+                if (
+                    file.startsWith(packageDir) ||
+                    file.startsWith(appIndexDir)
+                ) {
                     server.ws.send({
                         type: 'full-reload',
                         path: '*',
@@ -22,4 +29,5 @@ export default defineConfig({
             },
         },
     ],
+    base: process.env.GITHUB_PAGES === 'true' ? '/sundae/' : '/',
 });

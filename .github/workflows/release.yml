@@ -1,0 +1,64 @@
+name: Release
+
+on:
+    push:
+        branches: [main]
+
+permissions:
+    contents: write
+    packages: write
+    pages: write
+    id-token: write
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 8.15.6
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+                  registry-url: https://registry.npmjs.org
+
+            - name: Install dependencies
+              run: pnpm install
+
+            # ---------- Build everything ----------
+            - name: Turbo build
+              run: pnpm turbo build
+
+            # ---------- Publish npm packages ----------
+            #- name: Publish packages
+            #  env:x
+            #      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            #  run: pnpm changeset publish
+
+            # ---------- Build web app for GitHub Pages ----------
+            - name: Build web
+              env:
+                  GITHUB_PAGES: 'true'
+              run: pnpm turbo build --filter=@repo/web
+
+            # ---------- Deploy to GitHub Pages ----------
+            - name: Configure Pages
+              uses: actions/configure-pages@v5
+
+            - name: Upload Pages artifact
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: apps/web/dist
+
+            - name: Deploy Pages
+              uses: actions/deploy-pages@v4
