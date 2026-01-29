@@ -96,6 +96,8 @@ export class CameraSystem<
 
     #isPointerOverCamera: boolean = false;
 
+    #transformHash: string = '';
+
     constructor(engine: TEngine, cameraID: string) {
         super(engine);
 
@@ -194,6 +196,10 @@ export class CameraSystem<
 
     get isPrimary(): boolean {
         return this.#isPrimary;
+    }
+
+    get transformHash(): string {
+        return this.#transformHash;
     }
 
     setPosition(position: VectorConstructor): void {
@@ -502,6 +508,10 @@ export class CameraSystem<
                         worldPosition,
                         this.#cameraID,
                     );
+                    this.#syncDragStartMousePosition(
+                        cameraPointer,
+                        canvasPointer,
+                    );
                 }
             }
 
@@ -528,12 +538,9 @@ export class CameraSystem<
                 !cameraPointer.dragStartMousePosition &&
                 this.#isPointerOverCamera
             ) {
-                cameraPointer.dragStartMousePosition = new Vector(
-                    canvasPointer.currentState.position,
-                );
-                cameraPointer.dragStartCameraPosition = new Vector(
-                    this.#position,
-                );
+                cameraPointer.dragStartMousePosition = new Vector(0);
+                cameraPointer.dragStartCameraPosition = new Vector(0);
+                this.#syncDragStartMousePosition(cameraPointer, canvasPointer);
                 updated = true;
             }
 
@@ -577,6 +584,18 @@ export class CameraSystem<
         return updated;
     }
 
+    #syncDragStartMousePosition(
+        cameraPointer: CameraPointer,
+        canvasPointer: CanvasPointer,
+    ) {
+        if (cameraPointer.dragStartMousePosition) {
+            cameraPointer.dragStartMousePosition.set(
+                canvasPointer.currentState.position,
+            );
+            cameraPointer.dragStartCameraPosition?.set(this.#position);
+        }
+    }
+
     #updateAllPointerTargets(
         pointerWorldPosition: Vector,
         canvasPointer: CanvasPointer,
@@ -605,6 +624,7 @@ export class CameraSystem<
     #markDirty(): void {
         this.#matricesDirty = true;
         this.#boundsDirty = true;
+        this.#transformHash = this.#computeTransformHash();
     }
 
     #computeMatrices() {
@@ -696,5 +716,14 @@ export class CameraSystem<
 
     #cancelCameraTarget(): void {
         this.#target = null;
+    }
+
+    #computeTransformHash(): string {
+        const canvasSize = this._engine.getCanvasSize(this.#options.canvasID);
+        if (!canvasSize) {
+            return '';
+        }
+
+        return `${this.#position.x}|${this.#position.y}|${this.#rotation}|${this.#zoom}|${canvasSize.x}|${canvasSize.y}`;
     }
 }

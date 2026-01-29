@@ -64,24 +64,26 @@ const DEBUG_OVERLAY_SCENE_Z_INDEX = 100;
 type BrowserWindowEvent = 'keydown' | 'keyup';
 
 type BrowserCanvasEvent =
-    | 'mousemove'
-    | 'mousewheel'
-    | 'mousedown'
-    | 'mouseup'
-    | 'mouseenter'
-    | 'mouseleave'
-    | 'mouseover'
-    | 'mouseout';
+    | 'pointermove'
+    | 'pointerdown'
+    | 'pointerup'
+    | 'pointercancel'
+    | 'pointerenter'
+    | 'pointerleave'
+    | 'pointerover'
+    | 'pointerout'
+    | 'wheel';
 
 interface BrowserEventMap {
-    mousemove: { x: number; y: number };
-    mousewheel: { delta: number };
-    mousedown: { button: PointerButton };
-    mouseup: { button: PointerButton };
-    mouseenter: { target: EventTarget | null; x: number; y: number };
-    mouseleave: { target: EventTarget | null; x: number; y: number };
-    mouseover: { from: EventTarget | null; to: EventTarget | null };
-    mouseout: { from: EventTarget | null; to: EventTarget | null };
+    pointermove: { x: number; y: number };
+    pointerdown: { button: PointerButton };
+    pointerup: { button: PointerButton };
+    pointercancel: { button: PointerButton };
+    pointerenter: { target: EventTarget | null; x: number; y: number };
+    pointerleave: { target: EventTarget | null; x: number; y: number };
+    pointerover: { from: EventTarget | null; to: EventTarget | null };
+    pointerout: { from: EventTarget | null; to: EventTarget | null };
+    wheel: { delta: number };
 
     keydown: {
         key: WebKey;
@@ -293,22 +295,22 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             ),
         );
 
-        this.addBrowserCanvasEventHandler('mousedown', (_, canvasID, data) =>
+        this.addBrowserCanvasEventHandler('pointerdown', (_, canvasID, data) =>
             this.setPointerButtonDown(data.button, true, canvasID),
         );
-        this.addBrowserCanvasEventHandler('mouseup', (_, canvasID, data) =>
+        this.addBrowserCanvasEventHandler('pointerup', (_, canvasID, data) =>
             this.setPointerButtonDown(data.button, false, canvasID),
         );
-        this.addBrowserCanvasEventHandler('mousemove', (_, canvasID, data) =>
+        this.addBrowserCanvasEventHandler('pointermove', (_, canvasID, data) =>
             this.setPointerPosition(data, canvasID),
         );
-        this.addBrowserCanvasEventHandler('mouseenter', (_, canvasID, data) =>
+        this.addBrowserCanvasEventHandler('pointerenter', (_, canvasID, data) =>
             this.setPointerOnScreen(true, data, canvasID),
         );
-        this.addBrowserCanvasEventHandler('mouseleave', (_, canvasID, data) =>
+        this.addBrowserCanvasEventHandler('pointerleave', (_, canvasID, data) =>
             this.setPointerOnScreen(false, data, canvasID),
         );
-        this.addBrowserCanvasEventHandler('mousewheel', (_, canvasID, data) =>
+        this.addBrowserCanvasEventHandler('wheel', (_, canvasID, data) =>
             this.setPointerScrollDelta(data.delta, canvasID),
         );
 
@@ -622,19 +624,19 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     onKeyUp: BrowserWindowEventHandler<'keyup'> = (...args) =>
         this.#handleBrowserWindowEvent(...args);
 
-    onMouseMove: BrowserCanvasEventHandler<'mousemove'> = (...args) =>
+    onPointerMove: BrowserCanvasEventHandler<'pointermove'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
-    onMouseWheel: BrowserCanvasEventHandler<'mousewheel'> = (...args) =>
+    onWheel: BrowserCanvasEventHandler<'wheel'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
-    onMouseDown: BrowserCanvasEventHandler<'mousedown'> = (...args) =>
+    onPointerDown: BrowserCanvasEventHandler<'pointerdown'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
-    onMouseUp: BrowserCanvasEventHandler<'mouseup'> = (...args) =>
+    onPointerUp: BrowserCanvasEventHandler<'pointerup'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
-    onMouseEnter: BrowserCanvasEventHandler<'mouseenter'> = (...args) =>
+    onPointerEnter: BrowserCanvasEventHandler<'pointerenter'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
-    onMouseLeave: BrowserCanvasEventHandler<'mouseleave'> = (...args) =>
+    onPointerLeave: BrowserCanvasEventHandler<'pointerleave'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
-    onMouseOver: BrowserCanvasEventHandler<'mouseover'> = (...args) =>
+    onPointerOver: BrowserCanvasEventHandler<'pointerover'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
 
     getPointerPosition(

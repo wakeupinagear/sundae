@@ -44,6 +44,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Pong',
                 description: 'A simple pong game',
                 scenario: pong,
+                maxCameras: 1,
             },
             superSundaeBros: {
                 name: 'Super Sundae Bros',

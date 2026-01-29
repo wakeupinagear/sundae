@@ -184,11 +184,6 @@ export function Harness<TEngine extends Engine = Engine>({
         };
         window.addEventListener('keyup', onKeyUp);
 
-        const onBlur = () => {
-            engineRef.current?.resetAllKeyboardKeys?.();
-        };
-        window.addEventListener('blur', onBlur);
-
         const onVisibilityChange = () => {
             if (document.visibilityState !== 'visible') {
                 engineRef.current?.resetAllKeyboardKeys?.();
@@ -199,7 +194,6 @@ export function Harness<TEngine extends Engine = Engine>({
         return () => {
             window.removeEventListener('keydown', onKeyDown);
             window.removeEventListener('keyup', onKeyUp);
-            window.removeEventListener('blur', onBlur);
             document.removeEventListener(
                 'visibilitychange',
                 onVisibilityChange,

@@ -39,17 +39,17 @@ export function CanvasTracker({
             return;
         }
 
-        const onMouseMove = (event: MouseEvent) => {
+        const onPointerMove = (event: PointerEvent) => {
             const x = event.clientX - localCanvas.offsetLeft,
                 y = event.clientY - localCanvas.offsetTop;
-            engineRef.current?.onMouseMove('mousemove', canvasID, {
+            engineRef.current?.onPointerMove('pointermove', canvasID, {
                 x,
                 y,
             });
         };
-        window.addEventListener('mousemove', onMouseMove);
+        localCanvas.addEventListener('pointermove', onPointerMove);
 
-        const onMouseWheel = (event: WheelEvent) => {
+        const onWheel = (event: WheelEvent) => {
             let delta = event.deltaY * scrollDirection;
             if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
                 delta = event.deltaY * 40;
@@ -57,49 +57,59 @@ export function CanvasTracker({
                 delta = event.deltaY * 100;
             }
             delta *= scrollSensitivity;
-            engineRef.current?.onMouseMove('mousemove', canvasID, {
+
+            engineRef.current?.onPointerMove('pointermove', canvasID, {
                 x: event.offsetX,
                 y: event.offsetY,
             });
-            engineRef.current?.onMouseWheel('mousewheel', canvasID, { delta });
+            engineRef.current?.onWheel('wheel', canvasID, { delta });
+
             event.preventDefault();
         };
-        localCanvas.addEventListener('wheel', onMouseWheel);
+        localCanvas.addEventListener('wheel', onWheel);
 
-        const onMouseDown = (event: MouseEvent) =>
-            engineRef.current?.onMouseDown('mousedown', canvasID, {
+        const onPointerDown = (event: PointerEvent) => {
+            localCanvas.setPointerCapture(event.pointerId);
+            engineRef.current?.onPointerDown('pointerdown', canvasID, {
                 button: event.button as PointerButton,
             });
-        localCanvas.addEventListener('mousedown', onMouseDown);
+        };
+        localCanvas.addEventListener('pointerdown', onPointerDown);
 
-        const onMouseUp = (event: MouseEvent) =>
-            engineRef.current?.onMouseUp('mouseup', canvasID, {
+        const onPointerUp = (event: PointerEvent) => {
+            if (localCanvas.hasPointerCapture(event.pointerId)) {
+                localCanvas.releasePointerCapture(event.pointerId);
+            }
+
+            engineRef.current?.onPointerUp('pointerup', canvasID, {
                 button: event.button as PointerButton,
             });
-        window.addEventListener('mouseup', onMouseUp);
+        };
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
 
-        const onMouseEnter = (event: MouseEvent) =>
-            engineRef.current?.onMouseEnter('mouseenter', canvasID, {
+        const onPointerEnter = (event: PointerEvent) =>
+            engineRef.current?.onPointerEnter('pointerenter', canvasID, {
                 target: event.target,
                 x: event.offsetX,
                 y: event.offsetY,
             });
-        localCanvas.addEventListener('mouseenter', onMouseEnter);
+        localCanvas.addEventListener('pointerenter', onPointerEnter);
 
-        const onMouseLeave = (event: MouseEvent) =>
-            engineRef.current?.onMouseLeave('mouseleave', canvasID, {
+        const onPointerLeave = (event: PointerEvent) =>
+            engineRef.current?.onPointerLeave('pointerleave', canvasID, {
                 target: event.target,
                 x: event.offsetX,
                 y: event.offsetY,
             });
-        localCanvas.addEventListener('mouseleave', onMouseLeave);
+        localCanvas.addEventListener('pointerleave', onPointerLeave);
 
-        const onMouseOver = (event: MouseEvent) =>
-            engineRef.current?.onMouseOver('mouseover', canvasID, {
+        const onPointerOver = (event: PointerEvent) =>
+            engineRef.current?.onPointerOver('pointerover', canvasID, {
                 from: event.relatedTarget,
                 to: event.target,
             });
-        localCanvas.addEventListener('mouseover', onMouseOver);
+        localCanvas.addEventListener('pointerover', onPointerOver);
 
         localCanvas.addEventListener('contextmenu', (event) =>
             event.preventDefault(),
@@ -112,13 +122,14 @@ export function CanvasTracker({
         localCanvas.addEventListener('dragover', onDragOver);
 
         return () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            localCanvas.removeEventListener('wheel', onMouseWheel);
-            window.removeEventListener('mousedown', onMouseDown);
-            localCanvas.removeEventListener('mouseup', onMouseUp);
-            localCanvas.removeEventListener('mouseenter', onMouseEnter);
-            localCanvas.removeEventListener('mouseleave', onMouseLeave);
-            localCanvas.removeEventListener('mouseover', onMouseOver);
+            localCanvas.removeEventListener('pointermove', onPointerMove);
+            localCanvas.removeEventListener('wheel', onWheel);
+            localCanvas.removeEventListener('pointerdown', onPointerDown);
+            window.removeEventListener('pointerup', onPointerUp);
+            window.removeEventListener('pointercancel', onPointerUp);
+            localCanvas.removeEventListener('pointerenter', onPointerEnter);
+            localCanvas.removeEventListener('pointerleave', onPointerLeave);
+            localCanvas.removeEventListener('pointerover', onPointerOver);
             localCanvas.removeEventListener('dragover', onDragOver);
         };
     }, [canvasID, engineRef, scrollDirection, scrollSensitivity]);

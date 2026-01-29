@@ -30,6 +30,8 @@ export class E_InfiniteShape<
 
     #position: Vector | null = null; // Overrides the transform
 
+    #cameraTransformHash: string = '';
+
     constructor(options: E_InfiniteShapeOptions) {
         const {
             name = 'infinite_shape',
@@ -98,6 +100,15 @@ export class E_InfiniteShape<
         stream: RenderCommandStream,
         camera: CameraSystem,
     ) {
+        if (this.#cameraTransformHash !== camera.transformHash) {
+            this.#calculateRepeat(camera);
+            this.#cameraTransformHash = camera.transformHash;
+        }
+
+        return super.queueRenderCommands(stream, camera);
+    }
+
+    #calculateRepeat(camera: CameraSystem) {
         const canvasSize = camera.canvasSize;
         if (canvasSize) {
             const scale = zoomToScale(camera.zoom);
@@ -170,7 +181,5 @@ export class E_InfiniteShape<
                 this.shape.setEnabled(false);
             }
         }
-
-        return super.queueRenderCommands(stream, camera);
     }
 }

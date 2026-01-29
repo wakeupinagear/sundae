@@ -36,7 +36,7 @@ type NormalizedRect = {
     scale: { x: number; y: number };
 };
 
-function makeGridCameras(count: number): Record<string, NormalizedRect> {
+const makeGridCameras = (count: number): Record<string, NormalizedRect> => {
     const hash = (Math.random() * 2 ** 32) >>> 0;
     if (count <= 1) {
         return {
@@ -61,7 +61,7 @@ function makeGridCameras(count: number): Record<string, NormalizedRect> {
     }
 
     return cameras;
-}
+};
 
 export function App() {
     const cameraCount = useAppStore((state) => state.cameraCount);
@@ -105,7 +105,7 @@ export function App() {
 
     const engineOptions = useMemo<Partial<EngineOptions>>(() => {
         const options: Partial<EngineOptions> = {
-            cameras: makeGridCameras(cameraCount),
+            cameras: makeGridCameras(Math.min(cameraCount, maxCameras)),
             debugOverlayEnabled: debugMode,
             engineTracesEnabled: debugMode,
             randomSeed: trueRandom
@@ -114,7 +114,7 @@ export function App() {
         };
 
         return options;
-    }, [debugMode, trueRandom, cameraCount]);
+    }, [debugMode, trueRandom, cameraCount, maxCameras]);
 
     const onEngineReady = useCallback(
         (engine: Engine) => {
