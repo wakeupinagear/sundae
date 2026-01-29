@@ -215,9 +215,11 @@ export function Harness<TEngine extends Engine = Engine>({
         };
     }, []);
 
-    if (engineRef.current) {
-        engineRef.current.options = { ...engineOptions };
-    }
+    useEffect(() => {
+        if (engineRef.current) {
+            engineRef.current.options = { ...engineOptions };
+        }
+    }, [engineOptions]);
 
     const scrollDirection =
         scrollDirectionProp ?? (platformRef.current === 'windows' ? 1 : -1);
