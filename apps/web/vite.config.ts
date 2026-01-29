@@ -30,4 +30,8 @@ export default defineConfig({
         },
     ],
     base: process.env.GITHUB_PAGES === 'true' ? '/sundae/' : '/',
+    build: {
+        minify: 'esbuild',
+        target: 'esnext',
+    },
 });
