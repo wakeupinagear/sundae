@@ -10,6 +10,7 @@ import {
     type CameraPointer,
     type CameraScrollMode,
     type CanvasPointer,
+    type CursorType,
     PointerButton,
 } from './pointer';
 
@@ -20,6 +21,7 @@ export interface CameraOptions {
     canvasID?: string;
     canDrag?: boolean;
     dragButtons?: PointerButton[];
+    dragCursor?: CursorType;
     targetLerpSpeed?: number;
     cullScale?: number;
     clearColor?: string;
@@ -102,6 +104,7 @@ export class CameraSystem<
             canvasID: DEFAULT_CANVAS_ID,
             canDrag: false,
             dragButtons: [PointerButton.MIDDLE, PointerButton.RIGHT],
+            dragCursor: 'grabbing',
             targetLerpSpeed: 0.1,
             cullScale: 1,
             clearColor: '',
@@ -562,11 +565,12 @@ export class CameraSystem<
 
             if (cameraPointer.dragStartMousePosition) {
                 this.#cancelCameraTarget();
-                this._engine.requestCursor(
-                    'camera-drag',
-                    'grabbing',
-                    DRAG_CURSOR_PRIORITY,
-                );
+                if (this.#options.dragCursor) {
+                    this._engine.requestCursor(
+                        this.#options.dragCursor,
+                        DRAG_CURSOR_PRIORITY,
+                    );
+                }
             }
         }
 

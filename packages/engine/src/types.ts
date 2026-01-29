@@ -93,9 +93,8 @@ export interface ICanvas {
     width: number;
     height: number;
     getContext(contextId: '2d'): ICanvasRenderingContext2D | null;
-    // Optional style property for HTML canvas cursor support
-    style?: {
-        cursor?: string;
+    style: {
+        cursor: string | undefined;
     };
 }
 

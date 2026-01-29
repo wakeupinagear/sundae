@@ -44,7 +44,6 @@ import {
 } from './systems/physics';
 import {
     type CameraPointer,
-    type CursorType,
     type I_PointerSystem,
     type PointerButton,
     PointerSystem,
@@ -382,11 +381,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._devicePixelRatio;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    requestCursor(id: string, type: CursorType, priority?: number): void {
-        // TODO: Request cursor
-    }
-
     forceRender(): void {
         this.#forceRender = true;
     }
@@ -692,6 +686,14 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         canvasID,
     ) => {
         this._pointerSystem.capturePointerButtonClick(button, canvasID);
+    };
+
+    requestCursor: I_PointerSystem['requestCursor'] = (
+        type,
+        priority,
+        canvasID,
+    ) => {
+        this._pointerSystem.requestCursor(type, priority, canvasID);
     };
 
     destroy(): void {

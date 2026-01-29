@@ -120,9 +120,7 @@ export abstract class C_Collider<
             if (this.#isPointerHovered) {
                 this.#onPointerEnter?.(this);
                 if (this.#cursorOnHover) {
-                    const cursorId = `collider-${this.entity?.id}`;
                     this._engine.requestCursor(
-                        cursorId,
                         this.#cursorOnHover,
                         this.#cursorPriority,
                     );

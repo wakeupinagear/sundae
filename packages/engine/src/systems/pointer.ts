@@ -5,6 +5,7 @@ import { System } from './index';
 import type { ButtonState } from './input';
 
 const MAX_DISTANCE_DURING_CLICK = 10;
+const DEFAULT_CURSOR_PRIORITY = 0;
 
 export type CursorType =
     | 'default'
@@ -91,8 +92,10 @@ const createCanvasPointerState = (): CanvasPointerState => ({
 });
 
 export interface CanvasPointer {
+    id: string;
     currentState: CanvasPointerState;
     prevState: CanvasPointerState;
+    cursorRequests: CursorRequest[];
 }
 
 export interface CameraPointer {
@@ -122,6 +125,12 @@ export interface I_PointerSystem {
         button: PointerButton,
         canvasID?: string,
     ) => void;
+
+    requestCursor: (
+        type: CursorType,
+        priority?: number,
+        canvasID?: string,
+    ) => void;
 }
 
 export class PointerSystem<TEngine extends Engine = Engine>
@@ -130,13 +139,6 @@ export class PointerSystem<TEngine extends Engine = Engine>
 {
     #canvasPointers: Record<string, CanvasPointer> = {};
     #cameraPointers: Record<string, CameraPointer> = {};
-
-    #currentCursor: CursorType = 'default';
-    #cursorRequests: Map<string, CursorRequest> = new Map();
-
-    get currentCursor(): CursorType {
-        return this.#currentCursor;
-    }
 
     getCanvasPointer = (canvasID = DEFAULT_CANVAS_ID): CanvasPointer => {
         return this.#getCanvasPointer(canvasID);
@@ -209,6 +211,15 @@ export class PointerSystem<TEngine extends Engine = Engine>
         pointer.currentState.scrollDelta = delta;
     };
 
+    requestCursor: I_PointerSystem['requestCursor'] = (
+        type,
+        priority = DEFAULT_CURSOR_PRIORITY,
+        canvasID = DEFAULT_CANVAS_ID,
+    ) => {
+        const pointer = this.#getCanvasPointer(canvasID);
+        pointer.cursorRequests.push({ type, priority });
+    };
+
     override earlyUpdate(deltaTime: number) {
         for (const pointer of Object.values(this.#canvasPointers)) {
             pointer.currentState.justMoved =
@@ -257,6 +268,14 @@ export class PointerSystem<TEngine extends Engine = Engine>
                 },
             };
             pointer.prevState.position.set(position);
+
+            this.#applyCanvasCursor(pointer, 'default');
+        }
+    }
+
+    override lateUpdate(): boolean | void {
+        for (const pointer of Object.values(this.#canvasPointers)) {
+            this.#applyCanvasCursor(pointer);
         }
     }
 
@@ -276,8 +295,10 @@ export class PointerSystem<TEngine extends Engine = Engine>
     #getCanvasPointer(canvasID: string): CanvasPointer {
         if (!(canvasID in this.#canvasPointers)) {
             this.#canvasPointers[canvasID] = {
+                id: canvasID,
                 currentState: createCanvasPointerState(),
                 prevState: createCanvasPointerState(),
+                cursorRequests: [],
             };
         }
 
@@ -324,5 +345,26 @@ export class PointerSystem<TEngine extends Engine = Engine>
         }
 
         return this.#cameraPointers[cameraID];
+    }
+
+    #applyCanvasCursor(
+        canvasPointer: CanvasPointer,
+        fallbackCursor?: CursorType,
+    ): void {
+        const canvas = this._engine.getCanvas(canvasPointer.id);
+        if (!canvas) {
+            return;
+        }
+
+        if (canvasPointer.cursorRequests.length === 0) {
+            if (fallbackCursor) {
+                canvas.style.cursor = fallbackCursor;
+            }
+            return;
+        }
+
+        canvasPointer.cursorRequests.sort((a, b) => b.priority - a.priority);
+        canvas.style.cursor = canvasPointer.cursorRequests[0].type;
+        canvasPointer.cursorRequests.length = 0;
     }
 }
