@@ -242,7 +242,11 @@ export function Harness<TEngine extends Engine = Engine>({
                 ref={defaultCanvasRef}
                 width={size.width * size.dpr}
                 height={size.height * size.dpr}
-                style={{ width: `${size.width}px`, height: `${size.height}px` }}
+                style={{
+                    width: `${size.width}px`,
+                    height: `${size.height}px`,
+                    touchAction: 'none',
+                }}
             />
             <CanvasTracker
                 canvasID={DEFAULT_CANVAS_ID}

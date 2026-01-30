@@ -90,24 +90,22 @@ export class C_Shape<
         return this.#repeat;
     }
 
-    set repeat(repeat: VectorConstructor | null) {
-        this.#repeat = new Vector(repeat ?? 1);
-    }
-
     get gap(): Vector {
         return this.#gap;
-    }
-
-    set gap(gap: VectorConstructor | null) {
-        this.#gap = new Vector(gap ?? 1);
     }
 
     get start(): Vector | null {
         return this.#start;
     }
 
-    get end(): Vector | null {
-        return this.#end;
+    setRepeat(repeat: VectorConstructor): this {
+        this.#repeat.set(repeat);
+        return this;
+    }
+
+    setGap(gap: VectorConstructor): this {
+        this.#gap.set(gap);
+        return this;
     }
 
     setStart(start: IVector<number>): this {

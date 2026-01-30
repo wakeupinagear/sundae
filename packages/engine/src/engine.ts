@@ -129,6 +129,7 @@ export type SceneConstructor<
 export interface EngineOptions {
     cameras: Record<string, CameraSystemOptions>;
     cameraOptions: CameraOptions;
+    canvasClearColor: string;
 
     startScenes: Array<SceneConstructor>;
 
@@ -166,6 +167,7 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     cameraOptions: {
         clearColor: 'black',
     },
+    canvasClearColor: 'transparent',
 
     startScenes: [],
 
@@ -811,10 +813,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this.trace('Render', () => {
             if (this.#forceRender) {
                 for (const canvas of Object.values(this._canvases)) {
-                    if (canvas) {
-                        canvas
-                            .getContext('2d')
-                            ?.clearRect(0, 0, canvas.width, canvas.height);
+                    const ctx = canvas?.getContext('2d');
+                    if (canvas && ctx) {
+                        ctx.fillStyle = this._options.canvasClearColor;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
                     }
                 }
 

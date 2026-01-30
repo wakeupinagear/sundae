@@ -20,6 +20,13 @@ export interface E_InfiniteShapeJSON extends E_InfiniteShapeOptions {
     type: 'infinite_shape';
 }
 
+interface RepeatState {
+    position: Vector;
+    repeat: Vector;
+    enabled: boolean;
+    hash: string | null;
+}
+
 export class E_InfiniteShape<
     TEngine extends Engine = Engine,
 > extends E_Shape<TEngine> {
@@ -30,7 +37,7 @@ export class E_InfiniteShape<
 
     #position: Vector | null = null; // Overrides the transform
 
-    #cameraTransformHash: string = '';
+    #cameraRepeatStates: Record<string, RepeatState> = {};
 
     constructor(options: E_InfiniteShapeOptions) {
         const {
@@ -53,7 +60,7 @@ export class E_InfiniteShape<
             y: options.infiniteAxes?.y ?? true,
         };
         if (!options.gap) {
-            this.shape.gap = new Vector(options.tileSize).div(this.scale);
+            this.shape.setGap(new Vector(options.tileSize).div(this.scale));
         }
     }
 
@@ -100,86 +107,86 @@ export class E_InfiniteShape<
         stream: RenderCommandStream,
         camera: CameraSystem,
     ) {
-        if (this.#cameraTransformHash !== camera.transformHash) {
-            this.#calculateRepeat(camera);
-            this.#cameraTransformHash = camera.transformHash;
+        let stateRepeat = this.#cameraRepeatStates[camera.id];
+        if (!stateRepeat) {
+            stateRepeat = {
+                position: new Vector(0),
+                repeat: new Vector(1),
+                enabled: false,
+                hash: null,
+            };
+            this.#cameraRepeatStates[camera.id] = stateRepeat;
+        }
+        if (stateRepeat.hash !== camera.transformHash) {
+            this.#calculateRepeat(camera, stateRepeat);
+            stateRepeat.hash = camera.transformHash;
+        }
+
+        if (stateRepeat.enabled) {
+            super.setPosition(stateRepeat.position);
+            this.shape.setRepeat(stateRepeat.repeat);
+            this.shape.setEnabled(true);
+        } else {
+            this.shape.setEnabled(false);
         }
 
         return super.queueRenderCommands(stream, camera);
     }
 
-    #calculateRepeat(camera: CameraSystem) {
-        const canvasSize = camera.canvasSize;
-        if (canvasSize) {
-            const scale = zoomToScale(camera.zoom);
-            if (
-                this.#zoomCullThresh === null ||
-                scale >= this.#zoomCullThresh
-            ) {
-                const corners = [
-                    camera.screenToWorld({ x: 0, y: 0 }),
-                    camera.screenToWorld({
-                        x: canvasSize.x,
-                        y: 0,
-                    }),
-                    camera.screenToWorld({
-                        x: 0,
-                        y: canvasSize.y,
-                    }),
-                    camera.screenToWorld(canvasSize),
-                ];
+    #calculateRepeat(camera: CameraSystem, state: RepeatState) {
+        const scale = zoomToScale(camera.zoom);
+        if (this.#zoomCullThresh === null || scale >= this.#zoomCullThresh) {
+            const bbox = camera.boundingBox;
+            const minX = bbox.x1;
+            const maxX = bbox.x2;
+            const minY = bbox.y1;
+            const maxY = bbox.y2;
 
-                const minX = Math.min(...corners.map((c) => c?.x ?? 0));
-                const maxX = Math.max(...corners.map((c) => c?.x ?? 0));
-                const minY = Math.min(...corners.map((c) => c?.y ?? 0));
-                const maxY = Math.max(...corners.map((c) => c?.y ?? 0));
+            const gridTopLeft = {
+                    x: Math.floor(
+                        (minX - this.#tileSize.x / 2) / this.#tileSize.x,
+                    ),
+                    y: Math.floor(
+                        (minY - this.#tileSize.y / 2) / this.#tileSize.y,
+                    ),
+                },
+                gridBottomRight = {
+                    x: Math.floor(
+                        (maxX + this.#tileSize.x / 2) / this.#tileSize.x,
+                    ),
+                    y: Math.floor(
+                        (maxY + this.#tileSize.y / 2) / this.#tileSize.y,
+                    ),
+                };
 
-                const gridTopLeft = {
-                        x: Math.floor(
-                            (minX - this.#tileSize.x / 2) / this.#tileSize.x,
-                        ),
-                        y: Math.floor(
-                            (minY - this.#tileSize.y / 2) / this.#tileSize.y,
-                        ),
-                    },
-                    gridBottomRight = {
-                        x: Math.floor(
-                            (maxX + this.#tileSize.x / 2) / this.#tileSize.x,
-                        ),
-                        y: Math.floor(
-                            (maxY + this.#tileSize.y / 2) / this.#tileSize.y,
-                        ),
-                    };
-
-                super.setPosition({
-                    x: this.#infiniteAxes.x
-                        ? gridTopLeft.x * this.#tileSize.x +
+            state.position.set(
+                this.#infiniteAxes.x
+                    ? gridTopLeft.x * this.#tileSize.x +
                           this.#tileSize.x / 2 +
                           this.#offset.x
-                        : this.#position
-                          ? this.#position.x
-                          : 0,
-                    y: this.#infiniteAxes.y
-                        ? gridTopLeft.y * this.#tileSize.y +
+                    : this.#position
+                      ? this.#position.x
+                      : 0,
+                this.#infiniteAxes.y
+                    ? gridTopLeft.y * this.#tileSize.y +
                           this.#tileSize.y / 2 +
                           this.#offset.y
-                        : this.#position
-                          ? this.#position.y
-                          : 0,
-                });
+                    : this.#position
+                      ? this.#position.y
+                      : 0,
+            );
 
-                this.shape.repeat = {
-                    x: this.#infiniteAxes.x
-                        ? Math.abs(gridTopLeft.x - gridBottomRight.x) + 1
-                        : 1,
-                    y: this.#infiniteAxes.y
-                        ? Math.abs(gridTopLeft.y - gridBottomRight.y) + 1
-                        : 1,
-                };
-                this.shape.setEnabled(true);
-            } else {
-                this.shape.setEnabled(false);
-            }
+            state.repeat.set(
+                this.#infiniteAxes.x
+                    ? Math.abs(gridTopLeft.x - gridBottomRight.x) + 1
+                    : 1,
+                this.#infiniteAxes.y
+                    ? Math.abs(gridTopLeft.y - gridBottomRight.y) + 1
+                    : 1,
+            );
+            state.enabled = true;
+        } else {
+            state.enabled = false;
         }
     }
 }

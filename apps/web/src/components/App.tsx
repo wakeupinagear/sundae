@@ -25,6 +25,7 @@ const INITIAL_ENGINE_OPTIONS: Partial<EngineOptions> = {
         scrollMode: 'all',
         clearColor: 'black',
     },
+    canvasClearColor: 'aqua',
 };
 
 const readScenarioFromHash = () => {
@@ -36,11 +37,16 @@ type NormalizedRect = {
     scale: { x: number; y: number };
 };
 
-const makeGridCameras = (count: number): Record<string, NormalizedRect> => {
-    const hash = (Math.random() * 2 ** 32) >>> 0;
+const makeGridCameras = (
+    count: number,
+    hash: number,
+): Record<string, NormalizedRect> => {
     if (count <= 1) {
         return {
-            [`0-${hash}`]: { offset: { x: 0, y: 0 }, scale: { x: 1, y: 1 } },
+            [`camera-0-${hash}`]: {
+                offset: { x: 0, y: 0 },
+                scale: { x: 1, y: 1 },
+            },
         };
     }
 
@@ -54,7 +60,7 @@ const makeGridCameras = (count: number): Record<string, NormalizedRect> => {
         const isRemainderRow = remainder > 0 && row === fullRows;
         const rowWidth = isRemainderRow ? remainder : cols;
         const col = isRemainderRow ? i - fullRows * cols : i % cols;
-        cameras[`${i}-${hash}`] = {
+        cameras[`camera-${i}-${hash}`] = {
             offset: { x: col / rowWidth, y: row / totalRows },
             scale: { x: 1 / rowWidth, y: 1 / totalRows },
         };
@@ -103,9 +109,21 @@ export function App() {
             };
         }, [categoryID, scenarioID]);
 
+    const prevCamerasRef = useRef<number[]>([-1, -1]);
+    const cameraHash = useRef<number>(0);
     const engineOptions = useMemo<Partial<EngineOptions>>(() => {
+        if (
+            prevCamerasRef.current[0] !== cameraCount ||
+            prevCamerasRef.current[1] !== maxCameras
+        ) {
+            prevCamerasRef.current = [cameraCount, maxCameras];
+            cameraHash.current = (Math.random() * 2 ** 32) >>> 0;
+        }
         const options: Partial<EngineOptions> = {
-            cameras: makeGridCameras(Math.min(cameraCount, maxCameras)),
+            cameras: makeGridCameras(
+                Math.min(cameraCount, maxCameras),
+                cameraHash.current,
+            ),
             debugOverlayEnabled: debugMode,
             engineTracesEnabled: debugMode,
             randomSeed: trueRandom

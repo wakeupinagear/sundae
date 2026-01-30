@@ -67,6 +67,8 @@ export type CameraTargetConstructor =
 export class CameraSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
+    #id: string;
+
     #position: Vector = new Vector(0);
     #rotation: number = 0;
     #zoom: number = 0;
@@ -77,7 +79,6 @@ export class CameraSystem<
     #scale: Vector = new Vector(1);
 
     #options: Required<CameraOptions>;
-    #cameraID: string;
     #isPrimary: boolean = false;
 
     #worldToScreenMatrix: Matrix2D = new Matrix2D();
@@ -98,10 +99,10 @@ export class CameraSystem<
 
     #transformHash: string = '';
 
-    constructor(engine: TEngine, cameraID: string) {
+    constructor(engine: TEngine, id: string) {
         super(engine);
 
-        this.#cameraID = cameraID;
+        this.#id = id;
         this.#options = {
             canvasID: DEFAULT_CANVAS_ID,
             canDrag: false,
@@ -123,6 +124,10 @@ export class CameraSystem<
         };
     }
 
+    get id(): string {
+        return this.#id;
+    }
+
     get position(): Readonly<Vector> {
         return this.#position;
     }
@@ -138,6 +143,7 @@ export class CameraSystem<
     get worldToScreenMatrix(): Readonly<Matrix2D> {
         if (!this.#worldToScreenMatrix || this.#matricesDirty) {
             this.#computeMatrices();
+            this.#matricesDirty = false;
         }
 
         return this.#worldToScreenMatrix;
@@ -146,6 +152,7 @@ export class CameraSystem<
     get inverseWorldToScreenMatrix(): Readonly<Matrix2D> {
         if (!this.#worldToScreenMatrix || this.#matricesDirty) {
             this.#computeMatrices();
+            this.#matricesDirty = false;
         }
 
         return this.#inverseWorldToScreenMatrix;
@@ -281,7 +288,7 @@ export class CameraSystem<
     }
 
     getPointerPosition(): IVector<number> | null {
-        const cameraPointer = this._engine.getPointer(this.#cameraID);
+        const cameraPointer = this._engine.getPointer(this.#id);
 
         return this.#isPointerOverCamera
             ? this.screenToWorld(
@@ -344,7 +351,7 @@ export class CameraSystem<
     }
 
     override earlyUpdate() {
-        if (!this._engine.getCamera(this.#cameraID)) {
+        if (!this._engine.getCamera(this.#id)) {
             return false;
         }
 
@@ -352,7 +359,7 @@ export class CameraSystem<
             this.#updateTarget(this.#target);
         }
 
-        const cameraPointer = this._engine.getPointer(this.#cameraID);
+        const cameraPointer = this._engine.getPointer(this.#id);
         const canvasPointer = cameraPointer.canvasPointer;
         let updated = this.#updatePointer(cameraPointer, canvasPointer);
 
@@ -506,7 +513,7 @@ export class CameraSystem<
                     this._engine.zoomCamera(
                         canvasPointer.currentState.scrollDelta,
                         worldPosition,
-                        this.#cameraID,
+                        this.#id,
                     );
                     this.#syncDragStartMousePosition(
                         cameraPointer,
@@ -632,7 +639,6 @@ export class CameraSystem<
         if (!canvas) {
             this.#worldToScreenMatrix.identity();
             this.#inverseWorldToScreenMatrix.identity();
-            this.#matricesDirty = false;
             return;
         }
 
@@ -652,7 +658,6 @@ export class CameraSystem<
             .rotateSelf(this.#rotation)
             .scaleSelf(scale, scale);
         this.#inverseWorldToScreenMatrix = this.#worldToScreenMatrix.inverse();
-        this.#matricesDirty = false;
     }
 
     #computeBoundingBox(): void {
