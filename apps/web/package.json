@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "vite --clearScreen false",
         "build": "tsc && vite build",
+        "check-types": "tsc --noEmit",
         "preview": "vite preview",
         "lint": "eslint \"src/**/*.ts\""
     },
