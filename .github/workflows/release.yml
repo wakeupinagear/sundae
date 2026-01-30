@@ -35,6 +35,9 @@ jobs:
             - name: Install dependencies
               run: pnpm install
 
+            - name: Run checks
+              run: pnpm run check-types lint
+
             # ---------- Build dependencies first (without GITHUB_PAGES) ----------
             - name: Build dependencies
               run: pnpm turbo build --filter=@repo/web^...

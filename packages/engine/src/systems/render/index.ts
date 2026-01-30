@@ -268,18 +268,7 @@ export class RenderSystem<
                             );
                             break;
                         case RenderCommandType.DRAW_LINE:
-                            this.#drawLine(
-                                x,
-                                y,
-                                w,
-                                h,
-                                rx,
-                                ry,
-                                gx,
-                                gy,
-                                ctx,
-                                activeStyle,
-                            );
+                            this.#drawLine(x, y, w, h, rx, ry, gx, gy, ctx);
                             break;
                         case RenderCommandType.DRAW_IMAGE:
                             this.#drawImage(
@@ -487,7 +476,6 @@ export class RenderSystem<
         gx: number,
         gy: number,
         ctx: ICanvasRenderingContext2D,
-        activeStyle: RenderStyle,
     ) {
         ctx.beginPath();
         for (let i = 0; i < rx; i++) {
