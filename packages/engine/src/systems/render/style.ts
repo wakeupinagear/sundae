@@ -1,8 +1,8 @@
 export const TRANSPARENT_STYLE_COLOR = 'rgba(0, 0, 0, 0)';
 
 export interface RenderStyle {
-    fillStyle?: string | CanvasGradient | CanvasPattern;
-    strokeStyle?: string | CanvasGradient | CanvasPattern;
+    color?: string | CanvasGradient | CanvasPattern;
+    lineColor?: string | CanvasGradient | CanvasPattern;
     lineWidth?: number;
     lineJoin?: CanvasLineJoin;
     lineCap?: CanvasLineCap;
@@ -12,8 +12,8 @@ export interface RenderStyle {
 }
 
 export const DEFAULT_RENDER_STYLE: Required<RenderStyle> = {
-    fillStyle: TRANSPARENT_STYLE_COLOR,
-    strokeStyle: TRANSPARENT_STYLE_COLOR,
+    color: TRANSPARENT_STYLE_COLOR,
+    lineColor: TRANSPARENT_STYLE_COLOR,
     lineWidth: 0,
     lineJoin: 'miter',
     lineCap: 'butt',
@@ -21,3 +21,7 @@ export const DEFAULT_RENDER_STYLE: Required<RenderStyle> = {
     font: '10px sans-serif',
     textBaseline: 'top',
 };
+
+export const RENDER_STYLE_KEYS = Object.keys(
+    DEFAULT_RENDER_STYLE,
+) as (keyof RenderStyle)[];

@@ -358,13 +358,17 @@ export class PointerSystem<TEngine extends Engine = Engine>
 
         if (canvasPointer.cursorRequests.length === 0) {
             if (fallbackCursor) {
-                canvas.style.cursor = fallbackCursor;
+                if (canvas.style) {
+                    canvas.style.cursor = fallbackCursor;
+                }
             }
             return;
         }
 
         canvasPointer.cursorRequests.sort((a, b) => b.priority - a.priority);
-        canvas.style.cursor = canvasPointer.cursorRequests[0].type;
+        if (canvas.style) {
+            canvas.style.cursor = canvasPointer.cursorRequests[0].type;
+        }
         canvasPointer.cursorRequests.length = 0;
     }
 }

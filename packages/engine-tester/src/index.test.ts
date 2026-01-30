@@ -1,7 +1,7 @@
 import { Canvas } from 'skia-canvas';
 import { beforeAll } from 'vitest';
 
-import { scenarios } from '@repo/engine-scenarios/list';
+import { ENGINE_SCENARIOS } from '@repo/engine-scenarios';
 
 import { defineSnapshotTest } from './snapshot';
 
@@ -10,9 +10,12 @@ beforeAll(() => {
     canvas = new Canvas(800, 600);
 });
 
-for (const scenarioMetadata of Object.values(scenarios)) {
-    const { skipInTests, name, scenario } = scenarioMetadata;
-    if (skipInTests) continue;
+for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
+    for (const { skipInTests, name, scenario } of Object.values(
+        scenarioMetadata.scenarios,
+    )) {
+        if (skipInTests) continue;
 
-    defineSnapshotTest(name, scenario, { canvas });
+        defineSnapshotTest(name, scenario, { canvas });
+    }
 }

@@ -13,7 +13,7 @@ class PitScene extends Scene {
         const wallOptions: E_ShapeJSON = {
             type: 'shape',
             shape: 'RECT',
-            style: { fillStyle: '#DDDDDD' },
+            color: '#DDDDDD',
             collision: true,
         };
         this.createEntities(
@@ -39,14 +39,9 @@ class PitScene extends Scene {
                 type: E_Ball,
                 shape: 'ELLIPSE',
                 scale: 5 + _engine.random() * 25,
-                style: {
-                    fillStyle:
-                        BALL_COLORS[
-                            Math.floor(
-                                this._engine.random() * BALL_COLORS.length,
-                            )
-                        ],
-                },
+                color: BALL_COLORS[
+                    Math.floor(this._engine.random() * BALL_COLORS.length)
+                ],
                 position: {
                     x: 500 * (_engine.random() - 0.5),
                     y: 400 * (_engine.random() - 0.5),

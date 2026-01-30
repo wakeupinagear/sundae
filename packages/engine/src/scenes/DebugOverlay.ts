@@ -197,14 +197,14 @@ export class C_BoundingBoxDebug<
         stream.popTransform();
 
         this.#drawBoundingBox(camera.cullBoundingBox, stream, {
-            strokeStyle: camera.isPointerOverCamera ? 'yellow' : 'blue',
+            lineColor: camera.isPointerOverCamera ? 'yellow' : 'blue',
             lineWidth: 4 / zoomToScale(camera.zoom),
         });
 
         const pointerPosition = camera.getPointerPosition();
         if (pointerPosition) {
             stream.setStyle({
-                strokeStyle: 'white',
+                lineColor: 'white',
                 lineWidth: 2,
             });
             stream.drawLine(
@@ -240,8 +240,8 @@ export class C_BoundingBoxDebug<
 
         if (!culled) {
             this.#drawBoundingBox(entity.transform.boundingBox, stream, {
-                strokeStyle: `rgba(255, 0, 0, ${1 - level * 0.05})`,
-                fillStyle: '',
+                lineColor: `rgba(255, 0, 0, ${1 - level * 0.05})`,
+                color: '',
                 lineWidth: 1,
             });
         }
@@ -318,7 +318,7 @@ export class C_ColliderDebug<
 
             stream.setOpacity(collider.isTrigger ? 0.5 : 1);
             stream.setStyle({
-                strokeStyle: 'lime',
+                color: 'lime',
                 lineWidth: 4 / zoomToScale(camera.zoom),
             });
 
@@ -343,7 +343,7 @@ export class C_ColliderDebug<
             }
 
             stream.setStyle({
-                fillStyle: 'blue',
+                color: 'blue',
             });
 
             const bounds = collider.collisionBounds;
@@ -377,7 +377,7 @@ class C_RaycastDebug<
             stream.setOpacity(1);
             for (const raycast of raycasts) {
                 stream.setStyle({
-                    strokeStyle: 'red',
+                    color: 'red',
                     lineWidth: 2,
                 });
                 stream.drawLine(
@@ -393,8 +393,8 @@ class C_RaycastDebug<
 
                 if (raycast.result) {
                     stream.setStyle({
-                        fillStyle: 'yellow',
-                        strokeStyle: 'green',
+                        color: 'yellow',
+                        lineColor: 'green',
                         lineWidth: 2,
                     });
                     stream.drawEllipse(

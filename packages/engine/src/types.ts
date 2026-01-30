@@ -93,7 +93,7 @@ export interface ICanvas {
     width: number;
     height: number;
     getContext(contextId: '2d'): ICanvasRenderingContext2D | null;
-    style: {
+    style?: {
         cursor: string | undefined;
     };
 }

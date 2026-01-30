@@ -26,7 +26,7 @@ class E_Paddle extends E_Shape {
         super({
             ...options,
             shape: 'RECT',
-            style: { fillStyle: 'white' },
+            color: 'white',
             collision: true,
             mass: 1e6,
             bounce: 1,
@@ -61,9 +61,7 @@ class PongScene extends Scene {
             text: '0-1',
             fontSize: 300,
             textAlign: 'center',
-            style: {
-                fillStyle: '#222222',
-            },
+            color: '#222222',
             zIndex: -1,
         }) as E_Text;
 
@@ -87,9 +85,7 @@ class PongScene extends Scene {
         const wallOptions: E_ShapeOptions = {
             shape: 'RECT',
             scale: { x: 1000, y: 100 },
-            style: {
-                fillStyle: '#BBBBBB',
-            },
+            color: '#BBBBBB',
             collision: true,
             kinematic: true,
             bounce: 1,
@@ -115,7 +111,6 @@ class PongScene extends Scene {
             name: 'Ball',
             shape: 'ELLIPSE',
             scale: { x: 20, y: 20 },
-            style: { fillStyle: 'white' },
             collision: true,
             bounce: 1,
         }) as E_Shape;

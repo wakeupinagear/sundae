@@ -118,11 +118,8 @@ export class C_Text<
 
     constructor(options: C_TextOptions) {
         super({
+            color: 'white',
             ...options,
-            style: {
-                fillStyle: 'white',
-                ...options.style,
-            },
         });
 
         this.#text = options.text ?? '';
@@ -299,7 +296,7 @@ export class C_Text<
                 const fontStyle = action.italic ? 'italic ' : '';
                 const fontWeight = action.bold ? 'bold ' : '';
                 stream.setStyle({
-                    fillStyle: action.color,
+                    color: action.color,
                     font: `${fontStyle}${fontWeight}${action.fontSize}px ${action.fontFamily}`,
                 });
             } else if (action.type === 'setOpacity') {
@@ -349,8 +346,8 @@ export class C_Text<
             fontSize: this.#fontSize,
             fontFamily: this.#fontFamily,
             color:
-                typeof this.style.fillStyle === 'string'
-                    ? this.style.fillStyle
+                typeof this.style.color === 'string'
+                    ? this.style.color
                     : 'white',
             opacity: 1,
             bold: this.#bold,
@@ -521,9 +518,7 @@ export class C_Text<
         let lastFontSize = this.#fontSize;
         let lastFontFamily = this.#fontFamily;
         let lastColor =
-            typeof this.style.fillStyle === 'string'
-                ? this.style.fillStyle
-                : 'white';
+            typeof this.style.color === 'string' ? this.style.color : 'white';
         let lastOpacity = 1;
         let lastBold = false;
         let lastItalic = false;
@@ -630,8 +625,8 @@ export class C_Text<
             fontSize: this.#fontSize,
             fontFamily: this.#fontFamily,
             color:
-                typeof this.style.fillStyle === 'string'
-                    ? this.style.fillStyle
+                typeof this.style.color === 'string'
+                    ? this.style.color
                     : 'white',
             opacity: 1,
             bold: false,
@@ -925,7 +920,7 @@ export class C_Text<
                 type: 'shape',
                 shape: 'RECT',
                 opacity: 0.5,
-                style: { fillStyle: 'black' },
+                color: 'black',
                 ...(typeof background === 'object' ? background : {}),
                 fill: true,
             });

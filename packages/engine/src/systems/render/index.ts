@@ -32,8 +32,8 @@ export class RenderSystem<
 
     #hashedMaterials: HashFactory<RenderStyle> = new HashFactory<RenderStyle>(
         (style: RenderStyle) => {
-            return `${style.fillStyle ?? DEFAULT_RENDER_STYLE.fillStyle}|${
-                style.strokeStyle ?? DEFAULT_RENDER_STYLE.strokeStyle
+            return `${style.color ?? DEFAULT_RENDER_STYLE.color}|${
+                style.lineColor ?? DEFAULT_RENDER_STYLE.lineColor
             }|${style.lineWidth ?? DEFAULT_RENDER_STYLE.lineWidth}|${
                 style.lineJoin ?? DEFAULT_RENDER_STYLE.lineJoin
             }|${style.lineCap ?? DEFAULT_RENDER_STYLE.lineCap}|${
@@ -111,7 +111,6 @@ export class RenderSystem<
     #renderCommands(ctx: ICanvasRenderingContext2D) {
         let opacity = 1;
         const activeStyle = { ...DEFAULT_RENDER_STYLE };
-        this.#canvasStateCache = {};
         this.#transformScaleStack = [1];
         this.#transformInverseStack.clear();
         this.#applyStyle(ctx, {
@@ -187,12 +186,11 @@ export class RenderSystem<
                     const styleID = data[dataPointer++];
                     const style = this.#hashedMaterials.idToItem(styleID);
                     if (style) {
-                        activeStyle.fillStyle =
-                            style.value.fillStyle ??
-                            DEFAULT_RENDER_STYLE.fillStyle;
-                        activeStyle.strokeStyle =
-                            style.value.strokeStyle ??
-                            DEFAULT_RENDER_STYLE.strokeStyle;
+                        activeStyle.color =
+                            style.value.color ?? DEFAULT_RENDER_STYLE.color;
+                        activeStyle.lineColor =
+                            style.value.lineColor ??
+                            DEFAULT_RENDER_STYLE.lineColor;
                         activeStyle.lineWidth =
                             style.value.lineWidth ??
                             DEFAULT_RENDER_STYLE.lineWidth;
@@ -304,18 +302,69 @@ export class RenderSystem<
     }
 
     #applyStyle = (ctx: ICanvasRenderingContext2D, style: CanvasStyle) => {
-        for (const key in style) {
-            const styleKey = key as keyof CanvasStyle;
-            const value = style[styleKey];
-            if (
-                value !== undefined &&
-                this.#canvasStateCache[styleKey] !== value
-            ) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (ctx as any)[key] = value;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (this.#canvasStateCache as any)[styleKey] = value;
-            }
+        // Faster than checking on the canvas context itself
+        const canvasStateCache = this.#canvasStateCache;
+        if (
+            style.color !== undefined &&
+            canvasStateCache.color !== style.color
+        ) {
+            ctx.fillStyle = style.color;
+            canvasStateCache.color = style.color;
+        }
+        if (
+            style.lineColor !== undefined &&
+            canvasStateCache.lineColor !== style.lineColor
+        ) {
+            ctx.strokeStyle = style.lineColor;
+            canvasStateCache.lineColor = style.lineColor;
+        }
+        if (
+            style.lineWidth !== undefined &&
+            canvasStateCache.lineWidth !== style.lineWidth
+        ) {
+            ctx.lineWidth = style.lineWidth;
+            canvasStateCache.lineWidth = style.lineWidth;
+        }
+        if (
+            style.lineJoin !== undefined &&
+            canvasStateCache.lineJoin !== style.lineJoin
+        ) {
+            ctx.lineJoin = style.lineJoin;
+            canvasStateCache.lineJoin = style.lineJoin;
+        }
+        if (
+            style.lineCap !== undefined &&
+            canvasStateCache.lineCap !== style.lineCap
+        ) {
+            ctx.lineCap = style.lineCap;
+            canvasStateCache.lineCap = style.lineCap;
+        }
+        if (
+            style.imageSmoothingEnabled !== undefined &&
+            canvasStateCache.imageSmoothingEnabled !==
+                style.imageSmoothingEnabled
+        ) {
+            ctx.imageSmoothingEnabled = style.imageSmoothingEnabled;
+            canvasStateCache.imageSmoothingEnabled =
+                style.imageSmoothingEnabled;
+        }
+        if (style.font !== undefined && canvasStateCache.font !== style.font) {
+            ctx.font = style.font;
+            canvasStateCache.font = style.font;
+        }
+        if (
+            style.textBaseline !== undefined &&
+            canvasStateCache.textBaseline !== style.textBaseline
+        ) {
+            ctx.textBaseline = style.textBaseline;
+            canvasStateCache.textBaseline = style.textBaseline;
+        }
+        if (
+            style.globalAlpha !== undefined &&
+            canvasStateCache.globalAlpha !== style.globalAlpha
+        ) {
+            ctx.globalAlpha = style.globalAlpha;
+            canvasStateCache.globalAlpha = style.globalAlpha;
         }
     };
 
@@ -333,8 +382,8 @@ export class RenderSystem<
     ) {
         // Fill first so stroke remains visible on top
         if (
-            activeStyle.fillStyle &&
-            activeStyle.fillStyle !== TRANSPARENT_STYLE_COLOR
+            activeStyle.color &&
+            activeStyle.color !== TRANSPARENT_STYLE_COLOR
         ) {
             for (let i = 0; i < rx; i++) {
                 for (let j = 0; j < ry; j++) {
@@ -345,8 +394,8 @@ export class RenderSystem<
 
         // Draw strokes without scaling line width with transform
         if (
-            activeStyle.strokeStyle &&
-            activeStyle.strokeStyle !== TRANSPARENT_STYLE_COLOR &&
+            activeStyle.lineColor &&
+            activeStyle.lineColor !== TRANSPARENT_STYLE_COLOR &&
             activeStyle.lineWidth &&
             activeStyle.lineWidth > 0
         ) {
@@ -383,11 +432,10 @@ export class RenderSystem<
         const radiusX = (x2 - x1) / 2;
         const radiusY = (y2 - y1) / 2;
         const shouldFill =
-            activeStyle.fillStyle &&
-            activeStyle.fillStyle !== TRANSPARENT_STYLE_COLOR;
+            activeStyle.color && activeStyle.color !== TRANSPARENT_STYLE_COLOR;
         const shouldStroke =
-            activeStyle.strokeStyle &&
-            activeStyle.strokeStyle !== TRANSPARENT_STYLE_COLOR;
+            activeStyle.lineColor &&
+            activeStyle.lineColor !== TRANSPARENT_STYLE_COLOR;
 
         let prevWidth = 1;
         if (shouldStroke) {
@@ -441,26 +489,6 @@ export class RenderSystem<
         ctx: ICanvasRenderingContext2D,
         activeStyle: RenderStyle,
     ) {
-        const strokeColor = activeStyle.strokeStyle
-            ? activeStyle.strokeStyle
-            : activeStyle.fillStyle;
-        if (
-            strokeColor !== undefined &&
-            this.#canvasStateCache.strokeStyle !== strokeColor
-        ) {
-            ctx.strokeStyle = strokeColor;
-            this.#canvasStateCache.strokeStyle = strokeColor;
-        }
-
-        const lineWidth =
-            activeStyle.lineWidth && activeStyle.lineWidth > 0
-                ? activeStyle.lineWidth
-                : 1;
-        if (this.#canvasStateCache.lineWidth !== lineWidth) {
-            ctx.lineWidth = lineWidth;
-            this.#canvasStateCache.lineWidth = lineWidth;
-        }
-
         ctx.beginPath();
         for (let i = 0; i < rx; i++) {
             for (let j = 0; j < ry; j++) {
@@ -496,15 +524,15 @@ export class RenderSystem<
         activeStyle: RenderStyle,
     ) {
         if (
-            activeStyle.fillStyle &&
-            activeStyle.fillStyle !== TRANSPARENT_STYLE_COLOR
+            activeStyle.color &&
+            activeStyle.color !== TRANSPARENT_STYLE_COLOR
         ) {
             ctx.fillText(text, x, y);
         }
 
         if (
-            activeStyle.strokeStyle &&
-            activeStyle.strokeStyle !== TRANSPARENT_STYLE_COLOR &&
+            activeStyle.lineColor &&
+            activeStyle.lineColor !== TRANSPARENT_STYLE_COLOR &&
             activeStyle.lineWidth &&
             activeStyle.lineWidth > 0
         ) {

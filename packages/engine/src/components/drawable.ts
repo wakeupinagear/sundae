@@ -2,15 +2,14 @@ import { type Engine } from '../engine';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import { type RenderCommandStream } from '../systems/render/command';
-import { type RenderStyle } from '../systems/render/style';
+import { RENDER_STYLE_KEYS, type RenderStyle } from '../systems/render/style';
 import { OPACITY_THRESHOLD } from '../utils';
 import { Component, type ComponentOptions } from './index';
 
-export interface C_DrawableOptions extends ComponentOptions {
+export interface C_DrawableOptions extends ComponentOptions, RenderStyle {
     origin?: VectorConstructor;
     size?: VectorConstructor;
     fill?: boolean;
-    style?: RenderStyle;
     opacity?: number;
 }
 
@@ -31,8 +30,17 @@ export abstract class C_Drawable<
         this._origin = new Vector(options.origin ?? 0.5);
         this._size = new Vector(options.size ?? 1);
         this._fill = options.fill ?? false;
-        this._style = options.style ?? {};
         this._opacity = options.opacity ?? 1;
+
+        this._style = {};
+        // Only assign defined properties to save on memory
+        for (const key of RENDER_STYLE_KEYS) {
+            const value = options[key];
+            if (value !== undefined) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                this._style[key] = value as any;
+            }
+        }
     }
 
     get origin(): Readonly<Vector> {

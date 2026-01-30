@@ -57,11 +57,8 @@ export class C_Shape<
     constructor(options: C_ShapeOptions) {
         super({
             name: 'shape',
+            lineCap: options.startTip || options.endTip ? 'round' : 'butt',
             ...options,
-            style: {
-                lineCap: options.startTip || options.endTip ? 'round' : 'butt',
-                ...options.style,
-            },
         });
 
         this.#shape = options.shape;

@@ -19,10 +19,8 @@ class VortexScene extends Scene {
             type: 'shape',
             shape: 'LINE',
             endTip: { type: 'arrow', length: 100 },
-            style: {
-                strokeStyle: '#222222',
-                lineWidth: 16,
-            },
+            lineColor: '#222222',
+            lineWidth: 16,
             zIndex: -1,
         }) as E_Shape;
         this.#syncArrow();
@@ -30,7 +28,7 @@ class VortexScene extends Scene {
         const wallOptions: E_ShapeJSON = {
             type: 'shape',
             shape: 'RECT',
-            style: { fillStyle: '#DDDDDD' },
+            color: '#DDDDDD',
             collision: true,
             kinematic: true,
         };
@@ -59,14 +57,9 @@ class VortexScene extends Scene {
                 type: 'shape',
                 shape: 'ELLIPSE',
                 scale: 2.5 + _engine.random() * 20,
-                style: {
-                    fillStyle:
-                        BALL_COLORS[
-                            Math.floor(
-                                this._engine.random() * BALL_COLORS.length,
-                            )
-                        ],
-                },
+                color: BALL_COLORS[
+                    Math.floor(this._engine.random() * BALL_COLORS.length)
+                ],
                 position: {
                     x: 300 * (_engine.random() - 0.5),
                     y: 400 * (_engine.random() - 0.5),

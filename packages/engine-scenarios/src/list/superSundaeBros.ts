@@ -157,7 +157,7 @@ class LevelScene extends Scene {
                     const properties = {
                         name,
                         shape: 'RECT',
-                        style: { fillStyle: color },
+                        color,
                         position: {
                             x: TOP_LEFT_CORNER.x + x * TILE_SIZE,
                             y: TOP_LEFT_CORNER.y + y * TILE_SIZE,
