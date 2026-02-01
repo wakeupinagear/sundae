@@ -86,7 +86,7 @@ export abstract class C_Collider<
     }
 
     get isPointerHovered(): boolean {
-        return this.#isPointerHovered;
+        return this.#prevIsPointerHovered;
     }
 
     set isPointerHovered(isPointerHovered: boolean) {
@@ -130,8 +130,9 @@ export abstract class C_Collider<
             }
 
             this.#prevIsPointerHovered = this.#isPointerHovered;
-            this.#isPointerHovered = false;
         }
+
+        this.#isPointerHovered = false;
 
         return false;
     }
@@ -145,7 +146,7 @@ export abstract class C_Collider<
             return false;
         }
 
-        this.#isPointerHovered = this.checkIfPointInside(worldPosition);
+        this.#isPointerHovered ||= this.checkIfPointInside(worldPosition);
 
         return this.#isPointerHovered;
     }

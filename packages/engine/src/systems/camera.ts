@@ -361,6 +361,7 @@ export class CameraSystem<
 
         const cameraPointer = this._engine.getPointer(this.#id);
         const canvasPointer = cameraPointer.canvasPointer;
+        const prevIsPointerOverCamera = this.#isPointerOverCamera;
         this.#updatePointer(cameraPointer, canvasPointer);
 
         const worldPosition = this.screenToWorld(
@@ -368,10 +369,15 @@ export class CameraSystem<
         );
         if (worldPosition) {
             this.#worldPosition.set(worldPosition);
-            this.#updateAllPointerTargets(this.#worldPosition, canvasPointer);
+            if (this.#isPointerOverCamera) {
+                this.#updateAllPointerTargets(
+                    this.#worldPosition,
+                    canvasPointer,
+                );
+            }
         }
 
-        let updated = false;
+        let updated = prevIsPointerOverCamera !== this.#isPointerOverCamera;
         const canvas = this._engine.getCanvas(this.#options.canvasID);
         if (canvas) {
             if (!this.#canvasSize) {
