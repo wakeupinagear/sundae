@@ -1,7 +1,8 @@
 import clsx from 'clsx';
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ENGINE_SCENARIOS, type ScenarioList } from '@repo/engine-scenarios';
+import { Input } from '@repo/ui/components/ui/input';
 
 import { scenarioToID } from '../utils/scenarios';
 
@@ -45,13 +46,27 @@ export function ExampleList({
         );
     }, [deferredSearch]);
 
+    const inputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === '/') {
+                event.preventDefault();
+                inputRef.current?.focus();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, []);
+
     return (
-        <div className="w-40 flex flex-col gap-2">
-            <h1 className="p-2">🍨 Sundae</h1>
-            <input
-                className="p-2"
+        <div className="w-full min-w-0 flex flex-col gap-2 p-2">
+            <Input
+                ref={inputRef}
+                className="p-2 text-sm"
                 type="text"
-                placeholder="Search"
+                name="Search"
+                placeholder="Search Examples"
                 onChange={(e) => setSearch(e.target.value)}
             />
             <div className="flex flex-col p-2 gap-4">

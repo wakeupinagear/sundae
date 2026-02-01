@@ -1,14 +1,16 @@
-import clsx from 'clsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { type Engine, type EngineOptions } from '@repo/engine';
 import { ENGINE_SCENARIOS } from '@repo/engine-scenarios';
 import { Harness } from '@repo/react';
+import { ThemeProvider } from '@repo/ui/components/ThemeProvider';
+import '@repo/ui/globals.css';
 
 import { useAppStore } from '../store';
 import { WebHarness } from '../utils/harness';
 import { idToScenario, scenarioToID } from '../utils/scenarios';
 import { ExampleList } from './ExampleList';
+import HarnessOptions from './HarnessOptions';
 
 const DEFAULT_SCENARIO = 'stressTests-renderChaos';
 const MAX_CAMERAS = 64;
@@ -71,11 +73,8 @@ const makeGridCameras = (
 
 export function App() {
     const cameraCount = useAppStore((state) => state.cameraCount);
-    const setCameraCount = useAppStore((state) => state.setCameraCount);
     const debugMode = useAppStore((state) => state.debugMode);
-    const setDebugMode = useAppStore((state) => state.setDebugMode);
     const trueRandom = useAppStore((state) => state.trueRandom);
-    const setTrueRandom = useAppStore((state) => state.setTrueRandom);
 
     const [[categoryID, scenarioID], setScenario] =
         useState<[string, string]>(readScenarioFromHash);
@@ -147,84 +146,37 @@ export function App() {
     const canvasContainerRef = useRef<HTMLDivElement>(null);
 
     return (
-        <div className="flex items-stretch justify-stretch gap-4 h-screen">
-            <div>
-                <div className="flex flex-col gap-2 h-full">
-                    <ExampleList
-                        selectedCategoryID={categoryID}
-                        selectedScenarioID={scenarioID}
-                    />
-                    <div className="mt-auto flex flex-col gap-2 p-2">
-                        <div
-                            className={clsx(
-                                'flex gap-2 items-center transition-opacity',
-                                {
-                                    'opacity-50': !canChangeCameraCount,
-                                },
-                            )}
-                        >
-                            <label
-                                htmlFor="cameraCount"
-                                className="font-medium"
-                            >
-                                Cameras
-                            </label>
-                            <select
-                                id="cameraCount"
-                                value={Math.max(
-                                    Math.min(cameraCount, MAX_CAMERAS),
-                                    1,
-                                )}
-                                onChange={(e) =>
-                                    setCameraCount(Number(e.target.value))
-                                }
-                                disabled={!canChangeCameraCount}
-                            >
-                                {Array(Math.min(MAX_CAMERAS, maxCameras))
-                                    .fill(0)
-                                    .map((_, index) => (
-                                        <option key={index} value={index + 1}>
-                                            {index + 1}
-                                        </option>
-                                    ))}
-                            </select>
-                        </div>
-                        <div className="flex gap-2 items-center">
-                            <label htmlFor="debug" className="font-medium">
-                                Debug Mode
-                            </label>
-                            <input
-                                type="checkbox"
-                                id="debug"
-                                checked={debugMode}
-                                onChange={(e) => setDebugMode(e.target.checked)}
-                            />
-                        </div>
-                        <div className="flex gap-2 items-center">
-                            <label htmlFor="trueRandom" className="font-medium">
-                                True Random
-                            </label>
-                            <input
-                                type="checkbox"
-                                id="trueRandom"
-                                checked={trueRandom}
-                                onChange={(e) =>
-                                    setTrueRandom(e.target.checked)
-                                }
-                            />
-                        </div>
+        <ThemeProvider>
+            <div className="flex items-stretch h-screen overflow-hidden">
+                <aside className="flex flex-col h-screen min-h-0 w-44 shrink-0">
+                    <h1 className="p-2">🍨 Sundae</h1>
+                    <div className="min-h-0 flex-1 overflow-y-auto w-full">
+                        <ExampleList
+                            selectedCategoryID={categoryID}
+                            selectedScenarioID={scenarioID}
+                        />
                     </div>
-                </div>
+                    <div className="shrink-0">
+                        <HarnessOptions
+                            canChangeCameraCount={canChangeCameraCount}
+                            maxCameras={MAX_CAMERAS}
+                            scenarioMaxCameras={maxCameras}
+                        />
+                    </div>
+                </aside>
+                <main
+                    className="size-full overflow-hidden"
+                    ref={canvasContainerRef}
+                >
+                    <Harness
+                        key={scenarioKey}
+                        containerRef={canvasContainerRef}
+                        onEngineReady={onEngineReady}
+                        initialEngineOptions={INITIAL_ENGINE_OPTIONS}
+                        engineOptions={engineOptions}
+                    />
+                </main>
             </div>
-            <div className="size-full overflow-hidden" ref={canvasContainerRef}>
-                <Harness
-                    key={scenarioKey}
-                    containerRef={canvasContainerRef}
-                    onEngineReady={onEngineReady}
-                    initialEngineOptions={INITIAL_ENGINE_OPTIONS}
-                    engineOptions={engineOptions}
-                />
-            </div>
-        </div>
+        </ThemeProvider>
     );
 }
