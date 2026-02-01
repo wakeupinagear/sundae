@@ -5,6 +5,7 @@ import { infiniteCanvas } from './infiniteCanvas';
 import { pong } from './pong';
 import { renderChaos } from './renderChaos';
 import { superSundaeBros } from './superSundaeBros';
+import { textRendering } from './textRendering';
 import { typeErrors } from './type-errors';
 
 export interface ScenarioMetadata {
@@ -25,6 +26,17 @@ export interface ScenarioCategory {
 export type ScenarioList = Record<string, ScenarioCategory>;
 
 export const ENGINE_SCENARIOS: ScenarioList = {
+    features: {
+        name: 'Features',
+        description: 'Feature scenarios',
+        scenarios: {
+            textRendering: {
+                name: 'Text Rendering',
+                description: 'Text rendering scenarios',
+                scenario: textRendering,
+            },
+        },
+    },
     tools: {
         name: 'Tools',
         description: 'Tool scenarios',

@@ -116,18 +116,18 @@ export abstract class C_Drawable<
             stream.setStyle(this._style);
 
             if (this._fill) {
-                const parentBB = this._entity.transform.boundingBox;
-                this._size.set(
-                    parentBB.x2 - parentBB.x1,
-                    parentBB.y2 - parentBB.y1,
+                const transform = this._entity.transform;
+                const parentBB = transform.boundingBox;
+                const w = parentBB.x2 - parentBB.x1;
+                const h = parentBB.y2 - parentBB.y1;
+                const sx = transform.scale.x * transform.scaleMult.x;
+                const sy = transform.scale.y * transform.scaleMult.y;
+                this._size.set(sx !== 0 ? w / sx : w, sy !== 0 ? h / sy : h);
+                const pos = transform.worldPosition;
+                this._origin.set(
+                    w !== 0 ? (pos.x - parentBB.x1) / w : 1,
+                    h !== 0 ? (pos.y - parentBB.y1) / h : 1,
                 );
-                if (this._entity.scaleRelativeToCamera.x) {
-                    this._size.x /= this._entity.transform.scaleMult.x;
-                }
-                if (this._entity.scaleRelativeToCamera.y) {
-                    this._size.y /= this._entity.transform.scaleMult.y;
-                }
-                this._origin.set(1);
             }
 
             return true;

@@ -1,7 +1,7 @@
 import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
 import { Entity, type EntityOptions } from '../entities';
-import { BoundingBox } from '../math/boundingBox';
+import { BoundingBox, type BoundingBoxConstructor } from '../math/boundingBox';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
@@ -67,9 +67,9 @@ type TextNode =
           type: 'newline';
       };
 
-type Padding = BoundingBox | Vector | number;
+type Padding = BoundingBoxConstructor | VectorConstructor | number;
 
-type BackgroundOptions = boolean | Partial<C_ShapeOptions>;
+type BackgroundOptions = boolean | string | Partial<C_ShapeOptions>;
 
 export interface C_TextOptions extends C_DrawableOptions {
     text?: string;
@@ -128,13 +128,13 @@ export class C_Text<
         this.#lineGap = options.lineGap ?? Math.round(this.#fontSize * 0.5);
         this.#textAlign = options.textAlign ?? 'top-left';
         this.#trim = options.trim ?? 'all';
-        this.#startTagDelim = options.startTagDelim ?? '<';
-        this.#endTagDelim = options.endTagDelim ?? '>';
+        this.#startTagDelim = options.startTagDelim ?? '<|';
+        this.#endTagDelim = options.endTagDelim ?? '|>';
         this.#italic = options.italic ?? false;
         this.#bold = options.bold ?? false;
         this.#opacity = options.opacity ?? 1;
 
-        this.#setPadding(options.padding ?? 0);
+        this.#padding.set(options.padding ?? 0);
         this.#setBackground(options.background ?? null);
     }
 
@@ -268,8 +268,7 @@ export class C_Text<
     }
 
     set padding(padding: Padding) {
-        if (padding != this.#padding) {
-            this.#setPadding(padding);
+        if (this.#padding.set(padding)) {
             this._markBoundsDirty();
         }
     }
@@ -316,10 +315,10 @@ export class C_Text<
         }
 
         this._boundingBox.set({
-            x1: this.#textPosition.x,
-            x2: this.#textPosition.x + this.#textSize.x,
-            y1: this.#textPosition.y,
-            y2: this.#textPosition.y + this.#textSize.y,
+            x1: this.#textPosition.x - this.#padding.x1,
+            y1: this.#textPosition.y - this.#padding.y1,
+            x2: this.#textPosition.x + this.#textSize.x + this.#padding.x2,
+            y2: this.#textPosition.y + this.#textSize.y + this.#padding.y2,
         });
     }
 
@@ -613,8 +612,8 @@ export class C_Text<
         }
 
         this.#textSize.set({
-            x: overallWidth + this.#padding.x1 + this.#padding.x2,
-            y: overallHeight + this.#padding.y1 + this.#padding.y2,
+            x: overallWidth,
+            y: overallHeight,
         });
         this._markBoundsDirty();
     }
@@ -687,176 +686,155 @@ export class C_Text<
                         .slice(i + startDelimLen, tagEnd)
                         .trim();
 
-                    if (tagContent.startsWith('/')) {
-                        // Reset to default
-                        const key = tagContent.slice(1).trim();
-                        let styleChanged = false;
-                        switch (key) {
-                            case TagKeys.COLOR:
-                                if (currentStyle.color !== defaultStyle.color) {
-                                    currentStyle.color = defaultStyle.color;
-                                    styleChanged = true;
-                                }
-                                break;
-                            case TagKeys.SIZE:
-                                if (
-                                    currentStyle.fontSize !==
-                                    defaultStyle.fontSize
-                                ) {
-                                    currentStyle.fontSize =
-                                        defaultStyle.fontSize;
-                                    styleChanged = true;
-                                }
-                                break;
-                            case TagKeys.FAMILY:
-                                if (
-                                    currentStyle.fontFamily !==
-                                    defaultStyle.fontFamily
-                                ) {
-                                    currentStyle.fontFamily =
-                                        defaultStyle.fontFamily;
-                                    styleChanged = true;
-                                }
-                                break;
-                            case TagKeys.OPACITY:
-                                if (
-                                    currentStyle.opacity !==
-                                    defaultStyle.opacity
-                                ) {
-                                    currentStyle.opacity = defaultStyle.opacity;
-                                    styleChanged = true;
-                                }
-                                break;
-                            case TagKeys.BOLD:
-                                if (currentStyle.bold !== defaultStyle.bold) {
-                                    currentStyle.bold = defaultStyle.bold;
-                                    styleChanged = true;
-                                }
-                                break;
-                            case TagKeys.ITALIC:
-                                if (
-                                    currentStyle.italic !== defaultStyle.italic
-                                ) {
-                                    currentStyle.italic = defaultStyle.italic;
-                                    styleChanged = true;
-                                }
-                                break;
+                    const attributes = tagContent.split(/\s+/);
+                    let styleChanged = false;
+
+                    for (const attr of attributes) {
+                        const raw = attr.trim();
+                        if (!raw) continue;
+
+                        const isReset = raw.startsWith('/');
+                        const key = (isReset ? raw.slice(1) : raw).trim();
+                        if (!key) continue;
+
+                        if (isReset) {
+                            switch (key) {
+                                case TagKeys.COLOR:
+                                    if (
+                                        currentStyle.color !==
+                                        defaultStyle.color
+                                    ) {
+                                        currentStyle.color = defaultStyle.color;
+                                        styleChanged = true;
+                                    }
+                                    break;
+                                case TagKeys.SIZE:
+                                    if (
+                                        currentStyle.fontSize !==
+                                        defaultStyle.fontSize
+                                    ) {
+                                        currentStyle.fontSize =
+                                            defaultStyle.fontSize;
+                                        styleChanged = true;
+                                    }
+                                    break;
+                                case TagKeys.FAMILY:
+                                    if (
+                                        currentStyle.fontFamily !==
+                                        defaultStyle.fontFamily
+                                    ) {
+                                        currentStyle.fontFamily =
+                                            defaultStyle.fontFamily;
+                                        styleChanged = true;
+                                    }
+                                    break;
+                                case TagKeys.OPACITY:
+                                    if (
+                                        currentStyle.opacity !==
+                                        defaultStyle.opacity
+                                    ) {
+                                        currentStyle.opacity =
+                                            defaultStyle.opacity;
+                                        styleChanged = true;
+                                    }
+                                    break;
+                                case TagKeys.BOLD:
+                                    if (
+                                        currentStyle.bold !== defaultStyle.bold
+                                    ) {
+                                        currentStyle.bold = defaultStyle.bold;
+                                        styleChanged = true;
+                                    }
+                                    break;
+                                case TagKeys.ITALIC:
+                                    if (
+                                        currentStyle.italic !==
+                                        defaultStyle.italic
+                                    ) {
+                                        currentStyle.italic =
+                                            defaultStyle.italic;
+                                        styleChanged = true;
+                                    }
+                                    break;
+                            }
+                            continue;
                         }
 
-                        if (styleChanged) {
-                            this.#changeStyleNode(
-                                currentStyle,
-                                prevNode,
-                                nodes,
-                            );
-                        }
-                    } else {
-                        const attributes = tagContent.split(/\s+/);
-                        let styleChanged = false;
-
-                        for (const attr of attributes) {
-                            const equalPos = attr.indexOf('=');
-
-                            if (equalPos !== -1) {
-                                // key=value pairs
-                                const key = attr.slice(0, equalPos).trim();
-                                const value = attr.slice(equalPos + 1).trim();
-
-                                if (key && value) {
-                                    switch (key) {
-                                        case TagKeys.COLOR:
-                                            if (currentStyle.color !== value) {
-                                                currentStyle.color = value;
-                                                styleChanged = true;
-                                            }
-                                            break;
-                                        case TagKeys.SIZE: {
-                                            const newSize =
-                                                Number(value) || this.#fontSize;
-                                            if (
-                                                currentStyle.fontSize !==
-                                                newSize
-                                            ) {
-                                                currentStyle.fontSize = newSize;
-                                                styleChanged = true;
-                                            }
-                                            break;
-                                        }
-                                        case TagKeys.FAMILY:
-                                            if (
-                                                currentStyle.fontFamily !==
-                                                    value &&
-                                                (value === 'sans-serif' ||
-                                                    value === 'serif' ||
-                                                    value === 'monospace')
-                                            ) {
-                                                currentStyle.fontFamily = value;
-                                                styleChanged = true;
-                                            }
-                                            break;
-                                        case TagKeys.OPACITY: {
-                                            const newOpacity =
-                                                Number(value) || 1;
-                                            if (
-                                                currentStyle.opacity !==
-                                                newOpacity
-                                            ) {
-                                                currentStyle.opacity =
-                                                    newOpacity;
-                                                styleChanged = true;
-                                            }
-                                            break;
-                                        }
-                                        case TagKeys.BOLD: {
-                                            const newBold =
-                                                value === 'true' ||
-                                                value === '1';
-                                            if (currentStyle.bold !== newBold) {
-                                                currentStyle.bold = newBold;
-                                                styleChanged = true;
-                                            }
-                                            break;
-                                        }
-                                        case TagKeys.ITALIC: {
-                                            const newItalic =
-                                                value === 'true' ||
-                                                value === '1';
-                                            if (
-                                                currentStyle.italic !==
-                                                newItalic
-                                            ) {
-                                                currentStyle.italic = newItalic;
-                                                styleChanged = true;
-                                            }
-                                            break;
-                                        }
+                        const equalPos = attr.indexOf('=');
+                        if (equalPos !== -1) {
+                            const setKey = attr.slice(0, equalPos).trim();
+                            const value = attr.slice(equalPos + 1).trim();
+                            if (!setKey || !value) continue;
+                            switch (setKey) {
+                                case TagKeys.COLOR:
+                                    if (currentStyle.color !== value) {
+                                        currentStyle.color = value;
+                                        styleChanged = true;
                                     }
+                                    break;
+                                case TagKeys.SIZE: {
+                                    const newSize =
+                                        Number(value) || this.#fontSize;
+                                    if (currentStyle.fontSize !== newSize) {
+                                        currentStyle.fontSize = newSize;
+                                        styleChanged = true;
+                                    }
+                                    break;
                                 }
-                            } else {
-                                // Shorthand for booleans
-                                const key = attr.trim();
-                                if (key) {
-                                    styleChanged = true;
-                                    switch (key) {
-                                        case TagKeys.BOLD:
-                                            currentStyle.bold = true;
-                                            break;
-                                        case TagKeys.ITALIC:
-                                            currentStyle.italic = true;
-                                            break;
+                                case TagKeys.FAMILY:
+                                    if (
+                                        currentStyle.fontFamily !== value &&
+                                        (value === 'sans-serif' ||
+                                            value === 'serif' ||
+                                            value === 'monospace')
+                                    ) {
+                                        currentStyle.fontFamily = value;
+                                        styleChanged = true;
                                     }
+                                    break;
+                                case TagKeys.OPACITY: {
+                                    const newOpacity = Number(value) || 1;
+                                    if (currentStyle.opacity !== newOpacity) {
+                                        currentStyle.opacity = newOpacity;
+                                        styleChanged = true;
+                                    }
+                                    break;
+                                }
+                                case TagKeys.BOLD: {
+                                    const newBold =
+                                        value === 'true' || value === '1';
+                                    if (currentStyle.bold !== newBold) {
+                                        currentStyle.bold = newBold;
+                                        styleChanged = true;
+                                    }
+                                    break;
+                                }
+                                case TagKeys.ITALIC: {
+                                    const newItalic =
+                                        value === 'true' || value === '1';
+                                    if (currentStyle.italic !== newItalic) {
+                                        currentStyle.italic = newItalic;
+                                        styleChanged = true;
+                                    }
+                                    break;
                                 }
                             }
+                        } else {
+                            switch (key) {
+                                case TagKeys.BOLD:
+                                    currentStyle.bold = true;
+                                    styleChanged = true;
+                                    break;
+                                case TagKeys.ITALIC:
+                                    currentStyle.italic = true;
+                                    styleChanged = true;
+                                    break;
+                            }
                         }
+                    }
 
-                        // Add style node if any attributes were processed
-                        if (styleChanged) {
-                            this.#changeStyleNode(
-                                currentStyle,
-                                prevNode,
-                                nodes,
-                            );
-                        }
+                    if (styleChanged) {
+                        this.#changeStyleNode(currentStyle, prevNode, nodes);
                     }
 
                     i = tagEnd + endDelimLen;
@@ -895,19 +873,6 @@ export class C_Text<
         }
     }
 
-    #setPadding(padding: Padding) {
-        if (typeof padding === 'object' && 'x' in padding) {
-            this.#padding.set({
-                x1: padding.x,
-                x2: padding.x,
-                y1: padding.y,
-                y2: padding.y,
-            });
-        } else {
-            this.#padding.set(padding);
-        }
-    }
-
     #setBackground(background: BackgroundOptions | null) {
         if (background) {
             if (this.#bgShape) {
@@ -920,7 +885,7 @@ export class C_Text<
                 type: 'shape',
                 shape: 'RECT',
                 opacity: 0.5,
-                color: 'black',
+                color: typeof background === 'string' ? background : 'black',
                 ...(typeof background === 'object' ? background : {}),
                 fill: true,
             });

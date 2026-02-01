@@ -440,6 +440,7 @@ export class CameraSystem<
         const dpr = this._engine.devicePixelRatio;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
 
         const cssWidth = canvas.width / dpr;
         const cssHeight = canvas.height / dpr;

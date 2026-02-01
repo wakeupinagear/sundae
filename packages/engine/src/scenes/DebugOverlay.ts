@@ -74,7 +74,7 @@ export class E_StatsDebug<
 
         if (flags & DebugOverlayFlags.STATS_FPS) {
             textBlocks.push(
-                `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>`,
+                `<|size=${HEADER_SIZE} bold|>FPS: ${stats.fps}<|/bold /size|>`,
             );
         }
         if (flags & DebugOverlayFlags.STATS_TRACES && stats.traces.length > 0) {
@@ -137,7 +137,7 @@ export class E_StatsDebug<
             }
 
             const padding = ' '.repeat(depth * 2);
-            const traceText = `<color=${LABEL_COLOR}>${name}${numCalls > 1 ? ` (${numCalls})` : ''}:</color> <bold>${time.toFixed(1)}ms</bold>`;
+            const traceText = `<|color=${LABEL_COLOR}|>${name}${numCalls > 1 ? ` (${numCalls})` : ''}: <|/color bold|>${time.toFixed(1)}ms<|/bold /color|>`;
             outTextBlocks.push(padding + traceText);
 
             if (subFrames.length > 0) {
@@ -174,7 +174,7 @@ export class E_StatsDebug<
             stats.cached > 0
                 ? ` (${((stats.cached / (stats.total + stats.cached)) * 100).toFixed(1)}% cached)`
                 : '';
-        return `<color=${LABEL_COLOR}>${name}:</color> <bold>${stats.total}${cachedPercent}</bold>`;
+        return `<|color=${LABEL_COLOR}|>${name}: <|/color bold|>${stats.total}${cachedPercent}<|/bold|>`;
     }
 
     #buildSpatialGridText(
@@ -182,11 +182,11 @@ export class E_StatsDebug<
         outTextBlocks: string[],
     ): void {
         outTextBlocks.push(
-            `<color=${LABEL_COLOR}>Spatial Grid:</color>`,
-            `  <color=${LABEL_COLOR}>Entities:</color> <bold>${stats.entityCount}</bold>`,
-            `  <color=${LABEL_COLOR}>Cells:</color> <bold>${stats.cellCount}</bold>`,
-            `  <color=${LABEL_COLOR}>Avg/Cell:</color> <bold>${stats.avgEntitiesPerCell.toFixed(1)}</bold>`,
-            `  <color=${LABEL_COLOR}>Max/Cell:</color> <bold>${stats.maxEntitiesInCell}</bold>`,
+            `<|color=${LABEL_COLOR}|>Spatial Grid<|/color bold|>`,
+            `  <|color=${LABEL_COLOR}|>Entities:<|/color bold|>${stats.entityCount}<|/bold /color|>`,
+            `  <|color=${LABEL_COLOR}|>Cells:<|/color bold|>${stats.cellCount}<|/bold /color|>`,
+            `  <|color=${LABEL_COLOR}|>Avg/Cell:<|/color bold|>${stats.avgEntitiesPerCell.toFixed(1)}<|/bold /color|>`,
+            `  <|color=${LABEL_COLOR}|>Max/Cell:<|/color bold|>${stats.maxEntitiesInCell}<|/bold /color|>`,
         );
     }
 }
@@ -342,12 +342,13 @@ export class C_ColliderDebug<
 
         if (!culled && entity.collider) {
             const collider = entity.collider;
+            const bounds = collider.collisionBounds;
             const bbox = entity.transform.boundingBox;
 
             stream.setOpacity(collider.isTrigger ? 0.5 : 1);
             stream.setStyle({
-                color: 'lime',
-                lineWidth: 4 / zoomToScale(camera.zoom),
+                lineColor: 'lime',
+                lineWidth: 2 / zoomToScale(camera.zoom),
             });
 
             if (collider.type === 'circle') {
@@ -362,7 +363,6 @@ export class C_ColliderDebug<
                     centerY + radius * 2,
                 );
             } else if (collider.type === 'rectangle') {
-                const bounds = collider.collisionBounds;
                 for (let i = 0; i < bounds.length + 1; i++) {
                     const point1 = bounds[i % bounds.length];
                     const point2 = bounds[(i + 1) % bounds.length];
@@ -373,10 +373,15 @@ export class C_ColliderDebug<
             stream.setStyle({
                 color: 'blue',
             });
-
-            const bounds = collider.collisionBounds;
+            const minDimension = Math.min(bbox.x2 - bbox.x1, bbox.y2 - bbox.y1);
+            const pointSize = Math.min(Math.floor(minDimension) * 0.75, 8);
             for (const bound of bounds) {
-                stream.drawEllipse(bound.x, bound.y, bound.x + 8, bound.y + 8);
+                stream.drawEllipse(
+                    bound.x,
+                    bound.y,
+                    bound.x + pointSize,
+                    bound.y + pointSize,
+                );
             }
         }
 
@@ -476,11 +481,12 @@ export class DebugOverlayScene<
             overlayScene: this,
             name: 'Stats Debug',
             cull: 'none',
-            positionRelativeToCamera: { x: 'end', y: 'end' },
+            positionRelativeToCamera: 'end',
             scaleRelativeToCamera: true,
+            textAlign: 'top-left',
             trim: 'ends',
-            padding: 12,
             background: true,
+            padding: 12,
         }) as E_StatsDebug<TEngine>;
 
         const initialFlags =

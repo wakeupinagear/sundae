@@ -134,6 +134,8 @@ export class E_InfiniteShape<
     }
 
     #calculateRepeat(camera: CameraSystem, state: RepeatState) {
+        const tileSizeX = Math.max(this.#tileSize.x, 1),
+            tileSizeY = Math.max(this.#tileSize.y, 1);
         const scale = zoomToScale(camera.zoom);
         if (this.#zoomCullThresh === null || scale >= this.#zoomCullThresh) {
             const bbox = camera.boundingBox;
@@ -143,34 +145,22 @@ export class E_InfiniteShape<
             const maxY = bbox.y2;
 
             const gridTopLeft = {
-                    x: Math.floor(
-                        (minX - this.#tileSize.x / 2) / this.#tileSize.x,
-                    ),
-                    y: Math.floor(
-                        (minY - this.#tileSize.y / 2) / this.#tileSize.y,
-                    ),
+                    x: Math.floor((minX - tileSizeX / 2) / tileSizeX),
+                    y: Math.floor((minY - tileSizeY / 2) / tileSizeY),
                 },
                 gridBottomRight = {
-                    x: Math.floor(
-                        (maxX + this.#tileSize.x / 2) / this.#tileSize.x,
-                    ),
-                    y: Math.floor(
-                        (maxY + this.#tileSize.y / 2) / this.#tileSize.y,
-                    ),
+                    x: Math.floor((maxX + tileSizeX / 2) / tileSizeX),
+                    y: Math.floor((maxY + tileSizeY / 2) / tileSizeY),
                 };
 
             state.position.set(
                 this.#infiniteAxes.x
-                    ? gridTopLeft.x * this.#tileSize.x +
-                          this.#tileSize.x / 2 +
-                          this.#offset.x
+                    ? gridTopLeft.x * tileSizeX + tileSizeX / 2 + this.#offset.x
                     : this.#position
                       ? this.#position.x
                       : 0,
                 this.#infiniteAxes.y
-                    ? gridTopLeft.y * this.#tileSize.y +
-                          this.#tileSize.y / 2 +
-                          this.#offset.y
+                    ? gridTopLeft.y * tileSizeY + tileSizeY / 2 + this.#offset.y
                     : this.#position
                       ? this.#position.y
                       : 0,

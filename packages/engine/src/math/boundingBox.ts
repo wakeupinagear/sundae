@@ -1,4 +1,4 @@
-import type { IVector } from './vector';
+import type { IVector, VectorConstructor } from './vector';
 
 export interface IBoundingBox {
     x1: number;
@@ -7,26 +7,16 @@ export interface IBoundingBox {
     y2: number;
 }
 
-export type BoundingBoxConstructor = number | IBoundingBox;
+export type BoundingBoxConstructor = VectorConstructor | IBoundingBox;
 
 export class BoundingBox implements IBoundingBox {
-    x1: number;
-    x2: number;
-    y1: number;
-    y2: number;
+    x1!: number;
+    x2!: number;
+    y1!: number;
+    y2!: number;
 
-    constructor(options: BoundingBoxConstructor) {
-        if (typeof options === 'number') {
-            this.x1 = -options;
-            this.x2 = options;
-            this.y1 = -options;
-            this.y2 = options;
-        } else {
-            this.x1 = options.x1;
-            this.x2 = options.x2;
-            this.y1 = options.y1;
-            this.y2 = options.y2;
-        }
+    constructor(other: BoundingBoxConstructor) {
+        this.set(other);
     }
 
     static fromTransformProperties(
@@ -104,60 +94,52 @@ export class BoundingBox implements IBoundingBox {
         x2?: number,
         y2?: number,
     ): boolean {
+        let newX1 = 0,
+            newY1 = 0,
+            newX2 = 0,
+            newY2 = 0;
         if (
             typeof x1OrOther === 'number' &&
             y1 !== undefined &&
             x2 !== undefined &&
             y2 !== undefined
         ) {
-            if (
-                this.x1 === x1OrOther &&
-                this.y1 === y1 &&
-                this.x2 === x2 &&
-                this.y2 === y2
-            ) {
-                return false;
-            }
+            newX1 = x1OrOther;
+            newY1 = y1;
+            newX2 = x2;
+            newY2 = y2;
+        } else if (typeof x1OrOther === 'number') {
+            newX1 = x1OrOther;
+            newY1 = x1OrOther;
+            newX2 = x1OrOther;
+            newY2 = x1OrOther;
+        } else if ('x' in x1OrOther) {
+            newX2 = x1OrOther.x;
+            newY1 = x1OrOther.y;
+            newX2 = x1OrOther.x;
+            newY2 = x1OrOther.y;
+        } else {
+            newX1 = x1OrOther.x1;
+            newY1 = x1OrOther.y1;
+            newX2 = x1OrOther.x2;
+            newY2 = x1OrOther.y2;
+        }
 
-            this.x1 = x1OrOther;
-            this.y1 = y1;
-            this.x2 = x2;
-            this.y2 = y2;
+        if (
+            newX1 !== this.x1 ||
+            newY1 !== this.y1 ||
+            newX2 !== this.x2 ||
+            newY2 !== this.y2
+        ) {
+            this.x1 = newX1;
+            this.y1 = newY1;
+            this.x2 = newX2;
+            this.y2 = newY2;
 
             return true;
         }
 
-        if (typeof x1OrOther === 'number') {
-            if (
-                this.x1 === -x1OrOther &&
-                this.x2 === x1OrOther &&
-                this.y1 === -x1OrOther &&
-                this.y2 === x1OrOther
-            ) {
-                return false;
-            }
-
-            this.x1 = -x1OrOther;
-            this.x2 = x1OrOther;
-            this.y1 = -x1OrOther;
-            this.y2 = x1OrOther;
-        } else {
-            if (
-                this.x1 === x1OrOther.x1 &&
-                this.x2 === x1OrOther.x2 &&
-                this.y1 === x1OrOther.y1 &&
-                this.y2 === x1OrOther.y2
-            ) {
-                return false;
-            }
-
-            this.x1 = x1OrOther.x1;
-            this.x2 = x1OrOther.x2;
-            this.y1 = x1OrOther.y1;
-            this.y2 = x1OrOther.y2;
-        }
-
-        return true;
+        return false;
     }
 
     intersects(other: BoundingBox): boolean {
