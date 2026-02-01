@@ -15,10 +15,12 @@ export default defineConfig({
                     __dirname,
                     './src/components/App.tsx',
                 );
+                const storeIndexDir = path.resolve(__dirname, './src/store.ts');
 
                 if (
                     file.startsWith(packageDir) ||
-                    file.startsWith(appIndexDir)
+                    file.startsWith(appIndexDir) ||
+                    file.startsWith(storeIndexDir)
                 ) {
                     server.ws.send({
                         type: 'full-reload',

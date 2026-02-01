@@ -16,3 +16,4 @@ export { Matrix2D } from '../src/math/matrix';
 export { type ICanvas, type ICanvasRenderingContext2D } from '../src/types';
 export { Entity, type EntityOptions } from '../src/entities';
 export { System } from '../src/systems';
+export { DebugOverlayFlags } from '../src/scenes/DebugOverlay';

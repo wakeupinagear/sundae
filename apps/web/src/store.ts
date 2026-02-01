@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import { DebugOverlayFlags } from '@repo/engine';
+
 interface AppStore {
     cameraCount: number;
     setCameraCount: (cameraCount: number) => void;
-    debugMode: boolean;
-    setDebugMode: (debugMode: boolean) => void;
+    debugOverlay: DebugOverlayFlags;
+    setDebugOverlay: (debugOverlay: DebugOverlayFlags) => void;
     trueRandom: boolean;
     setTrueRandom: (trueRandom: boolean) => void;
 }
@@ -15,8 +17,9 @@ export const useAppStore = create<AppStore>()(
         (set) => ({
             cameraCount: 1,
             setCameraCount: (cameraCount: number) => set({ cameraCount }),
-            debugMode: false,
-            setDebugMode: (debugMode: boolean) => set({ debugMode }),
+            debugOverlay: DebugOverlayFlags.NONE,
+            setDebugOverlay: (debugOverlay: DebugOverlayFlags) =>
+                set({ debugOverlay }),
             trueRandom: false,
             setTrueRandom: (trueRandom: boolean) => set({ trueRandom }),
         }),

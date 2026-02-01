@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { Search } from 'lucide-react';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ENGINE_SCENARIOS, type ScenarioList } from '@repo/engine-scenarios';
@@ -61,14 +62,20 @@ export function ExampleList({
 
     return (
         <div className="w-full min-w-0 flex flex-col gap-2 p-2">
-            <Input
-                ref={inputRef}
-                className="p-2 text-sm"
-                type="text"
-                name="Search"
-                placeholder="Search Examples"
-                onChange={(e) => setSearch(e.target.value)}
-            />
+            <div className="relative">
+                <Search
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    size={12}
+                />
+                <Input
+                    ref={inputRef}
+                    className="pl-6 pr-2 text-sm"
+                    type="text"
+                    name="Search"
+                    placeholder="Search Examples"
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+            </div>
             <div className="flex flex-col p-2 gap-4">
                 {Object.entries(filteredScenarios).map(
                     ([categoryID, category]) =>
@@ -77,7 +84,9 @@ export function ExampleList({
                                 key={categoryID}
                                 className="flex flex-col gap-2"
                             >
-                                <h2 className="text-lg">{category.name}</h2>
+                                <h2 className="text-foreground">
+                                    {category.name}
+                                </h2>
                                 <div className="flex flex-col gap-2 pl-2">
                                     {Object.entries(category.scenarios).map(
                                         ([scenarioID, scenario]) => (
@@ -89,7 +98,7 @@ export function ExampleList({
                                                 )}
                                                 href={`#${scenarioToID(categoryID, scenarioID)}`}
                                                 className={clsx(
-                                                    'font-medium hover:underline',
+                                                    'font-medium text-primary hover:underline',
                                                     {
                                                         underline:
                                                             categoryID ===

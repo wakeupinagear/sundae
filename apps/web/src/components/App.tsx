@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { type Engine, type EngineOptions } from '@repo/engine';
+import {
+    DebugOverlayFlags,
+    type Engine,
+    type EngineOptions,
+} from '@repo/engine';
 import { ENGINE_SCENARIOS } from '@repo/engine-scenarios';
 import { Harness } from '@repo/react';
 import { ThemeProvider } from '@repo/ui/components/ThemeProvider';
-import '@repo/ui/globals.css';
 
 import { useAppStore } from '../store';
 import { WebHarness } from '../utils/harness';
@@ -73,7 +76,7 @@ const makeGridCameras = (
 
 export function App() {
     const cameraCount = useAppStore((state) => state.cameraCount);
-    const debugMode = useAppStore((state) => state.debugMode);
+    const debugOverlay = useAppStore((state) => state.debugOverlay);
     const trueRandom = useAppStore((state) => state.trueRandom);
 
     const [[categoryID, scenarioID], setScenario] =
@@ -123,15 +126,15 @@ export function App() {
                 Math.min(cameraCount, maxCameras),
                 cameraHash.current,
             ),
-            debugOverlayEnabled: debugMode,
-            engineTracesEnabled: debugMode,
+            debugOverlay,
+            engineTraces: debugOverlay !== DebugOverlayFlags.NONE,
             randomSeed: trueRandom
                 ? (Math.random() * 2 ** 32) >>> 0
                 : undefined,
         };
 
         return options;
-    }, [debugMode, trueRandom, cameraCount, maxCameras]);
+    }, [debugOverlay, trueRandom, cameraCount, maxCameras]);
 
     const onEngineReady = useCallback(
         (engine: Engine) => {
@@ -148,8 +151,8 @@ export function App() {
     return (
         <ThemeProvider>
             <div className="flex items-stretch h-screen overflow-hidden">
-                <aside className="flex flex-col h-screen min-h-0 w-44 shrink-0">
-                    <h1 className="p-2">🍨 Sundae</h1>
+                <aside className="flex flex-col h-screen min-h-0 w-44 shrink-0 bg-background">
+                    <h1 className="p-2 text-primary">🍨 Sundae</h1>
                     <div className="min-h-0 flex-1 overflow-y-auto w-full">
                         <ExampleList
                             selectedCategoryID={categoryID}

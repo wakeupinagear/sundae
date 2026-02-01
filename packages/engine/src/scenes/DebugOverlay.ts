@@ -21,21 +21,37 @@ const IMPORTANT_TRACE_STALE_TIME = 5000;
 const HEADER_SIZE = 16;
 const LABEL_COLOR = '#CCCCCC';
 
+export enum DebugOverlayFlags {
+    NONE = 0,
+    STATS_FPS = 1 << 0,
+    STATS_TRACES = 1 << 1,
+    STATS_RENDER_COMMANDS = 1 << 2,
+    STATS_PHYSICS = 1 << 3,
+    STATS = STATS_FPS | STATS_TRACES | STATS_RENDER_COMMANDS | STATS_PHYSICS,
+    VISUAL_COLLIDERS = 1 << 4,
+    VISUAL_BOUNDING_BOXES = 1 << 5,
+    VISUAL_RAYCASTS = 1 << 6,
+    VISUAL = VISUAL_COLLIDERS | VISUAL_BOUNDING_BOXES | VISUAL_RAYCASTS,
+    ALL = STATS | VISUAL,
+}
+
+interface E_StatsDebugOptions extends E_TextOptions {
+    overlayScene: DebugOverlayScene;
+}
+
 export class E_StatsDebug<
     TEngine extends Engine = Engine,
 > extends E_Text<TEngine> {
+    #overlayScene: DebugOverlayScene;
     #importantTraces: Map<string, number> = new Map();
 
-    constructor(options: E_TextOptions) {
+    constructor(options: E_StatsDebugOptions) {
         super({
             ...options,
             text: '',
         });
-    }
 
-    override update(): boolean {
-        // Force render loop while this entity exists
-        return true;
+        this.#overlayScene = options.overlayScene;
     }
 
     override queueRenderCommands(
@@ -52,32 +68,33 @@ export class E_StatsDebug<
         }
 
         const currentTime = performance.now();
-        let text = `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>`;
+        const flags = this.#overlayScene.flags;
+        let text = '';
 
-        let textContent = '';
-        if (stats.traces.length > 0) {
-            textContent += this.#buildTraceText(
-                stats.traces,
-                0,
-                '',
-                currentTime,
-            );
+        if (flags & DebugOverlayFlags.STATS_FPS) {
+            text += `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>`;
         }
-        if (stats.renderCommands) {
-            textContent += this.#buildCacheText(stats.renderCommands);
+
+        if (flags & DebugOverlayFlags.STATS_TRACES && stats.traces.length > 0) {
+            text += this.#buildTraceText(stats.traces, 0, '', currentTime);
+        }
+        if (
+            flags & DebugOverlayFlags.STATS_RENDER_COMMANDS &&
+            stats.renderCommands
+        ) {
+            text += this.#buildCacheText(stats.renderCommands);
         }
 
         const spatialStats = this._engine.physicsSystem.spatialGridStats;
-        if (spatialStats.entityCount > 0) {
-            textContent += `\n<color=${LABEL_COLOR}>Spatial Grid:</color>`;
-            textContent += `\n  <color=${LABEL_COLOR}>Entities:</color> <bold>${spatialStats.entityCount}</bold>`;
-            textContent += `\n  <color=${LABEL_COLOR}>Cells:</color> <bold>${spatialStats.cellCount}</bold>`;
-            textContent += `\n  <color=${LABEL_COLOR}>Avg/Cell:</color> <bold>${spatialStats.avgEntitiesPerCell.toFixed(1)}</bold>`;
-            textContent += `\n  <color=${LABEL_COLOR}>Max/Cell:</color> <bold>${spatialStats.maxEntitiesInCell}</bold>`;
-        }
-
-        if (textContent) {
-            text += `\n${textContent}`;
+        if (
+            flags & DebugOverlayFlags.STATS_PHYSICS &&
+            spatialStats.entityCount > 0
+        ) {
+            text += `\n<color=${LABEL_COLOR}>Spatial Grid:</color>`;
+            text += `\n  <color=${LABEL_COLOR}>Entities:</color> <bold>${spatialStats.entityCount}</bold>`;
+            text += `\n  <color=${LABEL_COLOR}>Cells:</color> <bold>${spatialStats.cellCount}</bold>`;
+            text += `\n  <color=${LABEL_COLOR}>Avg/Cell:</color> <bold>${spatialStats.avgEntitiesPerCell.toFixed(1)}</bold>`;
+            text += `\n  <color=${LABEL_COLOR}>Max/Cell:</color> <bold>${spatialStats.maxEntitiesInCell}</bold>`;
         }
 
         this.text = text;
@@ -414,30 +431,38 @@ class C_RaycastDebug<
 export class DebugOverlayScene<
     TEngine extends Engine = Engine,
 > extends Scene<TEngine> {
-    override create(): void {
+    #flags: DebugOverlayFlags | null = null;
+
+    #colliderDebug!: C_ColliderDebug<TEngine>;
+    #boundingBoxDebug!: C_BoundingBoxDebug<TEngine>;
+    #raycastDebug!: C_RaycastDebug<TEngine>;
+    #statsDebug!: E_StatsDebug<TEngine>;
+
+    override create(_engine: TEngine, flags?: DebugOverlayFlags): void {
         const sceneEntityName = this.rootEntity.name;
 
         const visualDebug = this.createEntity({
             name: 'visualDebug',
             cull: 'none',
         });
-        visualDebug.addComponent({
+        this.#colliderDebug = visualDebug.addComponent({
             type: C_ColliderDebug,
             name: 'colliderDebug',
             sceneEntityName: sceneEntityName,
-        });
-        visualDebug.addComponent({
+        }) as C_ColliderDebug<TEngine>;
+        this.#boundingBoxDebug = visualDebug.addComponent({
             type: C_BoundingBoxDebug,
             name: 'boundingBoxDebug',
             sceneEntityName: sceneEntityName,
-        });
-        visualDebug.addComponent({
+        }) as C_BoundingBoxDebug<TEngine>;
+        this.#raycastDebug = visualDebug.addComponent({
             type: C_RaycastDebug,
             name: 'raycastDebug',
-        });
+        }) as C_RaycastDebug<TEngine>;
 
-        this.createEntity({
+        this.#statsDebug = this.createEntity({
             type: E_StatsDebug,
+            overlayScene: this,
             name: 'Stats Debug',
             cull: 'none',
             positionRelativeToCamera: { x: 'end', y: 'end' },
@@ -445,6 +470,42 @@ export class DebugOverlayScene<
             trim: 'ends',
             padding: 12,
             background: true,
-        });
+        }) as E_StatsDebug<TEngine>;
+
+        const initialFlags =
+            this.#flags !== null
+                ? this.#flags
+                : (flags ?? DebugOverlayFlags.NONE);
+        this.setFlags(initialFlags, true);
+    }
+
+    get flags(): DebugOverlayFlags {
+        return this.#flags ?? DebugOverlayFlags.NONE;
+    }
+
+    update(): boolean {
+        // Force render loop while the overlay is active
+        return true;
+    }
+
+    setFlags(flags: DebugOverlayFlags, force?: boolean): void {
+        if (this.#boundingBoxDebug && (force || this.#flags !== flags)) {
+            this.#boundingBoxDebug.setEnabled(
+                Boolean(flags & DebugOverlayFlags.VISUAL_BOUNDING_BOXES),
+            );
+            this.#colliderDebug.setEnabled(
+                Boolean(flags & DebugOverlayFlags.VISUAL_COLLIDERS),
+            );
+            this.#raycastDebug.setEnabled(
+                Boolean(flags & DebugOverlayFlags.VISUAL_RAYCASTS),
+            );
+            this.#statsDebug.setEnabled(
+                Boolean(flags & DebugOverlayFlags.STATS_FPS) ||
+                    Boolean(flags & DebugOverlayFlags.STATS_TRACES) ||
+                    Boolean(flags & DebugOverlayFlags.STATS_RENDER_COMMANDS),
+            );
+        }
+
+        this.#flags = flags;
     }
 }

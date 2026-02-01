@@ -101,7 +101,7 @@ export class Scene<TEngine extends Engine = Engine> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    create(_engine: TEngine): void {}
+    create(_engine: TEngine, ..._args: unknown[]): void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update(_deltaTime: number): boolean | void {}
@@ -118,7 +118,10 @@ export type SceneIdentifier<TEngine extends Engine = Engine> =
 export class SceneSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
-    #queuedNewScenes: Scene<TEngine>[] = [];
+    #queuedNewScenes: Array<{
+        scene: Scene<TEngine>;
+        createArgs: unknown[];
+    }> = [];
     #activeScenesByID: Map<number, Scene<TEngine>> = new Map();
     #activeScenesByName: Map<string, Scene<TEngine>> = new Map();
     #defaultScene: Scene<TEngine> | null = null;
@@ -158,8 +161,8 @@ export class SceneSystem<
         this.#queuedDestroyedScenes = [];
     }
 
-    openScene(scene: Scene<TEngine>): void {
-        this.#queuedNewScenes.push(scene);
+    openScene(scene: Scene<TEngine>, createArgs: unknown[] = []): void {
+        this.#queuedNewScenes.push({ scene, createArgs });
     }
 
     closeScene(scene: SceneIdentifier<TEngine>): void {
@@ -189,7 +192,10 @@ export class SceneSystem<
         );
     }
 
-    #makeSceneActive(scene: Scene<TEngine>): void {
+    #makeSceneActive(
+        scene: Scene<TEngine>,
+        createArgs: unknown[] = [],
+    ): void {
         this.#activeScenesByID.set(scene.id, scene);
         this.#activeScenesByName.set(scene.name, scene);
 
@@ -205,7 +211,10 @@ export class SceneSystem<
         }
 
         scene.rootEntity = rootEntity;
-        scene.create(this._engine);
+        (scene.create as (engine: TEngine, ...args: unknown[]) => void)(
+            this._engine,
+            ...createArgs,
+        );
     }
 
     #performQueuedUpdate(): boolean {
@@ -216,8 +225,8 @@ export class SceneSystem<
             const newScenes = [...this.#queuedNewScenes];
             // Allows new scenes to be opened by a scene's create method
             this.#queuedNewScenes = [];
-            for (const newScene of newScenes) {
-                this.#makeSceneActive(newScene);
+            for (const { scene, createArgs } of newScenes) {
+                this.#makeSceneActive(scene, createArgs);
             }
             updated = true;
         }

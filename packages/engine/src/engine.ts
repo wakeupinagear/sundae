@@ -19,7 +19,7 @@ import {
 } from './entities/factory';
 import { generatePRNG } from './math/random';
 import { type IVector, type VectorConstructor } from './math/vector';
-import { DebugOverlayScene } from './scenes/DebugOverlay';
+import { DebugOverlayFlags, DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import {
     type CameraOptions,
@@ -126,6 +126,13 @@ export type SceneConstructor<
     TEngine extends Engine = Engine,
 > = new (options: SceneOptions<TEngine>) => T;
 
+/** Rest parameters of a scene's create() method (after the engine argument). */
+export type SceneCreateArgs<T extends Scene> = T extends {
+    create(_e: unknown, ...args: infer A): unknown;
+}
+    ? A
+    : [];
+
 export interface EngineOptions {
     cameras: Record<string, CameraSystemOptions>;
     cameraOptions: CameraOptions;
@@ -153,8 +160,8 @@ export interface EngineOptions {
     delayDeltaTimeByNFrames: number;
 
     alwaysRender: boolean;
-    engineTracesEnabled: boolean;
-    debugOverlayEnabled: boolean;
+    engineTraces: boolean;
+    debugOverlay: boolean | number | DebugOverlayFlags;
     logOutput: LogOutput | null | undefined;
 
     randomSeed: number;
@@ -191,8 +198,8 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     delayDeltaTimeByNFrames: 2,
 
     alwaysRender: false,
-    engineTracesEnabled: false,
-    debugOverlayEnabled: false,
+    engineTraces: false,
+    debugOverlay: false,
     logOutput: console,
 
     randomSeed: 1234567890,
@@ -226,7 +233,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     protected _lastTime: number = performance.now();
 
-    #debugOverlayScene: Scene | null = null;
+    #debugOverlayScene: DebugOverlayScene<this> | null = null;
 
     #forceRender: boolean = true;
     #forceRenderCameras: Set<string> = new Set();
@@ -318,7 +325,9 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         );
 
         for (const sceneCtor of this._options.startScenes) {
-            this.openScene(sceneCtor);
+            this.openScene(
+                sceneCtor as unknown as SceneConstructor<Scene<this>, this>,
+            );
         }
 
         this._options.onReadyForNextFrame?.(this.#boundEngineLoop);
@@ -444,12 +453,21 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return createdEntities;
     }
 
-    openScene<T extends Scene>(
+    openScene<T extends Scene<this>>(
         sceneCtor: SceneConstructor<T, this>,
-        options?: Omit<SceneOptions<this>, 'engine'>,
+        options?: Omit<SceneOptions<this>, 'engine'> & {
+            createArgs?: SceneCreateArgs<T>;
+        },
     ): T {
-        const scene = new sceneCtor({ engine: this, ...options });
-        this._sceneSystem.openScene(scene as unknown as Scene<this>);
+        const { createArgs, ...sceneOptions } = options ?? {};
+        const scene = new sceneCtor({
+            engine: this,
+            ...sceneOptions,
+        }) as T;
+        this._sceneSystem.openScene(
+            scene as unknown as Scene<this>,
+            createArgs ?? [],
+        );
 
         return scene;
     }
@@ -747,23 +765,26 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     }
 
     trace<T>(name: string, callback: () => T): T {
-        if (!this._options.engineTracesEnabled) {
+        if (!this._options.engineTraces) {
             return callback();
         }
 
         return this._statsSystem.trace(name, callback);
     }
 
-    openDebugOverlay(): void {
+    enableDebugOverlay(flags: DebugOverlayFlags): void {
         if (!this.#debugOverlayScene) {
             this.#debugOverlayScene = this.openScene(DebugOverlayScene, {
                 name: DEBUG_OVERLAY_SCENE_NAME,
                 zIndex: DEBUG_OVERLAY_SCENE_Z_INDEX,
+                createArgs: [flags],
             });
+        } else {
+            this.#debugOverlayScene.setFlags(flags);
         }
     }
 
-    closeDebugOverlay(): void {
+    disableDebugOverlay(): void {
         this.destroyScene(DEBUG_OVERLAY_SCENE_NAME);
         this.#debugOverlayScene = null;
     }
@@ -948,13 +969,19 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             this._inputSystem.setInputConfigs(newOptions.inputConfigs);
         }
 
-        if (
-            newOptions.debugOverlayEnabled !== Boolean(this.#debugOverlayScene)
-        ) {
-            if (newOptions.debugOverlayEnabled) {
-                this.openDebugOverlay();
+        if (newOptions.debugOverlay !== undefined) {
+            const overlayEnabled =
+                Boolean(newOptions.debugOverlay) ||
+                (newOptions.debugOverlay as DebugOverlayFlags) !==
+                    DebugOverlayFlags.NONE;
+            if (overlayEnabled) {
+                const flags =
+                    typeof newOptions.debugOverlay === 'number'
+                        ? newOptions.debugOverlay
+                        : DebugOverlayFlags.STATS_FPS;
+                this.enableDebugOverlay(flags);
             } else {
-                this.closeDebugOverlay();
+                this.disableDebugOverlay();
             }
         }
 
