@@ -1,3 +1,4 @@
+import { PointerButton } from '@repo/engine/pointer';
 import { Scene } from '@repo/engine/scene';
 
 import type { EngineScenario } from '../types';
@@ -93,6 +94,11 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
                 y1: -Infinity,
                 y2: Infinity,
             },
+            dragButtons: [
+                PointerButton.LEFT,
+                PointerButton.RIGHT,
+                PointerButton.MIDDLE,
+            ],
         },
     };
     harness.engine.openScene(InfiniteCanvasScene);

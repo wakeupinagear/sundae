@@ -229,6 +229,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     #debugOverlayScene: Scene | null = null;
 
     #forceRender: boolean = true;
+    #forceRenderCameras: Set<string> = new Set();
     #boundEngineLoop = this.#engineLoop.bind(this);
 
     #browserWindowEventHandlers: Partial<
@@ -389,6 +390,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this.#forceRender = true;
     }
 
+    forceRenderCamera(cameraID: string): void {
+        this.#forceRenderCameras.add(cameraID);
+    }
+
     addSystem(system: System): void {
         this._systems.push(system);
     }
@@ -542,8 +547,20 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         }
     }
 
+    setAllCamerasPositions(position: IVector<number>): void {
+        for (const camera of Object.values(this._cameraSystems)) {
+            camera.setPosition(position);
+        }
+    }
+
     setCameraZoom(zoom: number, cameraID = this.#getPrimaryCameraID()): void {
         this._cameraSystems[cameraID]?.setZoom(zoom);
+    }
+
+    setAllCamerasZooms(zoom: number): void {
+        for (const camera of Object.values(this._cameraSystems)) {
+            camera.setZoom(zoom);
+        }
     }
 
     zoomCamera(
@@ -554,6 +571,12 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._cameraSystems[cameraID]?.zoomBy(delta, focalPoint);
     }
 
+    zoomAllCameras(delta: number): void {
+        for (const camera of Object.values(this._cameraSystems)) {
+            camera.zoomBy(delta);
+        }
+    }
+
     setCameraRotation(
         rotation: number,
         cameraID = this.#getPrimaryCameraID(),
@@ -561,8 +584,20 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._cameraSystems[cameraID]?.setRotation(rotation);
     }
 
+    setAllCamerasRotations(rotation: number): void {
+        for (const camera of Object.values(this._cameraSystems)) {
+            camera.setRotation(rotation);
+        }
+    }
+
     rotateCamera(delta: number, cameraID = this.#getPrimaryCameraID()): void {
         this._cameraSystems[cameraID]?.rotate(delta);
+    }
+
+    rotateAllCameras(delta: number): void {
+        for (const camera of Object.values(this._cameraSystems)) {
+            camera.rotate(delta);
+        }
     }
 
     getImage(name: string): Readonly<LoadedImage> | null {
@@ -811,20 +846,30 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         });
 
         this.trace('Render', () => {
-            if (this.#forceRender) {
-                for (const canvas of Object.values(this._canvases)) {
-                    const ctx = canvas?.getContext('2d');
-                    if (canvas && ctx) {
-                        ctx.fillStyle = this._options.canvasClearColor;
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const forceRender = this.#forceRender;
+            if (forceRender || this.#forceRenderCameras.size > 0) {
+                // Only clear the canvas if we are forcing a full render
+                if (forceRender) {
+                    for (const canvas of Object.values(this._canvases)) {
+                        const ctx = canvas?.getContext('2d');
+                        if (canvas && ctx) {
+                            ctx.fillStyle = this._options.canvasClearColor;
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        }
                     }
                 }
 
                 for (const cameraSystem of Object.values(this._cameraSystems)) {
-                    cameraSystem.render();
+                    if (
+                        forceRender ||
+                        this.#forceRenderCameras.has(cameraSystem.id)
+                    ) {
+                        cameraSystem.render();
+                    }
                 }
 
                 this.#forceRender = false;
+                this.#forceRenderCameras.clear();
             }
         });
 

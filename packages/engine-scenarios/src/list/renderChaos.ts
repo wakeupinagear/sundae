@@ -234,9 +234,9 @@ class ChaosScene extends Scene {
             this.#nestedBoxEntities[i].rotate(speed * deltaTime);
         }
 
-        this._engine.rotateCamera(-25 * deltaTime);
+        this._engine.rotateAllCameras(-25 * deltaTime);
         const zoomWobble = 0.35 * Math.sin(t * 2) + 0.15 * Math.sin(t * 5);
-        this._engine.setCameraZoom(zoomWobble);
+        this._engine.setAllCamerasZooms(zoomWobble);
 
         return true;
     }

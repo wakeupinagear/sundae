@@ -361,7 +361,7 @@ export class CameraSystem<
 
         const cameraPointer = this._engine.getPointer(this.#id);
         const canvasPointer = cameraPointer.canvasPointer;
-        let updated = this.#updatePointer(cameraPointer, canvasPointer);
+        this.#updatePointer(cameraPointer, canvasPointer);
 
         const worldPosition = this.screenToWorld(
             canvasPointer.currentState.position,
@@ -371,6 +371,7 @@ export class CameraSystem<
             this.#updateAllPointerTargets(this.#worldPosition, canvasPointer);
         }
 
+        let updated = false;
         const canvas = this._engine.getCanvas(this.#options.canvasID);
         if (canvas) {
             if (!this.#canvasSize) {
@@ -485,7 +486,7 @@ export class CameraSystem<
     #updatePointer(
         cameraPointer: CameraPointer,
         canvasPointer: CanvasPointer,
-    ): boolean {
+    ): void {
         let updated = false;
         this.#isPointerOverCamera =
             canvasPointer.currentState.onScreen &&
@@ -588,7 +589,9 @@ export class CameraSystem<
             }
         }
 
-        return updated;
+        if (updated) {
+            this._engine.forceRenderCamera(this.#id);
+        }
     }
 
     #syncDragStartMousePosition(
