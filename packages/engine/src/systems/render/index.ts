@@ -27,6 +27,8 @@ interface CanvasStyle extends RenderStyle {
 export class RenderSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
+    public static typeString: string = 'RenderSystem';
+
     #stream: RenderCommandStream | null = null;
     #cameraTransform: Matrix2D = new Matrix2D();
 
@@ -66,9 +68,13 @@ export class RenderSystem<
     #transformScaleStack: number[] = [];
     #transformInverseStack = new DynamicNumberArray(Float32Array, 256 * 6);
 
+    override get typeString(): string {
+        return RenderSystem.typeString;
+    }
+
     destroy(): void {}
 
-    getRenderCommandStats(): Readonly<RenderCommandStats> | null {
+    getStats(): Readonly<RenderCommandStats> | null {
         return this.#stream?.stats ?? null;
     }
 

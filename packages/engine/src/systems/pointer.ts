@@ -137,8 +137,14 @@ export class PointerSystem<TEngine extends Engine = Engine>
     extends System<TEngine>
     implements I_PointerSystem
 {
+    public static typeString: string = 'PointerSystem';
+
     #canvasPointers: Record<string, CanvasPointer> = {};
     #cameraPointers: Record<string, CameraPointer> = {};
+
+    override get typeString(): string {
+        return PointerSystem.typeString;
+    }
 
     getCanvasPointer = (canvasID = DEFAULT_CANVAS_ID): CanvasPointer => {
         return this.#getCanvasPointer(canvasID);

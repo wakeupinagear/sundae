@@ -112,12 +112,12 @@ export default function HarnessOptions({
                         },
                         { label: 'Visuals' },
                         {
-                            value: DebugOverlayFlags.VISUAL_COLLIDERS,
-                            label: 'Colliders',
-                        },
-                        {
                             value: DebugOverlayFlags.VISUAL_BOUNDING_BOXES,
                             label: 'Bounding Boxes',
+                        },
+                        {
+                            value: DebugOverlayFlags.VISUAL_COLLIDERS,
+                            label: 'Colliders',
                         },
                         {
                             value: DebugOverlayFlags.VISUAL_RAYCASTS,

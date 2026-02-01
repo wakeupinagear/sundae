@@ -835,7 +835,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             this.#forceRender ||= this.options.alwaysRender;
 
             for (const system of this._systems) {
-                this.trace(`${system.constructor.name}.early`, () => {
+                this.trace(`${system.typeString}.early`, () => {
                     const updated = system.earlyUpdate(deltaTime) ?? false;
                     if (updated === true) {
                         this.#forceRender = true;
@@ -851,7 +851,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             });
 
             for (const system of this._systems) {
-                this.trace(`${system.constructor.name}.late`, () => {
+                this.trace(`${system.typeString}.late`, () => {
                     const updated = system.lateUpdate(deltaTime) ?? false;
                     if (updated === true) {
                         this.#forceRender = true;

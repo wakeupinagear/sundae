@@ -1,11 +1,17 @@
 import type { Engine } from '../engine';
 
 export abstract class System<TEngine extends Engine = Engine> {
+    public static typeString: string = 'System';
+
     protected _engine: TEngine;
 
     constructor(engine: TEngine) {
         this._engine = engine;
         this._engine.addSystem(this);
+    }
+
+    get typeString(): string {
+        return System.typeString;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -3,6 +3,13 @@ import type { Entity } from '../../entities';
 import { type BoundingBox } from '../../math/boundingBox';
 import { type IVector } from '../../math/vector';
 
+export interface SpatialHashGridStats {
+    cellCount: number;
+    entityCount: number;
+    avgEntitiesPerCell: number;
+    maxEntitiesInCell: number;
+}
+
 export class SpatialHashGrid<
     TEntity extends Entity<TEngine>,
     TEngine extends Engine = Engine,
@@ -126,12 +133,7 @@ export class SpatialHashGrid<
         this.#entityCells.clear();
     }
 
-    getStats(): {
-        cellCount: number;
-        entityCount: number;
-        avgEntitiesPerCell: number;
-        maxEntitiesInCell: number;
-    } {
+    getStats(): Readonly<SpatialHashGridStats> {
         let maxEntities = 0;
         let totalEntities = 0;
 

@@ -1,5 +1,6 @@
 import type { Engine } from '../engine';
 import { System } from './index';
+import type { SpatialHashGridStats } from './physics/spatialHash';
 import type { RenderCommandStats } from './render/command';
 
 const STATS_BUFFER_SIZE = 1;
@@ -16,17 +17,21 @@ export interface Stats {
     fps: number;
     traces: Readonly<TraceFrame>[];
     renderCommands: Readonly<RenderCommandStats> | null;
+    spatialGrid: Readonly<SpatialHashGridStats> | null;
 }
 
 const createEmptyStats = (fps: number = 0): Stats => ({
     fps,
     traces: [],
     renderCommands: null,
+    spatialGrid: null,
 });
 
 export class StatsSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
+    public static typeString: string = 'StatsSystem';
+
     #lastFrameStats: Stats[] = [];
     #currentFrameStats: Stats = createEmptyStats();
 
@@ -39,6 +44,10 @@ export class StatsSystem<
         super(engine);
 
         this.#currentFrameStats = this.#syncTraces();
+    }
+
+    override get typeString(): string {
+        return StatsSystem.typeString;
     }
 
     get stats(): Readonly<Stats> | null {
@@ -57,7 +66,10 @@ export class StatsSystem<
         }
 
         this.#currentFrameStats.renderCommands =
-            this._engine.renderSystem.getRenderCommandStats();
+            this._engine.renderSystem.getStats();
+
+        this.#currentFrameStats.spatialGrid =
+            this._engine.physicsSystem.getStats();
 
         this.#syncTraces();
     }

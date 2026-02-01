@@ -118,6 +118,8 @@ export type SceneIdentifier<TEngine extends Engine = Engine> =
 export class SceneSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
+    public static typeString: string = 'SceneSystem';
+
     #queuedNewScenes: Array<{
         scene: Scene<TEngine>;
         createArgs: unknown[];
@@ -133,6 +135,10 @@ export class SceneSystem<
 
     constructor(engine: TEngine) {
         super(engine);
+    }
+
+    override get typeString(): string {
+        return SceneSystem.typeString;
     }
 
     get queuedActionsExist(): boolean {

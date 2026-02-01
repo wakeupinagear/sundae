@@ -74,6 +74,8 @@ const DEFAULT_AXIS_STATE: AxisState = {
 };
 
 export class InputSystem<TEngine extends Engine = Engine> extends System<TEngine> {
+    public static typeString: string = 'InputSystem';
+
     #keyStates: Partial<
         Record<
             WebKey,
@@ -119,6 +121,10 @@ export class InputSystem<TEngine extends Engine = Engine> extends System<TEngine
     #keysPressedThisFrame: Set<WebKey> = new Set();
 
     #capturedKeyHashes: Set<string> = new Set();
+
+    override get typeString(): string {
+        return InputSystem.typeString;
+    }
 
     override earlyUpdate(deltaTime: number) {
         // Update raw keyboard key state tracking

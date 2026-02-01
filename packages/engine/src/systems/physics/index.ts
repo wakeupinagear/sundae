@@ -11,7 +11,7 @@ import {
 } from '../../math/vector';
 import type { CollisionContact } from '../../types';
 import { System } from '../index';
-import { SpatialHashGrid } from './spatialHash';
+import { SpatialHashGrid, type SpatialHashGridStats } from './spatialHash';
 
 const INV_MASS_EPSILON = 1e-6;
 const MIN_PENETRATION_DEPTH = 0.01;
@@ -40,6 +40,8 @@ export interface Raycast<TEngine extends Engine = Engine> {
 export class PhysicsSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
+    public static typeString: string = 'PhysicsSystem';
+
     #gravityScale: number = 0;
     #gravityDirection: Vector = new Vector(0);
     #currentGravity: Vector = new Vector(0);
@@ -60,6 +62,10 @@ export class PhysicsSystem<
         this.#spatialGrid = new SpatialHashGrid(
             engine.options.spatialHashCellSize,
         );
+    }
+
+    override get typeString(): string {
+        return PhysicsSystem.typeString;
     }
 
     get gravityScale() {
@@ -89,7 +95,7 @@ export class PhysicsSystem<
         return this.#spatialGrid;
     }
 
-    get spatialGridStats() {
+    getStats(): Readonly<SpatialHashGridStats> | null {
         return this.#spatialGrid.getStats();
     }
 

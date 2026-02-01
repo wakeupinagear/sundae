@@ -27,7 +27,13 @@ export class LogSystem<TEngine extends Engine = Engine>
     extends System<TEngine>
     implements I_LogSystem
 {
+    public static typeString: string = 'LogSystem';
+
     #logOutput: LogOutput | null = null;
+
+    override get typeString(): string {
+        return LogSystem.typeString;
+    }
 
     set logOutput(logOutput: LogOutput | null | undefined) {
         this.#logOutput = logOutput ?? null;

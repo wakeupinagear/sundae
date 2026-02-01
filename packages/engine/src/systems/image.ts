@@ -10,12 +10,18 @@ export interface LoadedImage {
 export class ImageSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
+    public static typeString: string = 'ImageSystem';
+
     #loadingImages: Set<string> = new Set();
     #loadedImages: Record<string, LoadedImage> = {};
     #pathsToLoadedImages: Record<string, string> = {};
 
     #requestedImages: Set<string> = new Set();
     #requestedImageJustLoaded: boolean = false;
+
+    override get typeString(): string {
+        return ImageSystem.typeString;
+    }
 
     override lateUpdate(): boolean {
         if (this.#requestedImageJustLoaded) {

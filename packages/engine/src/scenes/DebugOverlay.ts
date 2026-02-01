@@ -5,6 +5,7 @@ import { type Entity } from '../entities';
 import type { BoundingBox } from '../math/boundingBox';
 import { E_Text, type E_TextOptions } from '../objects/text';
 import type { CameraSystem } from '../systems/camera';
+import type { SpatialHashGridStats } from '../systems/physics/spatialHash';
 import type {
     RenderCommandStats,
     RenderCommandStream,
@@ -69,35 +70,39 @@ export class E_StatsDebug<
 
         const currentTime = performance.now();
         const flags = this.#overlayScene.flags;
-        let text = '';
+        const textBlocks: string[] = [];
 
         if (flags & DebugOverlayFlags.STATS_FPS) {
-            text += `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>`;
+            textBlocks.push(
+                `<size=${HEADER_SIZE}><bold>FPS: ${stats.fps}</bold></size>`,
+            );
         }
-
         if (flags & DebugOverlayFlags.STATS_TRACES && stats.traces.length > 0) {
-            text += this.#buildTraceText(stats.traces, 0, '', currentTime);
+            if (textBlocks.length > 0) {
+                textBlocks.push(' ');
+            }
+            this.#buildTraceText(stats.traces, 0, '', currentTime, textBlocks);
         }
         if (
             flags & DebugOverlayFlags.STATS_RENDER_COMMANDS &&
             stats.renderCommands
         ) {
-            text += this.#buildCacheText(stats.renderCommands);
+            if (textBlocks.length > 0) {
+                textBlocks.push(' ');
+            }
+            this.#buildCacheText(stats.renderCommands, textBlocks);
         }
-
-        const spatialStats = this._engine.physicsSystem.spatialGridStats;
         if (
             flags & DebugOverlayFlags.STATS_PHYSICS &&
-            spatialStats.entityCount > 0
+            stats.spatialGrid?.entityCount
         ) {
-            text += `\n<color=${LABEL_COLOR}>Spatial Grid:</color>`;
-            text += `\n  <color=${LABEL_COLOR}>Entities:</color> <bold>${spatialStats.entityCount}</bold>`;
-            text += `\n  <color=${LABEL_COLOR}>Cells:</color> <bold>${spatialStats.cellCount}</bold>`;
-            text += `\n  <color=${LABEL_COLOR}>Avg/Cell:</color> <bold>${spatialStats.avgEntitiesPerCell.toFixed(1)}</bold>`;
-            text += `\n  <color=${LABEL_COLOR}>Max/Cell:</color> <bold>${spatialStats.maxEntitiesInCell}</bold>`;
+            if (textBlocks.length > 0) {
+                textBlocks.push(' ');
+            }
+            this.#buildSpatialGridText(stats.spatialGrid, textBlocks);
         }
 
-        this.text = text;
+        this.text = textBlocks.filter(Boolean).join('\n');
 
         super.queueRenderCommands(stream, camera);
     }
@@ -107,9 +112,8 @@ export class E_StatsDebug<
         depth: number,
         parentName: string,
         currentTime: number,
-    ): string {
-        let text = '';
-
+        outTextBlocks: string[],
+    ): void {
         for (const trace of traces) {
             const name = trace.name;
             const { subFrames, time, numCalls = 1 } = trace;
@@ -134,40 +138,34 @@ export class E_StatsDebug<
 
             const padding = ' '.repeat(depth * 2);
             const traceText = `<color=${LABEL_COLOR}>${name}${numCalls > 1 ? ` (${numCalls})` : ''}:</color> <bold>${time.toFixed(1)}ms</bold>`;
-            text += padding + traceText + '\n';
+            outTextBlocks.push(padding + traceText);
 
             if (subFrames.length > 0) {
-                text += this.#buildTraceText(
+                this.#buildTraceText(
                     subFrames,
                     depth + 1,
                     name,
                     currentTime,
+                    outTextBlocks,
                 );
             }
         }
-
-        if (text && depth === 0) {
-            text = `\n${text}`;
-        }
-
-        return text;
     }
 
-    #buildCacheText(stats: Readonly<RenderCommandStats>) {
-        let text = '';
-        text += this.#buildCacheTextEntry('transform', stats.transform);
-        text += this.#buildCacheTextEntry('setStyle', stats.setStyle);
-        text += this.#buildCacheTextEntry('setOpacity', stats.setOpacity);
-        text += this.#buildCacheTextEntry('drawRect', stats.drawRect);
-        text += this.#buildCacheTextEntry('drawEllipse', stats.drawEllipse);
-        text += this.#buildCacheTextEntry('drawLine', stats.drawLine);
-        text += this.#buildCacheTextEntry('drawImage', stats.drawImage);
-        text += this.#buildCacheTextEntry('drawText', stats.drawText);
-        if (text) {
-            text = `\n${text}`;
-        }
-
-        return text;
+    #buildCacheText(
+        stats: Readonly<RenderCommandStats>,
+        outTextBlocks: string[],
+    ): void {
+        outTextBlocks.push(
+            this.#buildCacheTextEntry('transform', stats.transform),
+            this.#buildCacheTextEntry('setStyle', stats.setStyle),
+            this.#buildCacheTextEntry('setOpacity', stats.setOpacity),
+            this.#buildCacheTextEntry('drawRect', stats.drawRect),
+            this.#buildCacheTextEntry('drawEllipse', stats.drawEllipse),
+            this.#buildCacheTextEntry('drawLine', stats.drawLine),
+            this.#buildCacheTextEntry('drawImage', stats.drawImage),
+            this.#buildCacheTextEntry('drawText', stats.drawText),
+        );
     }
 
     #buildCacheTextEntry(name: string, stats: CacheStats): string {
@@ -176,7 +174,20 @@ export class E_StatsDebug<
             stats.cached > 0
                 ? ` (${((stats.cached / (stats.total + stats.cached)) * 100).toFixed(1)}% cached)`
                 : '';
-        return `<color=${LABEL_COLOR}>${name}:</color> <bold>${stats.total}${cachedPercent}</bold>\n`;
+        return `<color=${LABEL_COLOR}>${name}:</color> <bold>${stats.total}${cachedPercent}</bold>`;
+    }
+
+    #buildSpatialGridText(
+        stats: Readonly<SpatialHashGridStats>,
+        outTextBlocks: string[],
+    ): void {
+        outTextBlocks.push(
+            `<color=${LABEL_COLOR}>Spatial Grid:</color>`,
+            `  <color=${LABEL_COLOR}>Entities:</color> <bold>${stats.entityCount}</bold>`,
+            `  <color=${LABEL_COLOR}>Cells:</color> <bold>${stats.cellCount}</bold>`,
+            `  <color=${LABEL_COLOR}>Avg/Cell:</color> <bold>${stats.avgEntitiesPerCell.toFixed(1)}</bold>`,
+            `  <color=${LABEL_COLOR}>Max/Cell:</color> <bold>${stats.maxEntitiesInCell}</bold>`,
+        );
     }
 }
 

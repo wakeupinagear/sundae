@@ -67,6 +67,8 @@ export type CameraTargetConstructor =
 export class CameraSystem<
     TEngine extends Engine = Engine,
 > extends System<TEngine> {
+    public static typeString: string = 'CameraSystem';
+
     #id: string;
 
     #position: Vector = new Vector(0);
@@ -122,6 +124,10 @@ export class CameraSystem<
                 y2: Infinity,
             },
         };
+    }
+
+    override get typeString(): string {
+        return CameraSystem.typeString;
     }
 
     get id(): string {
@@ -361,7 +367,6 @@ export class CameraSystem<
 
         const cameraPointer = this._engine.getPointer(this.#id);
         const canvasPointer = cameraPointer.canvasPointer;
-        const prevIsPointerOverCamera = this.#isPointerOverCamera;
         this.#updatePointer(cameraPointer, canvasPointer);
 
         const worldPosition = this.screenToWorld(
@@ -377,7 +382,7 @@ export class CameraSystem<
             }
         }
 
-        let updated = prevIsPointerOverCamera !== this.#isPointerOverCamera;
+        let updated = false;
         const canvas = this._engine.getCanvas(this.#options.canvasID);
         if (canvas) {
             if (!this.#canvasSize) {
