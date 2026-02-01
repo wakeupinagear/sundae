@@ -42,6 +42,7 @@ export abstract class C_Collider<
 
     #isPointerHovered: boolean = false;
     #prevIsPointerHovered: boolean = false;
+    #hoverJustChanged: boolean = false;
 
     constructor(options: C_ColliderOptions) {
         super(options);
@@ -93,6 +94,10 @@ export abstract class C_Collider<
         this.#isPointerHovered = isPointerHovered;
     }
 
+    get hoverJustChanged(): boolean {
+        return this.#hoverJustChanged;
+    }
+
     get rigidbody(): C_Rigidbody<TEngine> | null {
         return this.#rigidbody;
     }
@@ -130,6 +135,11 @@ export abstract class C_Collider<
             }
 
             this.#prevIsPointerHovered = this.#isPointerHovered;
+            this.#hoverJustChanged = true;
+        } else {
+            this.#hoverJustChanged = Boolean(
+                this.#isPointerHovered && !this.#pointerTarget,
+            );
         }
 
         this.#isPointerHovered = false;

@@ -1,5 +1,6 @@
 import { type C_CircleCollider } from '../components/colliders/CircleCollider';
 import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
+import type { C_LerpOpacity } from '../components/lerp';
 import { type Engine } from '../engine';
 import { type Entity } from '../entities';
 import type { BoundingBox } from '../math/boundingBox';
@@ -43,7 +44,9 @@ interface E_StatsDebugOptions extends E_TextOptions {
 export class E_StatsDebug<
     TEngine extends Engine = Engine,
 > extends E_Text<TEngine> {
+    #lerpOpacity: C_LerpOpacity<TEngine>;
     #overlayScene: DebugOverlayScene;
+
     #importantTraces: Map<string, number> = new Map();
 
     constructor(options: E_StatsDebugOptions) {
@@ -52,6 +55,11 @@ export class E_StatsDebug<
             text: '',
         });
 
+        this.#lerpOpacity = this.addComponent({
+            type: 'lerpOpacity',
+            target: this,
+            speed: 5,
+        });
         this.#overlayScene = options.overlayScene;
     }
 
@@ -67,6 +75,8 @@ export class E_StatsDebug<
         if (!stats) {
             return false;
         }
+
+        this.#lerpOpacity.target = camera.isDragging ? 0.5 : 1;
 
         const currentTime = performance.now();
         const flags = this.#overlayScene.flags;

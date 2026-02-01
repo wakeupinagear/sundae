@@ -6,11 +6,15 @@ import { RENDER_STYLE_KEYS, type RenderStyle } from '../systems/render/style';
 import { OPACITY_THRESHOLD } from '../utils';
 import { Component, type ComponentOptions } from './index';
 
-export interface C_DrawableOptions extends ComponentOptions, RenderStyle {
+interface DrawableStyle extends RenderStyle {
+    opacity?: number;
+}
+
+export interface C_DrawableOptions extends ComponentOptions, DrawableStyle {
     origin?: VectorConstructor;
     size?: VectorConstructor;
     fill?: boolean;
-    opacity?: number;
+    hoverStyle?: DrawableStyle;
 }
 
 interface DrawableOptions extends C_DrawableOptions, ComponentOptions {}
@@ -21,8 +25,11 @@ export abstract class C_Drawable<
     protected _origin: Vector;
     protected _size: Vector;
     protected _fill: boolean;
-    protected _style: RenderStyle;
-    protected _opacity: number;
+    protected _style: DrawableStyle;
+    protected _hoverStyle: DrawableStyle;
+
+    #computedStyle: DrawableStyle = {};
+    #hoverStyleApplied: boolean = false;
 
     constructor(options: DrawableOptions) {
         super({ name: 'drawable', ...options });
@@ -30,7 +37,6 @@ export abstract class C_Drawable<
         this._origin = new Vector(options.origin ?? 0.5);
         this._size = new Vector(options.size ?? 1);
         this._fill = options.fill ?? false;
-        this._opacity = options.opacity ?? 1;
 
         this._style = {};
         // Only assign defined properties to save on memory
@@ -41,6 +47,12 @@ export abstract class C_Drawable<
                 this._style[key] = value as any;
             }
         }
+        if (options.opacity !== undefined) {
+            this._style.opacity = options.opacity;
+        }
+
+        this._hoverStyle = options.hoverStyle ?? {};
+        this._computeStyle();
     }
 
     get origin(): Readonly<Vector> {
@@ -56,11 +68,15 @@ export abstract class C_Drawable<
     }
 
     get style(): RenderStyle {
-        return this._style;
+        return this.#computedStyle;
+    }
+
+    get computedStyle(): RenderStyle {
+        return this.#computedStyle;
     }
 
     get opacity(): number {
-        return this._opacity * this._entity.opacity;
+        return (this.#computedStyle.opacity ?? 1) * this._entity.opacity;
     }
 
     override isVisual(): boolean {
@@ -91,18 +107,34 @@ export abstract class C_Drawable<
 
     setStyle(style: RenderStyle): this {
         this._style = { ...this._style, ...style };
+
+        return this;
+    }
+
+    setHoverStyle(style: RenderStyle): this {
+        this._hoverStyle = { ...this._hoverStyle, ...style };
+
         return this;
     }
 
     setOpacity(opacity: number): this {
-        if (this._opacity !== opacity) {
-            this._opacity = opacity;
+        if (this.#computedStyle.opacity !== opacity) {
+            this.#computedStyle.opacity = opacity;
             if (this._entity) {
                 this._entity.onChildComponentsOfTypeChanged(this.typeString);
             }
         }
 
         return this;
+    }
+
+    override update(): boolean | void {
+        if (
+            this._entity.collider?.hoverJustChanged ||
+            (!this._entity.collider && this.#hoverStyleApplied)
+        ) {
+            this._computeStyle();
+        }
     }
 
     public override queueRenderCommands(
@@ -113,7 +145,7 @@ export abstract class C_Drawable<
         const opacity = this.opacity;
         if (opacity >= OPACITY_THRESHOLD) {
             stream.setOpacity(opacity);
-            stream.setStyle(this._style);
+            stream.setStyle(this.#computedStyle);
 
             if (this._fill) {
                 const transform = this._entity.transform;
@@ -143,5 +175,15 @@ export abstract class C_Drawable<
             (1 - this._origin.x) * this._size.x,
             (1 - this._origin.y) * this._size.y,
         );
+    }
+
+    private _computeStyle(): void {
+        if (this._entity.collider?.isPointerHovered) {
+            this.#computedStyle = { ...this._style, ...this._hoverStyle };
+            this.#hoverStyleApplied = true;
+        } else {
+            this.#computedStyle = { ...this._style };
+            this.#hoverStyleApplied = false;
+        }
     }
 }

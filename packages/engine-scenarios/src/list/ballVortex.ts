@@ -66,13 +66,10 @@ class VortexScene extends Scene {
                 },
                 collision: true,
                 pointerTarget: true,
-                onPointerEnter: (collider) => {
-                    (collider.entity as E_Shape).shape.setOpacity(0.5);
-                },
-                onPointerLeave: (collider) => {
-                    (collider.entity as E_Shape).shape.setOpacity(1);
-                },
                 mass: 1,
+                hoverStyle: {
+                    opacity: 0.5,
+                },
             });
         }
     }

@@ -325,7 +325,7 @@ export class C_Shape<
             );
 
             stream.setStyle({
-                ...this.style,
+                ...this.computedStyle,
                 lineCap: 'round',
                 lineJoin: 'round',
             });

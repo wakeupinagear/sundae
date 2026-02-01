@@ -64,7 +64,7 @@ export class RenderSystem<
         },
     );
 
-    #canvasStateCache: CanvasStyle = {};
+    #canvasPointerCache: CanvasStyle = {};
     #transformScaleStack: number[] = [];
     #transformInverseStack = new DynamicNumberArray(Float32Array, 256 * 6);
 
@@ -298,68 +298,71 @@ export class RenderSystem<
 
     #applyStyle = (ctx: ICanvasRenderingContext2D, style: CanvasStyle) => {
         // Faster than checking on the canvas context itself
-        const canvasStateCache = this.#canvasStateCache;
+        const canvasPointerCache = this.#canvasPointerCache;
         if (
             style.color !== undefined &&
-            canvasStateCache.color !== style.color
+            canvasPointerCache.color !== style.color
         ) {
             ctx.fillStyle = style.color;
-            canvasStateCache.color = style.color;
+            canvasPointerCache.color = style.color;
         }
         if (
             style.lineColor !== undefined &&
-            canvasStateCache.lineColor !== style.lineColor
+            canvasPointerCache.lineColor !== style.lineColor
         ) {
             ctx.strokeStyle = style.lineColor;
-            canvasStateCache.lineColor = style.lineColor;
+            canvasPointerCache.lineColor = style.lineColor;
         }
         if (
             style.lineWidth !== undefined &&
-            canvasStateCache.lineWidth !== style.lineWidth
+            canvasPointerCache.lineWidth !== style.lineWidth
         ) {
             ctx.lineWidth = style.lineWidth;
-            canvasStateCache.lineWidth = style.lineWidth;
+            canvasPointerCache.lineWidth = style.lineWidth;
         }
         if (
             style.lineJoin !== undefined &&
-            canvasStateCache.lineJoin !== style.lineJoin
+            canvasPointerCache.lineJoin !== style.lineJoin
         ) {
             ctx.lineJoin = style.lineJoin;
-            canvasStateCache.lineJoin = style.lineJoin;
+            canvasPointerCache.lineJoin = style.lineJoin;
         }
         if (
             style.lineCap !== undefined &&
-            canvasStateCache.lineCap !== style.lineCap
+            canvasPointerCache.lineCap !== style.lineCap
         ) {
             ctx.lineCap = style.lineCap;
-            canvasStateCache.lineCap = style.lineCap;
+            canvasPointerCache.lineCap = style.lineCap;
         }
         if (
             style.imageSmoothingEnabled !== undefined &&
-            canvasStateCache.imageSmoothingEnabled !==
+            canvasPointerCache.imageSmoothingEnabled !==
                 style.imageSmoothingEnabled
         ) {
             ctx.imageSmoothingEnabled = style.imageSmoothingEnabled;
-            canvasStateCache.imageSmoothingEnabled =
+            canvasPointerCache.imageSmoothingEnabled =
                 style.imageSmoothingEnabled;
         }
-        if (style.font !== undefined && canvasStateCache.font !== style.font) {
+        if (
+            style.font !== undefined &&
+            canvasPointerCache.font !== style.font
+        ) {
             ctx.font = style.font;
-            canvasStateCache.font = style.font;
+            canvasPointerCache.font = style.font;
         }
         if (
             style.textBaseline !== undefined &&
-            canvasStateCache.textBaseline !== style.textBaseline
+            canvasPointerCache.textBaseline !== style.textBaseline
         ) {
             ctx.textBaseline = style.textBaseline;
-            canvasStateCache.textBaseline = style.textBaseline;
+            canvasPointerCache.textBaseline = style.textBaseline;
         }
         if (
             style.globalAlpha !== undefined &&
-            canvasStateCache.globalAlpha !== style.globalAlpha
+            canvasPointerCache.globalAlpha !== style.globalAlpha
         ) {
             ctx.globalAlpha = style.globalAlpha;
-            canvasStateCache.globalAlpha = style.globalAlpha;
+            canvasPointerCache.globalAlpha = style.globalAlpha;
         }
     };
 

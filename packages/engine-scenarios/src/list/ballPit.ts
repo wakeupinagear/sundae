@@ -6,8 +6,6 @@ import { type EngineScenario } from '../types';
 
 const BALL_COLORS = ['red', 'blue', 'cyan', 'yellow', 'orange', 'green'];
 
-class E_Ball extends E_Shape {}
-
 class PitScene extends Scene {
     override create(_engine: Engine<EngineOptions>): void {
         const wallOptions: E_ShapeJSON = {
@@ -36,7 +34,7 @@ class PitScene extends Scene {
 
         for (let i = 0; i < 600; i++) {
             this.createEntities({
-                type: E_Ball,
+                type: E_Shape,
                 shape: 'ELLIPSE',
                 scale: 5 + _engine.random() * 25,
                 color: BALL_COLORS[
@@ -48,13 +46,10 @@ class PitScene extends Scene {
                 },
                 collision: true,
                 pointerTarget: true,
-                onPointerEnter: (collider) => {
-                    (collider.entity as E_Shape).shape.setOpacity(0.5);
-                },
-                onPointerLeave: (collider) => {
-                    (collider.entity as E_Shape).shape.setOpacity(1);
-                },
                 mass: 1,
+                hoverStyle: {
+                    opacity: 0.5,
+                },
             });
         }
     }

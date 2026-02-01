@@ -704,7 +704,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._cameraSystems[cameraID]?.getPointerOnScreen() ?? false;
     }
 
-    getPointer(cameraID = this.#getPrimaryCameraID()): CameraPointer {
+    getCameraPointer(cameraID = this.#getPrimaryCameraID()): CameraPointer {
         return this._pointerSystem.getCameraPointer(cameraID);
     }
 

@@ -230,17 +230,6 @@ export class C_Text<
         }
     }
 
-    get opacity(): number {
-        return this.#opacity;
-    }
-
-    set opacity(opacity: number) {
-        if (opacity != this.#opacity) {
-            this.#opacity = opacity;
-            this.#markTextDirty();
-        }
-    }
-
     get startTagDelim(): string {
         return this.#startTagDelim;
     }
@@ -299,7 +288,7 @@ export class C_Text<
                     font: `${fontStyle}${fontWeight}${action.fontSize}px ${action.fontFamily}`,
                 });
             } else if (action.type === 'setOpacity') {
-                stream.setOpacity(action.opacity);
+                stream.setOpacity(action.opacity * this.opacity);
             } else {
                 stream.drawText(action.text, action.x, action.y);
             }
@@ -345,8 +334,8 @@ export class C_Text<
             fontSize: this.#fontSize,
             fontFamily: this.#fontFamily,
             color:
-                typeof this.style.color === 'string'
-                    ? this.style.color
+                typeof this.computedStyle.color === 'string'
+                    ? this.computedStyle.color
                     : 'white',
             opacity: 1,
             bold: this.#bold,
@@ -624,8 +613,8 @@ export class C_Text<
             fontSize: this.#fontSize,
             fontFamily: this.#fontFamily,
             color:
-                typeof this.style.color === 'string'
-                    ? this.style.color
+                typeof this.computedStyle.color === 'string'
+                    ? this.computedStyle.color
                     : 'white',
             opacity: 1,
             bold: false,

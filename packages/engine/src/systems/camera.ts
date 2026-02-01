@@ -146,6 +146,14 @@ export class CameraSystem<
         return this.#zoom;
     }
 
+    get cameraPointer(): CameraPointer | null {
+        return this._engine.getCameraPointer(this.#id);
+    }
+
+    get isDragging(): boolean {
+        return Boolean(this.cameraPointer?.dragStartCameraPosition);
+    }
+
     get worldToScreenMatrix(): Readonly<Matrix2D> {
         if (!this.#worldToScreenMatrix || this.#matricesDirty) {
             this.#computeMatrices();
@@ -294,7 +302,7 @@ export class CameraSystem<
     }
 
     getPointerPosition(): IVector<number> | null {
-        const cameraPointer = this._engine.getPointer(this.#id);
+        const cameraPointer = this._engine.getCameraPointer(this.#id);
 
         return this.#isPointerOverCamera
             ? this.screenToWorld(
@@ -365,7 +373,7 @@ export class CameraSystem<
             this.#updateTarget(this.#target);
         }
 
-        const cameraPointer = this._engine.getPointer(this.#id);
+        const cameraPointer = this._engine.getCameraPointer(this.#id);
         const canvasPointer = cameraPointer.canvasPointer;
         this.#updatePointer(cameraPointer, canvasPointer);
 
