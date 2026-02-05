@@ -1,19 +1,27 @@
 import type { BrowserKeyEvent, Engine, EngineOptions } from './engine';
 import type { IVector } from './math/vector';
-import type { PointerButton } from './systems/pointer';
+import type { CursorType, PointerButton } from './systems/pointer';
 import { type EngineConstructor, createEngine } from './utils';
 
 export const FromEngineMsgType = {
     INIT: 'init',
+    SET_CANVAS_CURSOR: 'set_canvas_cursor',
 } as const;
 export type FromEngineMsgType =
     (typeof FromEngineMsgType)[keyof typeof FromEngineMsgType];
 
 interface FromEngineMsg_Init {
     type: typeof FromEngineMsgType.INIT;
+    cursor: CursorType;
 }
 
-export type FromEngineMsg = FromEngineMsg_Init;
+interface FromEngineMsg_SetCanvasCursor {
+    type: typeof FromEngineMsgType.SET_CANVAS_CURSOR;
+    canvasID: string;
+    cursor: CursorType;
+}
+
+export type FromEngineMsg = FromEngineMsg_Init | FromEngineMsg_SetCanvasCursor;
 
 export const ToEngineMsgType = {
     TICK: 'tick',
@@ -144,6 +152,16 @@ export const runEngineInWorker = <
     options?: RunEngineInWorkerOptionsWhenMsgSupertype<TEngine, TToEngineMsg>,
 ) => {
     const engineInstance = createEngine<TEngine>(options?.engine);
+    engineInstance.options = {
+        onCursorChange: (cursor, canvasID) => {
+            self.postMessage({
+                type: FromEngineMsgType.SET_CANVAS_CURSOR,
+                canvasID,
+                cursor,
+            });
+        },
+    };
+
     self.postMessage({ type: FromEngineMsgType.INIT });
 
     const onMessage = options?.onMessage;

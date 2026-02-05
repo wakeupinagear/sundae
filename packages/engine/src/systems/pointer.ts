@@ -95,6 +95,7 @@ export interface CanvasPointer {
     id: string;
     currentState: CanvasPointerState;
     prevState: CanvasPointerState;
+    cursor: CursorType;
     cursorRequests: CursorRequest[];
 }
 
@@ -304,6 +305,7 @@ export class PointerSystem<TEngine extends Engine = Engine>
                 id: canvasID,
                 currentState: createCanvasPointerState(),
                 prevState: createCanvasPointerState(),
+                cursor: 'default',
                 cursorRequests: [],
             };
         }
@@ -362,19 +364,19 @@ export class PointerSystem<TEngine extends Engine = Engine>
             return;
         }
 
-        if (canvasPointer.cursorRequests.length === 0) {
-            if (fallbackCursor) {
-                if (canvas.style) {
-                    canvas.style.cursor = fallbackCursor;
-                }
-            }
-            return;
-        }
-
         canvasPointer.cursorRequests.sort((a, b) => b.priority - a.priority);
-        if (canvas.style) {
-            canvas.style.cursor = canvasPointer.cursorRequests[0].type;
-        }
+        const newCursor =
+            canvasPointer.cursorRequests.length > 0
+                ? canvasPointer.cursorRequests[0].type
+                : fallbackCursor;
         canvasPointer.cursorRequests.length = 0;
+
+        if (newCursor && newCursor !== canvasPointer.cursor) {
+            canvasPointer.cursor = newCursor;
+            this._engine.options.onCursorChange?.(newCursor, canvasPointer.id);
+            if (canvas.style) {
+                canvas.style.cursor = newCursor;
+            }
+        }
     }
 }

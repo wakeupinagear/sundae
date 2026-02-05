@@ -44,6 +44,7 @@ import {
 } from './systems/physics';
 import {
     type CameraPointer,
+    type CursorType,
     type I_PointerSystem,
     type PointerButton,
     PointerSystem,
@@ -144,6 +145,7 @@ export interface EngineOptions {
 
     inputConfigs: Record<string, InputConfig>;
     capturedKeys: CapturedKey[];
+    onCursorChange: ((cursor: CursorType, canvasID: string) => void) | null;
 
     onReadyForNextFrame: ((startNextFrame: () => void) => void) | null;
     onDestroy: (() => void) | null;
@@ -182,6 +184,7 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
 
     inputConfigs: {},
     capturedKeys: [],
+    onCursorChange: null,
 
     onReadyForNextFrame: null,
     onDestroy: null,

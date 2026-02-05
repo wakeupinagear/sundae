@@ -18,13 +18,30 @@ export class WorkerWrapper<
     #engineInitialized: boolean = false;
     #queuedMessages: [ToEngineMsg, Transferable[]][] = [];
     #rafId: number = -1;
+    #canvases: Record<string, HTMLCanvasElement | null> = {};
 
     constructor(workerURL: string | URL) {
         super();
 
         this.#worker = new Worker(workerURL, { type: 'module' });
         this.#worker.onmessage = (event: MessageEvent<FromEngineMsg>) => {
-            this.#handleMessage(event.data);
+            switch (event.data.type) {
+                case FromEngineMsgType.INIT:
+                    this.#engineInitialized = true;
+                    for (const [message, transfer] of this.#queuedMessages) {
+                        this.#worker?.postMessage(message, transfer);
+                    }
+                    this.#queuedMessages = [];
+                    this.#startAnimationLoop();
+                    break;
+                case FromEngineMsgType.SET_CANVAS_CURSOR: {
+                    const canvas = this.#canvases[event.data.canvasID];
+                    if (canvas?.style) {
+                        canvas.style.cursor = event.data.cursor;
+                    }
+                    break;
+                }
+            }
         };
     }
 
@@ -44,6 +61,12 @@ export class WorkerWrapper<
     }
 
     setCanvas(canvas: HTMLCanvasElement | null, canvasID: string) {
+        if (canvas) {
+            this.#canvases[canvasID] = canvas;
+        } else {
+            delete this.#canvases[canvasID];
+        }
+
         const offscreen = canvas?.transferControlToOffscreen() || null;
         this.sendMessage(
             { type: ToEngineMsgType.SET_CANVAS, canvasID, canvas: offscreen },
@@ -136,19 +159,6 @@ export class WorkerWrapper<
             this.#worker?.postMessage(message, transfer);
         } else {
             this.#queuedMessages.push([message, transfer]);
-        }
-    }
-
-    #handleMessage(message: FromEngineMsg) {
-        switch (message.type) {
-            case FromEngineMsgType.INIT:
-                this.#engineInitialized = true;
-                for (const [message, transfer] of this.#queuedMessages) {
-                    this.#worker?.postMessage(message, transfer);
-                }
-                this.#queuedMessages = [];
-                this.#startAnimationLoop();
-                break;
         }
     }
 
