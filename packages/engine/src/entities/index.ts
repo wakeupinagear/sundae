@@ -814,7 +814,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             let yOffsetLocal = 0;
             switch (this._positionRelativeToCamera.x) {
                 case 'start':
-                    xOffsetLocal = -cameraSize.x / 2;
+                    xOffsetLocal = -cameraSize.x / 2 - scale;
                     break;
                 case 'center':
                     xOffsetLocal = 0;
@@ -825,7 +825,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             }
             switch (this._positionRelativeToCamera.y) {
                 case 'start':
-                    yOffsetLocal = -cameraSize.y / 2;
+                    yOffsetLocal = -cameraSize.y / 2 - scale;
                     break;
                 case 'center':
                     yOffsetLocal = 0;

@@ -70,35 +70,27 @@ type BrowserCanvasEvent =
     | 'pointercancel'
     | 'pointerenter'
     | 'pointerleave'
-    | 'pointerover'
-    | 'pointerout'
     | 'wheel';
+
+export interface BrowserKeyEvent {
+    key: WebKey;
+    ctrl: boolean;
+    meta: boolean;
+    shift: boolean;
+    alt: boolean;
+}
 
 interface BrowserEventMap {
     pointermove: { x: number; y: number };
     pointerdown: { button: PointerButton };
     pointerup: { button: PointerButton };
     pointercancel: { button: PointerButton };
-    pointerenter: { target: EventTarget | null; x: number; y: number };
-    pointerleave: { target: EventTarget | null; x: number; y: number };
-    pointerover: { from: EventTarget | null; to: EventTarget | null };
-    pointerout: { from: EventTarget | null; to: EventTarget | null };
+    pointerenter: { x: number; y: number };
+    pointerleave: { x: number; y: number };
     wheel: { delta: number };
 
-    keydown: {
-        key: WebKey;
-        ctrl: boolean;
-        meta: boolean;
-        shift: boolean;
-        alt: boolean;
-    };
-    keyup: {
-        key: WebKey;
-        ctrl: boolean;
-        meta: boolean;
-        shift: boolean;
-        alt: boolean;
-    };
+    keydown: BrowserKeyEvent;
+    keyup: BrowserKeyEvent;
 }
 
 type BrowserWindowEventHandler<T extends BrowserWindowEvent> = (
@@ -541,7 +533,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._inputSystem.getAxis(axis);
     }
 
-    resetAllKeyboardKeys(): void {
+    releaseAllKeys(): void {
         this._inputSystem.releaseAllKeys();
     }
 
@@ -690,8 +682,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     onPointerEnter: BrowserCanvasEventHandler<'pointerenter'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
     onPointerLeave: BrowserCanvasEventHandler<'pointerleave'> = (...args) =>
-        this.#handleBrowserCanvasEvent(...args);
-    onPointerOver: BrowserCanvasEventHandler<'pointerover'> = (...args) =>
         this.#handleBrowserCanvasEvent(...args);
 
     getPointerPosition(

@@ -2,10 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
     DEFAULT_CANVAS_ID,
-    Engine,
+    type Engine,
+    type EngineConstructor,
     type Platform,
     type WebKey,
+    createEngine,
 } from '@repo/engine';
+import type { ToEngineMsg } from '@repo/engine/worker';
+import {
+    type EngineWrapper,
+    MainThreadWrapper,
+    WorkerWrapper,
+} from '@repo/engine/wrapper';
 
 import { type CanvasOptions, CanvasTracker } from './CanvasTracker';
 import { getPlatform } from './platform';
@@ -16,32 +24,46 @@ interface SizeState {
     dpr: number;
 }
 
-interface HarnessProps<TEngine extends Engine = Engine>
-    extends React.CanvasHTMLAttributes<HTMLCanvasElement>,
+interface HarnessProps<
+    TEngine extends Engine = Engine,
+    TToEngineMsg = ToEngineMsg,
+> extends React.CanvasHTMLAttributes<HTMLCanvasElement>,
         Partial<CanvasOptions> {
-    engine?: TEngine | (new (options?: Partial<TEngine['options']>) => TEngine);
+    engine?: EngineConstructor<TEngine>;
     initialEngineOptions?: Partial<TEngine['options']>;
     engineOptions?: Partial<TEngine['options']>;
+    onEngineReady?: (engine: TEngine) => void;
     width?: number;
     height?: number;
-    onEngineReady?: (engine: TEngine) => void;
     canvases?: Record<string, React.RefObject<HTMLCanvasElement>>;
     containerRef?: React.RefObject<HTMLDivElement | null>;
+    engineWrapperRef?: React.RefObject<EngineWrapper<
+        TEngine,
+        TToEngineMsg
+    > | null>;
+    runInWorker?: boolean;
+    workerURL?: string | URL;
 }
 
-export function Harness<TEngine extends Engine = Engine>({
+export function Harness<
+    TEngine extends Engine = Engine,
+    TToEngineMsg extends ToEngineMsg = ToEngineMsg,
+>({
     engine,
     initialEngineOptions,
     engineOptions,
+    onEngineReady,
     width: widthProp,
     height: heightProp,
     scrollDirection: scrollDirectionProp,
     scrollSensitivity = 1,
-    onEngineReady,
     canvases,
     containerRef,
+    engineWrapperRef,
+    runInWorker,
+    workerURL = new URL('./worker.ts', import.meta.url),
     ...rest
-}: HarnessProps<TEngine>) {
+}: HarnessProps<TEngine, TToEngineMsg>) {
     const defaultCanvasRef = useRef<HTMLCanvasElement>(null);
 
     const [size, setSize] = useState<SizeState>({
@@ -77,11 +99,13 @@ export function Harness<TEngine extends Engine = Engine>({
         }
     }, [canvases, widthProp, heightProp, containerRef]);
 
-    const engineRef = useRef<TEngine | null>(null);
+    const wrapperRef =
+        engineWrapperRef ??
+        useRef<EngineWrapper<TEngine, TToEngineMsg> | null>(null);
     const requestedAnimationFrame = useRef<number>(-1);
     const platformRef = useRef<Platform>('unknown');
 
-    if (!engineRef.current) {
+    if (!wrapperRef.current) {
         const options: Partial<TEngine['options']> = {
             onReadyForNextFrame: (startNextFrame: () => void) => {
                 requestedAnimationFrame.current =
@@ -100,40 +124,48 @@ export function Harness<TEngine extends Engine = Engine>({
             ...engineOptions,
         };
 
-        const engineCtor = engine || Engine;
-        if (
-            typeof engineCtor === 'function' &&
-            engineCtor.prototype &&
-            engineCtor.prototype.constructor === engineCtor
-        ) {
-            const EngineCtor = engineCtor as new (
-                options?: Partial<TEngine['options']>,
-            ) => TEngine;
-            engineRef.current = new EngineCtor(options);
-        } else {
-            engineRef.current = engine as TEngine;
-            engineRef.current.options = options;
-        }
-
         platformRef.current = getPlatform();
-        engineRef.current.setPlatform(platformRef.current);
+
+        if (runInWorker) {
+            wrapperRef.current = new WorkerWrapper<TEngine, TToEngineMsg>(
+                workerURL,
+            );
+        } else {
+            const engineInstance = createEngine(
+                engine,
+                options,
+                platformRef.current,
+            );
+            wrapperRef.current = new MainThreadWrapper<TEngine, TToEngineMsg>(
+                engineInstance,
+            );
+        }
     }
 
     useEffect(() => {
-        if (engineRef.current) {
-            onEngineReady?.(engineRef.current);
+        const engine = wrapperRef.current?.getEngine();
+        if (engine) {
+            onEngineReady?.(engine);
         }
     }, [onEngineReady]);
 
     useEffect(() => {
-        if (!engineRef.current) {
+        if (!wrapperRef.current) {
             return;
         }
 
-        engineRef.current.options = {
+        wrapperRef.current.setOptions({
             devicePixelRatio: size.dpr,
             ...engineOptions,
-        };
+        });
+
+        if (!canvases) {
+            wrapperRef.current.setCanvasSize?.(
+                DEFAULT_CANVAS_ID,
+                size.width * size.dpr,
+                size.height * size.dpr,
+            );
+        }
 
         const isInputFocused = (): boolean => {
             const activeElement = document.activeElement;
@@ -153,7 +185,7 @@ export function Harness<TEngine extends Engine = Engine>({
             }
 
             if (
-                engineRef.current?.onKeyDown('keydown', {
+                wrapperRef.current?.onKeyDown({
                     key: event.key as WebKey,
                     ctrl: event.ctrlKey,
                     meta: event.metaKey,
@@ -171,7 +203,7 @@ export function Harness<TEngine extends Engine = Engine>({
             }
 
             if (
-                engineRef.current?.onKeyUp('keyup', {
+                wrapperRef.current?.onKeyUp({
                     key: event.key as WebKey,
                     ctrl: event.ctrlKey,
                     meta: event.metaKey,
@@ -186,7 +218,7 @@ export function Harness<TEngine extends Engine = Engine>({
 
         const onVisibilityChange = () => {
             if (document.visibilityState !== 'visible') {
-                engineRef.current?.resetAllKeyboardKeys?.();
+                wrapperRef.current?.releaseAllKeys();
             }
         };
         document.addEventListener('visibilitychange', onVisibilityChange);
@@ -199,19 +231,20 @@ export function Harness<TEngine extends Engine = Engine>({
                 onVisibilityChange,
             );
         };
-    }, [size, engineRef, scrollSensitivity, engineOptions]);
+    }, [size, wrapperRef, scrollSensitivity, engineOptions]);
 
     useEffect(() => {
         return () => {
-            if (engineRef.current) {
-                engineRef.current.destroy();
+            if (wrapperRef.current) {
+                wrapperRef.current.destroy();
+                wrapperRef.current = null;
             }
         };
     }, []);
 
     useEffect(() => {
-        if (engineRef.current) {
-            engineRef.current.options = { ...engineOptions };
+        if (wrapperRef.current) {
+            wrapperRef.current.setOptions({ ...engineOptions });
         }
     }, [engineOptions]);
 
@@ -226,7 +259,7 @@ export function Harness<TEngine extends Engine = Engine>({
                         key={id}
                         canvasID={id}
                         canvasRef={canvasRef}
-                        engineRef={engineRef}
+                        wrapper={wrapperRef}
                         scrollDirection={scrollDirection}
                         scrollSensitivity={scrollSensitivity}
                     />
@@ -251,7 +284,7 @@ export function Harness<TEngine extends Engine = Engine>({
             <CanvasTracker
                 canvasID={DEFAULT_CANVAS_ID}
                 canvasRef={defaultCanvasRef}
-                engineRef={engineRef}
+                wrapper={wrapperRef}
                 scrollDirection={scrollDirection}
                 scrollSensitivity={scrollSensitivity}
             />

@@ -1,5 +1,5 @@
 import { type Engine, type EngineOptions } from '@repo/engine';
-import { E_Shape, type E_ShapeJSON } from '@repo/engine/entities';
+import { type E_ShapeJSON } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
 import { type EngineScenario } from '../types';
@@ -34,7 +34,7 @@ class PitScene extends Scene {
 
         for (let i = 0; i < 600; i++) {
             this.createEntities({
-                type: E_Shape,
+                type: 'shape',
                 shape: 'ELLIPSE',
                 scale: 5 + _engine.random() * 25,
                 color: BALL_COLORS[

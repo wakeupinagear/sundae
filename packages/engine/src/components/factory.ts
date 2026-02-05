@@ -1,7 +1,7 @@
+import { C_Image, type C_ImageJSON } from '../components/image';
+import { C_Shape, type C_ShapeJSON } from '../components/shape';
+import { C_Text, type C_TextJSON } from '../components/text';
 import type { Engine } from '../engine';
-import { C_Image, type C_ImageJSON } from '../objects/image';
-import { C_Shape, type C_ShapeJSON } from '../objects/shape';
-import { C_Text, type C_TextJSON } from '../objects/text';
 import {
     C_CircleCollider,
     type C_CircleColliderJSON,

@@ -4,13 +4,10 @@ import {
     type EntityOptions,
     type InternalEntityOptions,
 } from '../entities';
-import { E_Image, type E_ImageJSON } from '../objects/image';
-import { E_Shape, type E_ShapeJSON } from '../objects/shape';
-import {
-    E_InfiniteShape,
-    type E_InfiniteShapeJSON,
-} from '../objects/shape/infinite';
-import { E_Text, type E_TextJSON } from '../objects/text';
+import { E_Image, type E_ImageJSON } from './image';
+import { E_Shape, type E_ShapeJSON } from './shape';
+import { E_InfiniteShape, type E_InfiniteShapeJSON } from './shape/infinite';
+import { E_Text, type E_TextJSON } from './text';
 
 export type BaseEntityJSON = EntityOptions & { type?: 'entity' };
 

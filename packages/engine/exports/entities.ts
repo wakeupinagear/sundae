@@ -10,14 +10,19 @@ export {
     E_Text,
     type E_TextOptions,
     type E_TextJSON,
-} from '../src/objects/text';
+} from '../src/entities/text';
 export {
     E_Image,
     type E_ImageOptions,
     type E_ImageJSON,
-} from '../src/objects/image';
+} from '../src/entities/image';
 export {
     E_Shape,
     type E_ShapeOptions,
     type E_ShapeJSON,
-} from '../src/objects/shape';
+} from '../src/entities/shape';
+export {
+    E_InfiniteShape,
+    type E_InfiniteShapeOptions,
+    type E_InfiniteShapeJSON,
+} from '../src/entities/shape/infinite';

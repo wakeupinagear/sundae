@@ -9,8 +9,13 @@
         "lint": "eslint . --max-warnings 0",
         "check-types": "tsc --noEmit"
     },
-    "devDependencies": {
+    "dependencies": {
         "@repo/engine": "workspace:*",
+        "@repo/engine-scenarios": "workspace:*",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0"
+    },
+    "devDependencies": {
         "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
         "@types/node": "^22.15.3",
@@ -18,9 +23,5 @@
         "@types/react-dom": "19.2.2",
         "eslint": "^8.57.0",
         "typescript": "5.9.2"
-    },
-    "dependencies": {
-        "react": "^19.2.0",
-        "react-dom": "^19.2.0"
     }
 }

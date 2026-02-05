@@ -37,6 +37,8 @@ export default function HarnessOptions({
     const setDebugOverlay = useAppStore((state) => state.setDebugOverlay);
     const trueRandom = useAppStore((state) => state.trueRandom);
     const setTrueRandom = useAppStore((state) => state.setTrueRandom);
+    const runInWorker = useAppStore((state) => state.runInWorker);
+    const setRunInWorker = useAppStore((state) => state.setRunInWorker);
 
     const debugOverlayItems = useMemo<DebugOverlayFlags[]>(() => {
         const items: DebugOverlayFlags[] = [];
@@ -138,6 +140,21 @@ export default function HarnessOptions({
                     checked={trueRandom}
                     onCheckedChange={(checked) =>
                         setTrueRandom(Boolean(checked))
+                    }
+                />
+            </div>
+            <div className="flex gap-2 items-center">
+                <Label
+                    htmlFor="runInWorker"
+                    className="font-medium text-foreground"
+                >
+                    Run in Worker
+                </Label>
+                <Checkbox
+                    id="runInWorker"
+                    checked={runInWorker}
+                    onCheckedChange={(checked) =>
+                        setRunInWorker(Boolean(checked))
                     }
                 />
             </div>

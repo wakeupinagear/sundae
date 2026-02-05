@@ -1,16 +1,9 @@
-import { C_Collider, type C_ColliderOptions } from '../../components/colliders';
-import { type C_CircleCollider } from '../../components/colliders/CircleCollider';
-import { type C_RectangleCollider } from '../../components/colliders/RectangleCollider';
-import { C_Drawable, type C_DrawableOptions } from '../../components/drawable';
-import type { Engine } from '../../engine';
-import { Entity, type EntityOptions } from '../../entities';
-import {
-    type IVector,
-    Vector,
-    type VectorConstructor,
-} from '../../math/vector';
-import type { CameraSystem } from '../../systems/camera';
-import type { RenderCommandStream } from '../../systems/render/command';
+import type { Engine } from '../engine';
+import { type IVector, Vector, type VectorConstructor } from '../math/vector';
+import type { CameraSystem } from '../systems/camera';
+import type { RenderCommandStream } from '../systems/render/command';
+import { type C_ColliderOptions } from './colliders';
+import { C_Drawable, type C_DrawableOptions } from './drawable';
 
 const DEFAULT_ARROW_LENGTH = 1;
 const DEFAULT_ARROW_ANGLE = 45;
@@ -354,57 +347,5 @@ export class C_Shape<
                 this.#gap?.y,
             );
         }
-    }
-}
-
-export interface E_ShapeOptions extends EntityOptions, C_ShapeOptions {
-    collision?: boolean;
-    mass?: number;
-    kinematic?: boolean;
-    velocity?: VectorConstructor;
-    force?: VectorConstructor;
-    gravityScale?: VectorConstructor;
-    bounce?: number;
-}
-
-export interface E_ShapeJSON extends E_ShapeOptions {
-    type: 'shape';
-}
-
-export class E_Shape<TEngine extends Engine = Engine> extends Entity<TEngine> {
-    #shape: C_Shape<TEngine>;
-
-    constructor(options: E_ShapeOptions) {
-        super(options);
-
-        this.#shape = this.addComponent<C_Shape<TEngine>>({
-            ...options,
-            type: 'shape',
-            name: 'Shape',
-        });
-
-        if (C_Collider.isCollisionEnabledInOptions(options)) {
-            const collOptions =
-                C_Collider.getCollisionOptionsForEntity(options);
-            if (options.shape === 'RECT') {
-                this.setCollider<C_RectangleCollider<TEngine>>({
-                    type: 'rectangleCollider',
-                    ...collOptions,
-                });
-            } else if (options.shape === 'ELLIPSE') {
-                this.setCollider<C_CircleCollider<TEngine>>({
-                    type: 'circleCollider',
-                    ...collOptions,
-                });
-            } else {
-                this._engine.warn(
-                    `Collision not supported for shape '${this.shape}'`,
-                );
-            }
-        }
-    }
-
-    get shape(): C_Shape<TEngine> {
-        return this.#shape;
     }
 }

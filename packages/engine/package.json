@@ -47,6 +47,14 @@
         "./stats": {
             "types": "./exports/stats.ts",
             "default": "./dist/exports/stats.js"
+        },
+        "./worker": {
+            "types": "./exports/worker.ts",
+            "default": "./dist/exports/worker.js"
+        },
+        "./wrapper": {
+            "types": "./exports/wrapper.ts",
+            "default": "./dist/exports/wrapper.js"
         }
     },
     "devDependencies": {

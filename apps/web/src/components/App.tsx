@@ -6,12 +6,14 @@ import {
     type EngineOptions,
 } from '@repo/engine';
 import { ENGINE_SCENARIOS } from '@repo/engine-scenarios';
+import type { EngineWrapper } from '@repo/engine/wrapper';
 import { Harness } from '@repo/react';
 import { ThemeProvider } from '@repo/ui/components/ThemeProvider';
 
 import { useAppStore } from '../store';
 import { WebHarness } from '../utils/harness';
 import { idToScenario, scenarioToID } from '../utils/scenarios';
+import type { ExtendedToEngineMsg } from '../utils/types';
 import { ExampleList } from './ExampleList';
 import HarnessOptions from './HarnessOptions';
 
@@ -78,6 +80,7 @@ export function App() {
     const cameraCount = useAppStore((state) => state.cameraCount);
     const debugOverlay = useAppStore((state) => state.debugOverlay);
     const trueRandom = useAppStore((state) => state.trueRandom);
+    const runInWorker = useAppStore((state) => state.runInWorker);
 
     const [[categoryID, scenarioID], setScenario] =
         useState<[string, string]>(readScenarioFromHash);
@@ -136,6 +139,9 @@ export function App() {
         return options;
     }, [debugOverlay, trueRandom, cameraCount, maxCameras]);
 
+    const canvasContainerRef = useRef<HTMLDivElement>(null);
+
+    // Non-worker version
     const onEngineReady = useCallback(
         (engine: Engine) => {
             if (scenario) {
@@ -146,7 +152,20 @@ export function App() {
         [scenario],
     );
 
-    const canvasContainerRef = useRef<HTMLDivElement>(null);
+    // Worker version
+    const engineWrapperRef = useRef<EngineWrapper<
+        Engine,
+        ExtendedToEngineMsg
+    > | null>(null);
+    useEffect(() => {
+        if (runInWorker) {
+            engineWrapperRef.current?.sendMessage({
+                type: 'scenario',
+                categoryID,
+                scenarioID,
+            });
+        }
+    }, [runInWorker, scenarioID]);
 
     return (
         <ThemeProvider>
@@ -168,15 +187,20 @@ export function App() {
                     </div>
                 </aside>
                 <main
-                    className="size-full overflow-hidden"
+                    className="size-full overflow-hidden bg-black"
                     ref={canvasContainerRef}
                 >
                     <Harness
-                        key={scenarioKey}
+                        key={`${scenarioKey}-${runInWorker}`}
                         containerRef={canvasContainerRef}
-                        onEngineReady={onEngineReady}
+                        engineWrapperRef={engineWrapperRef}
                         initialEngineOptions={INITIAL_ENGINE_OPTIONS}
                         engineOptions={engineOptions}
+                        onEngineReady={onEngineReady}
+                        runInWorker={runInWorker}
+                        workerURL={
+                            new URL('../utils/worker.ts', import.meta.url)
+                        }
                     />
                 </main>
             </div>

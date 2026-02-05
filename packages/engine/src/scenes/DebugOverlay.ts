@@ -3,8 +3,8 @@ import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { C_LerpOpacity } from '../components/lerp';
 import { type Engine } from '../engine';
 import { type Entity } from '../entities';
+import { E_Text, type E_TextOptions } from '../entities/text';
 import type { BoundingBox } from '../math/boundingBox';
-import { E_Text, type E_TextOptions } from '../objects/text';
 import type { CameraSystem } from '../systems/camera';
 import type { SpatialHashGridStats } from '../systems/physics/spatialHash';
 import type {

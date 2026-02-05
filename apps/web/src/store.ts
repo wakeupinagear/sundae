@@ -10,6 +10,8 @@ interface AppStore {
     setDebugOverlay: (debugOverlay: DebugOverlayFlags) => void;
     trueRandom: boolean;
     setTrueRandom: (trueRandom: boolean) => void;
+    runInWorker: boolean;
+    setRunInWorker: (runInWorker: boolean) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -22,6 +24,8 @@ export const useAppStore = create<AppStore>()(
                 set({ debugOverlay }),
             trueRandom: false,
             setTrueRandom: (trueRandom: boolean) => set({ trueRandom }),
+            runInWorker: false,
+            setRunInWorker: (runInWorker: boolean) => set({ runInWorker }),
         }),
         {
             name: 'app-storage', // unique name for localStorage key

@@ -28,14 +28,14 @@ export {
     C_Text,
     type C_TextOptions,
     type C_TextJSON,
-} from '../src/objects/text';
+} from '../src/components/text';
 export {
     C_Image,
     type C_ImageOptions,
     type C_ImageJSON,
-} from '../src/objects/image';
+} from '../src/components/image';
 export {
     C_Shape,
     type C_ShapeOptions,
     type C_ShapeJSON,
-} from '../src/objects/shape';
+} from '../src/components/shape';
