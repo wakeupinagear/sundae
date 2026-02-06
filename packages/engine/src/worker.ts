@@ -153,6 +153,11 @@ type RunEngineInWorkerOptionsWhenMsgSupertype<
     ? RunEngineInWorkerOptions<TEngine, TToEngineMsg>
     : never;
 
+export type WorkerConstructor =
+    | string
+    | URL
+    | (new (options?: { name?: string }) => Worker);
+
 export const runEngineInWorker = <
     TEngine extends Engine = Engine,
     TToEngineMsg = ToEngineMsg,

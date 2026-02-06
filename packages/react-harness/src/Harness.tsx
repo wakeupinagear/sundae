@@ -8,7 +8,7 @@ import {
     type WebKey,
     createEngine,
 } from '@repo/engine';
-import type { ToEngineMsg } from '@repo/engine/worker';
+import type { ToEngineMsg, WorkerConstructor } from '@repo/engine/worker';
 import {
     type EngineWrapper,
     MainThreadWrapper,
@@ -42,7 +42,7 @@ interface HarnessProps<
         TToEngineMsg
     > | null>;
     runInWorker?: boolean;
-    workerURL?: string | URL;
+    workerConstructor?: WorkerConstructor;
 }
 
 export function Harness<
@@ -61,7 +61,7 @@ export function Harness<
     containerRef,
     engineWrapperRef: externalEngineWrapperRef,
     runInWorker,
-    workerURL = new URL('./worker.ts', import.meta.url),
+    workerConstructor = new URL('./worker.ts', import.meta.url),
     ...rest
 }: HarnessProps<TEngine, TToEngineMsg>) {
     const defaultCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -128,7 +128,7 @@ export function Harness<
 
         if (runInWorker) {
             wrapperRef.current = new WorkerWrapper<TEngine, TToEngineMsg>(
-                workerURL,
+                workerConstructor,
             );
         } else {
             const engineInstance = createEngine(

@@ -14,6 +14,7 @@ import { useAppStore } from '../store';
 import { WebHarness } from '../utils/harness';
 import { idToScenario, scenarioToID } from '../utils/scenarios';
 import type { ExtendedToEngineMsg } from '../utils/types';
+import EngineWorker from '../utils/worker?worker';
 import { ExampleList } from './ExampleList';
 import HarnessOptions from './HarnessOptions';
 
@@ -198,9 +199,7 @@ export function App() {
                         engineOptions={engineOptions}
                         onEngineReady={onEngineReady}
                         runInWorker={runInWorker}
-                        workerURL={
-                            new URL('../utils/worker.ts', import.meta.url)
-                        }
+                        workerConstructor={EngineWorker}
                     />
                 </main>
             </div>

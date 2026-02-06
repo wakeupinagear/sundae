@@ -4,4 +4,5 @@ export {
     ToEngineMsgType,
     type ToEngineMsg,
     FromEngineMsgType,
+    type WorkerConstructor,
 } from '../src/worker';

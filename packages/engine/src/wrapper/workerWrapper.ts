@@ -7,6 +7,7 @@ import {
     FromEngineMsgType,
     type ToEngineMsg,
     ToEngineMsgType,
+    type WorkerConstructor
 } from '../worker';
 
 export class WorkerWrapper<
@@ -21,10 +22,15 @@ export class WorkerWrapper<
     #waitingForFrame: boolean = false;
     #canvases: Record<string, HTMLCanvasElement | null> = {};
 
-    constructor(workerURL: string | URL) {
+    constructor(workerConstructor: WorkerConstructor) {
         super();
 
-        this.#worker = new Worker(workerURL, { type: 'module' });
+        this.#worker =
+            typeof workerConstructor === 'string' ||
+            workerConstructor instanceof URL
+                ? new Worker(workerConstructor, { type: 'module' })
+                : new workerConstructor();
+
         this.#worker.onmessage = (event: MessageEvent<FromEngineMsg>) => {
             switch (event.data.type) {
                 case FromEngineMsgType.INIT:
