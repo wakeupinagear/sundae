@@ -892,7 +892,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         }
 
         this.#frameCount++;
-
         this._options.onReadyForNextFrame?.(this.#boundEngineLoop);
     }
 

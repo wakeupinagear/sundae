@@ -234,28 +234,30 @@ export class C_BoundingBoxDebug<
         }
         stream.popTransform();
 
+        const zoom = zoomToScale(camera.zoom);
         this.#drawBoundingBox(camera.cullBoundingBox, stream, {
             lineColor: camera.isPointerOverCamera ? 'yellow' : 'blue',
-            lineWidth: 4 / zoomToScale(camera.zoom),
+            lineWidth: 4 / zoom,
         });
 
         const pointerPosition = camera.getPointerPosition();
         if (pointerPosition) {
+            const halfAxis = MOUSE_HALF_AXIS / zoom;
             stream.setStyle({
                 lineColor: 'white',
-                lineWidth: 2,
+                lineWidth: 2 / zoom,
             });
             stream.drawLine(
-                pointerPosition.x - MOUSE_HALF_AXIS,
+                pointerPosition.x - halfAxis,
                 pointerPosition.y,
-                pointerPosition.x + MOUSE_HALF_AXIS,
+                pointerPosition.x + halfAxis,
                 pointerPosition.y,
             );
             stream.drawLine(
                 pointerPosition.x,
-                pointerPosition.y - MOUSE_HALF_AXIS,
+                pointerPosition.y - halfAxis,
                 pointerPosition.x,
-                pointerPosition.y + MOUSE_HALF_AXIS,
+                pointerPosition.y + halfAxis,
             );
         }
 

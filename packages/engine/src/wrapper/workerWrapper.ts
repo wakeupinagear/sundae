@@ -18,6 +18,7 @@ export class WorkerWrapper<
     #engineInitialized: boolean = false;
     #queuedMessages: [ToEngineMsg, Transferable[]][] = [];
     #rafId: number = -1;
+    #waitingForFrame: boolean = false;
     #canvases: Record<string, HTMLCanvasElement | null> = {};
 
     constructor(workerURL: string | URL) {
@@ -32,7 +33,11 @@ export class WorkerWrapper<
                         this.#worker?.postMessage(message, transfer);
                     }
                     this.#queuedMessages = [];
-                    this.#startAnimationLoop();
+                    this.#sendNextTick();
+                    break;
+                case FromEngineMsgType.FRAME_COMPLETE:
+                    this.#waitingForFrame = false;
+                    this.#sendNextTick();
                     break;
                 case FromEngineMsgType.SET_CANVAS_CURSOR: {
                     const canvas = this.#canvases[event.data.canvasID];
@@ -162,11 +167,12 @@ export class WorkerWrapper<
         }
     }
 
-    #startAnimationLoop() {
-        const tick = () => {
-            this.#rafId = requestAnimationFrame(tick);
-            this.sendMessage({ type: ToEngineMsgType.TICK });
-        };
-        this.#rafId = requestAnimationFrame(tick);
+    #sendNextTick() {
+        if (this.#waitingForFrame || !this.#engineInitialized) {
+            return;
+        }
+
+        this.#waitingForFrame = true;
+        this.sendMessage({ type: ToEngineMsgType.TICK });
     }
 }

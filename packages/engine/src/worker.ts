@@ -6,6 +6,7 @@ import { type EngineConstructor, createEngine } from './utils';
 export const FromEngineMsgType = {
     INIT: 'init',
     SET_CANVAS_CURSOR: 'set_canvas_cursor',
+    FRAME_COMPLETE: 'frame_complete',
 } as const;
 export type FromEngineMsgType =
     (typeof FromEngineMsgType)[keyof typeof FromEngineMsgType];
@@ -21,7 +22,14 @@ interface FromEngineMsg_SetCanvasCursor {
     cursor: CursorType;
 }
 
-export type FromEngineMsg = FromEngineMsg_Init | FromEngineMsg_SetCanvasCursor;
+interface FromEngineMsg_FrameComplete {
+    type: typeof FromEngineMsgType.FRAME_COMPLETE;
+}
+
+export type FromEngineMsg =
+    | FromEngineMsg_Init
+    | FromEngineMsg_SetCanvasCursor
+    | FromEngineMsg_FrameComplete;
 
 export const ToEngineMsgType = {
     TICK: 'tick',
@@ -159,6 +167,9 @@ export const runEngineInWorker = <
                 canvasID,
                 cursor,
             });
+        },
+        onReadyForNextFrame: () => {
+            self.postMessage({ type: FromEngineMsgType.FRAME_COMPLETE });
         },
     };
 

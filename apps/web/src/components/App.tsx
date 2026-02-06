@@ -140,6 +140,10 @@ export function App() {
     }, [debugOverlay, trueRandom, cameraCount, maxCameras]);
 
     const canvasContainerRef = useRef<HTMLDivElement>(null);
+    const engineWrapperRef = useRef<EngineWrapper<
+        Engine,
+        ExtendedToEngineMsg
+    > | null>(null);
 
     // Non-worker version
     const onEngineReady = useCallback(
@@ -153,10 +157,6 @@ export function App() {
     );
 
     // Worker version
-    const engineWrapperRef = useRef<EngineWrapper<
-        Engine,
-        ExtendedToEngineMsg
-    > | null>(null);
     useEffect(() => {
         if (runInWorker) {
             engineWrapperRef.current?.sendMessage({

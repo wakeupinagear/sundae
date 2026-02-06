@@ -110,6 +110,7 @@ class PongScene extends Scene {
             type: 'shape',
             name: 'Ball',
             shape: 'ELLIPSE',
+            color: 'white',
             scale: { x: 20, y: 20 },
             collision: true,
             bounce: 1,

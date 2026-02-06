@@ -314,6 +314,8 @@ export const textRendering: EngineScenario = async (harness) => {
     harness.engine.options = {
         cameraOptions: {
             clearColor: '#222222',
+            canDrag: true,
+            scrollMode: 'all',
             dragButtons: [
                 PointerButton.LEFT,
                 PointerButton.RIGHT,

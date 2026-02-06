@@ -52,14 +52,14 @@ export function Harness<
     engine,
     initialEngineOptions,
     engineOptions,
+    scrollDirection: scrollDirectionProp,
+    scrollSensitivity = 1,
     onEngineReady,
     width: widthProp,
     height: heightProp,
-    scrollDirection: scrollDirectionProp,
-    scrollSensitivity = 1,
     canvases,
     containerRef,
-    engineWrapperRef,
+    engineWrapperRef: externalEngineWrapperRef,
     runInWorker,
     workerURL = new URL('./worker.ts', import.meta.url),
     ...rest
@@ -99,9 +99,9 @@ export function Harness<
         }
     }, [canvases, widthProp, heightProp, containerRef]);
 
-    const wrapperRef =
-        engineWrapperRef ??
-        useRef<EngineWrapper<TEngine, TToEngineMsg> | null>(null);
+    const wrapperRef = useRef<EngineWrapper<TEngine, TToEngineMsg> | null>(
+        null,
+    );
     const requestedAnimationFrame = useRef<number>(-1);
     const platformRef = useRef<Platform>('unknown');
 
@@ -139,6 +139,10 @@ export function Harness<
             wrapperRef.current = new MainThreadWrapper<TEngine, TToEngineMsg>(
                 engineInstance,
             );
+        }
+
+        if (externalEngineWrapperRef) {
+            externalEngineWrapperRef.current = wrapperRef.current;
         }
     }
 
@@ -235,17 +239,12 @@ export function Harness<
 
     useEffect(() => {
         return () => {
-            if (wrapperRef.current) {
-                wrapperRef.current.destroy();
-                wrapperRef.current = null;
-            }
+            wrapperRef.current?.destroy();
         };
     }, []);
 
     useEffect(() => {
-        if (wrapperRef.current) {
-            wrapperRef.current.setOptions({ ...engineOptions });
-        }
+        wrapperRef.current?.setOptions({ ...engineOptions });
     }, [engineOptions]);
 
     const scrollDirection =
