@@ -1,5 +1,5 @@
 import type { C_Collider } from '../components/colliders';
-import { DEFAULT_CANVAS_ID } from '../constants';
+import { DEFAULT_CANVAS_ID, DEFAULT_CLICK_THRESHOLD } from '../constants';
 import { type Engine } from '../engine';
 import { BoundingBox, type IBoundingBox } from '../math/boundingBox';
 import { Matrix2D } from '../math/matrix';
@@ -22,6 +22,9 @@ export interface CameraOptions {
     canDrag?: boolean;
     dragButtons?: PointerButton[];
     dragCursor?: CursorType;
+    dragThreshold?: number;
+    resetAfterNClicks?: number;
+    resetCameraTarget?: CameraTarget;
     targetLerpSpeed?: number;
     cullScale?: number;
     clearColor?: string;
@@ -81,6 +84,7 @@ export class CameraSystem<
     #scale: Vector = new Vector(1);
 
     #options: Required<CameraOptions>;
+    #optionsAlreadySet = false;
     #isPrimary: boolean = false;
 
     #worldToScreenMatrix: Matrix2D = new Matrix2D();
@@ -98,6 +102,7 @@ export class CameraSystem<
     #size: Vector | null = null;
 
     #isPointerOverCamera: boolean = false;
+    #isCameraClicked: boolean = false;
 
     #transformHash: string = '';
 
@@ -110,6 +115,9 @@ export class CameraSystem<
             canDrag: false,
             dragButtons: [PointerButton.MIDDLE, PointerButton.RIGHT],
             dragCursor: 'grabbing',
+            dragThreshold: DEFAULT_CLICK_THRESHOLD,
+            resetAfterNClicks: 2,
+            resetCameraTarget: { type: 'fixed' },
             targetLerpSpeed: 0.1,
             cullScale: 1,
             clearColor: '',
@@ -359,6 +367,18 @@ export class CameraSystem<
             this.#scale.set(scale);
         }
 
+        if (!this.#optionsAlreadySet) {
+            this.#optionsAlreadySet = true;
+            if (!rest.resetCameraTarget) {
+                this.#options.resetCameraTarget = {
+                    type: 'fixed',
+                    zoom: this.#zoom,
+                    position: this.#position.extract(),
+                    rotation: this.#rotation,
+                };
+            }
+        }
+
         this.#isPrimary = primary ?? false;
 
         this.#markDirty();
@@ -552,31 +572,54 @@ export class CameraSystem<
                 cameraPointer.scrollSteps * SCROLL_DELTA_PER_STEP;
             canvasPointer.currentState.scrollDelta = 0;
 
+            this.#cancelCameraTarget();
+
             updated = true;
         } else {
             cameraPointer.scrollSteps = 0;
         }
 
         if (this.#options.canDrag) {
-            const buttonStates = this.#options.dragButtons.map(
+            const dragButtons = this.#options.dragButtons;
+            const buttonStates = dragButtons.map(
                 (btn) => canvasPointer.currentState[btn],
             );
+
+            // Pointer initial click on canvas
             if (
-                buttonStates.some((state) => state.pressed) &&
                 !cameraPointer.dragStartMousePosition &&
-                this.#isPointerOverCamera
+                this.#isPointerOverCamera &&
+                buttonStates.some((state) => state.pressed)
             ) {
-                cameraPointer.dragStartMousePosition = new Vector(0);
-                cameraPointer.dragStartCameraPosition = new Vector(0);
-                this.#syncDragStartMousePosition(cameraPointer, canvasPointer);
-                updated = true;
+                this.#isCameraClicked = true;
             }
 
-            if (canvasPointer.currentState.justMoved) {
+            if (this.#isCameraClicked) {
+                const clickPosition =
+                    canvasPointer.currentState.clickStartPosition;
                 if (
-                    buttonStates.some((state) => state.down) &&
+                    !cameraPointer.dragStartMousePosition &&
+                    this.#isPointerOverCamera &&
+                    clickPosition &&
+                    clickPosition.distanceTo(
+                        canvasPointer.currentState.position,
+                    ) > this.#options.dragThreshold
+                ) {
+                    cameraPointer.dragStartMousePosition = new Vector(0);
+                    cameraPointer.dragStartCameraPosition = new Vector(0);
+                    this.#syncDragStartMousePosition(
+                        cameraPointer,
+                        canvasPointer,
+                    );
+                    updated = true;
+                }
+
+                if (
+                    this.#isCameraClicked &&
+                    canvasPointer.currentState.justMoved &&
                     cameraPointer.dragStartMousePosition &&
-                    cameraPointer.dragStartCameraPosition
+                    cameraPointer.dragStartCameraPosition &&
+                    buttonStates.some((state) => state.down)
                 ) {
                     const screenDelta = canvasPointer.currentState.position.sub(
                         cameraPointer.dragStartMousePosition,
@@ -587,15 +630,16 @@ export class CameraSystem<
                     this.#cancelCameraTarget();
                     updated = true;
                 }
-            }
 
-            if (
-                buttonStates.some((state) => state.released) &&
-                cameraPointer.dragStartMousePosition
-            ) {
-                cameraPointer.dragStartMousePosition = null;
-                cameraPointer.dragStartCameraPosition = null;
-                updated = true;
+                if (
+                    this.#isCameraClicked &&
+                    buttonStates.some((state) => state.released)
+                ) {
+                    this.#isCameraClicked = false;
+                    cameraPointer.dragStartMousePosition = null;
+                    cameraPointer.dragStartCameraPosition = null;
+                    updated = true;
+                }
             }
 
             if (cameraPointer.dragStartMousePosition) {
@@ -606,6 +650,15 @@ export class CameraSystem<
                         DRAG_CURSOR_PRIORITY,
                     );
                 }
+            } else if (
+                dragButtons.some((button) =>
+                    this._engine.getPointerButtonClicked(
+                        button,
+                        this.#options.resetAfterNClicks,
+                    ),
+                )
+            ) {
+                this.setTarget(this.#options.resetCameraTarget);
             }
         }
 

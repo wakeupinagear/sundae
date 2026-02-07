@@ -61,7 +61,7 @@ export function Harness<
     containerRef,
     engineWrapperRef: externalEngineWrapperRef,
     runInWorker,
-    workerConstructor = new URL('./worker.ts', import.meta.url),
+    workerConstructor,
     ...rest
 }: HarnessProps<TEngine, TToEngineMsg>) {
     const defaultCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -126,7 +126,7 @@ export function Harness<
 
         platformRef.current = getPlatform();
 
-        if (runInWorker) {
+        if (runInWorker && workerConstructor) {
             wrapperRef.current = new WorkerWrapper<TEngine, TToEngineMsg>(
                 workerConstructor,
             );

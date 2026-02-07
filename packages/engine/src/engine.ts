@@ -6,7 +6,12 @@ import {
     type CustomComponentJSON,
     createComponentFromJSON,
 } from './components/factory';
-import { DEFAULT_CAMERA_ID, DEFAULT_CANVAS_ID } from './constants';
+import {
+    DEFAULT_CAMERA_ID,
+    DEFAULT_CANVAS_ID,
+    DEFAULT_CLICK_THRESHOLD,
+    DEFAULT_MULTI_CLICK_THRESHOLD,
+} from './constants';
 import { type Entity } from './entities';
 import type { InternalEntityOptions } from './entities';
 import {
@@ -129,7 +134,10 @@ export type SceneCreateArgs<T extends Scene> = T extends {
 export interface EngineOptions {
     cameras: Record<string, CameraSystemOptions>;
     cameraOptions: CameraOptions;
+
     canvasClearColor: string;
+    canvasClickDistanceThreshold: number;
+    canvasMultiClickThreshold: number;
 
     startScenes: Array<SceneConstructor>;
 
@@ -168,7 +176,10 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     cameraOptions: {
         clearColor: 'black',
     },
+
     canvasClearColor: 'transparent',
+    canvasClickDistanceThreshold: DEFAULT_CLICK_THRESHOLD,
+    canvasMultiClickThreshold: DEFAULT_MULTI_CLICK_THRESHOLD,
 
     startScenes: [],
 
@@ -532,6 +543,14 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._inputSystem.getButton(button);
     }
 
+    getButtonDown(button: string): boolean {
+        return this.getButton(button).down;
+    }
+
+    getButtonReleased(button: string): boolean {
+        return this.getButton(button).released;
+    }
+
     getAxis(axis: string): Readonly<AxisState> {
         return this._inputSystem.getAxis(axis);
     }
@@ -700,6 +719,35 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     getCameraPointer(cameraID = this.#getPrimaryCameraID()): CameraPointer {
         return this._pointerSystem.getCameraPointer(cameraID);
     }
+
+    getPointerButton: I_PointerSystem['getPointerButton'] = (
+        button,
+        canvasID,
+    ) => {
+        return this._pointerSystem.getPointerButton(button, canvasID);
+    };
+
+    getPointerButtonDown: I_PointerSystem['getPointerButtonDown'] = (
+        button,
+        canvasID,
+    ) => {
+        return this._pointerSystem.getPointerButtonDown(button, canvasID);
+    };
+
+    getPointerButtonReleased: I_PointerSystem['getPointerButtonReleased'] = (
+        button,
+        canvasID,
+    ) => {
+        return this._pointerSystem.getPointerButtonReleased(button, canvasID);
+    };
+
+    getPointerButtonClicked: I_PointerSystem['getPointerButtonClicked'] = (
+        button,
+        n,
+        canvasID,
+    ) => {
+        return this._pointerSystem.getPointerButtonClicked(button, n, canvasID);
+    };
 
     setPointerButtonDown: I_PointerSystem['setPointerButtonDown'] = (
         button,

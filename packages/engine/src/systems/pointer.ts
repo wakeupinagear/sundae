@@ -4,7 +4,6 @@ import { type IVector, Vector } from '../math/vector';
 import { System } from './index';
 import type { ButtonState } from './input';
 
-const MAX_DISTANCE_DURING_CLICK = 10;
 const DEFAULT_CURSOR_PRIORITY = 0;
 
 export type CursorType =
@@ -30,6 +29,8 @@ export type CameraScrollMode = 'none' | 'all' | 'meta' | 'no-meta';
 
 export interface PointerButtonState extends ButtonState {
     clicked: boolean;
+    clickCount: number;
+    timeSinceLastClick: number;
 }
 
 export const PointerButton = {
@@ -52,6 +53,18 @@ export interface CanvasPointerState
     clickEndPosition: Vector | null;
 }
 
+const DEFAULT_POINTER_BUTTON_STATE: PointerButtonState = {
+    down: false,
+    downAsNum: 0,
+    pressed: false,
+    released: false,
+    downTime: 0,
+    numHeldPresses: 0,
+    clicked: false,
+    clickCount: 0,
+    timeSinceLastClick: 0,
+};
+
 const createCanvasPointerState = (): CanvasPointerState => ({
     screenPosition: new Vector(0),
     position: new Vector(0),
@@ -62,33 +75,9 @@ const createCanvasPointerState = (): CanvasPointerState => ({
     scrollDelta: 0,
     justMoved: false,
     onScreen: false,
-    [PointerButton.LEFT]: {
-        down: false,
-        downAsNum: 0,
-        pressed: false,
-        released: false,
-        clicked: false,
-        downTime: 0,
-        numHeldPresses: 0,
-    },
-    [PointerButton.MIDDLE]: {
-        down: false,
-        downAsNum: 0,
-        pressed: false,
-        released: false,
-        clicked: false,
-        downTime: 0,
-        numHeldPresses: 0,
-    },
-    [PointerButton.RIGHT]: {
-        down: false,
-        downAsNum: 0,
-        pressed: false,
-        released: false,
-        clicked: false,
-        downTime: 0,
-        numHeldPresses: 0,
-    },
+    [PointerButton.LEFT]: { ...DEFAULT_POINTER_BUTTON_STATE },
+    [PointerButton.MIDDLE]: { ...DEFAULT_POINTER_BUTTON_STATE },
+    [PointerButton.RIGHT]: { ...DEFAULT_POINTER_BUTTON_STATE },
 });
 
 export interface CanvasPointer {
@@ -109,6 +98,21 @@ export interface CameraPointer {
 }
 
 export interface I_PointerSystem {
+    getPointerButton: (
+        button: PointerButton,
+        canvasID?: string,
+    ) => PointerButtonState;
+    getPointerButtonDown: (button: PointerButton, canvasID?: string) => boolean;
+    getPointerButtonReleased: (
+        button: PointerButton,
+        canvasID?: string,
+    ) => boolean;
+    getPointerButtonClicked: (
+        button: PointerButton,
+        n?: number,
+        canvasID?: string,
+    ) => boolean;
+
     setPointerButtonDown: (
         button: PointerButton,
         down: boolean,
@@ -154,6 +158,37 @@ export class PointerSystem<TEngine extends Engine = Engine>
     getCameraPointer = (cameraID = DEFAULT_CAMERA_ID): CameraPointer => {
         return this.#getCameraPointer(cameraID);
     };
+
+    getPointerButton(
+        button: PointerButton,
+        canvasID = DEFAULT_CANVAS_ID,
+    ): PointerButtonState {
+        return this.getCanvasPointer(canvasID).currentState[button];
+    }
+
+    getPointerButtonDown(
+        button: PointerButton,
+        canvasID = DEFAULT_CANVAS_ID,
+    ): boolean {
+        return this.getPointerButton(button, canvasID).down;
+    }
+
+    getPointerButtonReleased(
+        button: PointerButton,
+        canvasID = DEFAULT_CANVAS_ID,
+    ): boolean {
+        return this.getPointerButton(button, canvasID).released;
+    }
+
+    getPointerButtonClicked(
+        button: PointerButton,
+        n = 1,
+        canvasID = DEFAULT_CANVAS_ID,
+    ): boolean {
+        const pointerButton = this.getPointerButton(button, canvasID);
+
+        return pointerButton.clicked && pointerButton.clickCount == n;
+    }
 
     setPointerButtonDown: I_PointerSystem['setPointerButtonDown'] = (
         button: PointerButton,
@@ -228,6 +263,7 @@ export class PointerSystem<TEngine extends Engine = Engine>
     };
 
     override earlyUpdate(deltaTime: number) {
+        const engineOptions = this._engine.options;
         for (const pointer of Object.values(this.#canvasPointers)) {
             pointer.currentState.justMoved =
                 pointer.currentState.position.x !==
@@ -235,16 +271,16 @@ export class PointerSystem<TEngine extends Engine = Engine>
                 pointer.currentState.position.y !==
                     pointer.prevState.position.y;
             Object.values(PointerButton).forEach((button: PointerButton) => {
-                pointer.currentState[button].pressed =
-                    pointer.currentState[button].down &&
-                    !pointer.prevState[button].down;
-                pointer.currentState[button].released =
-                    !pointer.currentState[button].down &&
-                    pointer.prevState[button].down;
-                pointer.currentState[button].clicked = false;
+                const currentState = pointer.currentState[button];
+                currentState.pressed =
+                    currentState.down && !pointer.prevState[button].down;
+                currentState.released =
+                    !currentState.down && pointer.prevState[button].down;
+                currentState.clicked = false;
+                currentState.timeSinceLastClick += deltaTime;
 
                 if (
-                    pointer.currentState[button].released &&
+                    currentState.released &&
                     pointer.currentState.clickStartPosition &&
                     pointer.currentState.clickEndPosition
                 ) {
@@ -252,11 +288,23 @@ export class PointerSystem<TEngine extends Engine = Engine>
                         pointer.currentState.clickEndPosition.distanceTo(
                             pointer.currentState.clickStartPosition,
                         );
-                    if (distanceTraveled <= MAX_DISTANCE_DURING_CLICK) {
-                        pointer.currentState[button].clicked = true;
+                    if (
+                        distanceTraveled <=
+                        engineOptions.canvasClickDistanceThreshold
+                    ) {
+                        currentState.clicked = true;
+                        if (
+                            currentState.timeSinceLastClick <=
+                            engineOptions.canvasMultiClickThreshold
+                        ) {
+                            currentState.clickCount++;
+                        } else {
+                            currentState.clickCount = 1;
+                        }
+                        currentState.timeSinceLastClick = 0;
                     }
-                } else if (pointer.currentState[button].down) {
-                    pointer.currentState[button].downTime += deltaTime;
+                } else if (currentState.down) {
+                    currentState.downTime += deltaTime;
                 }
             });
 
@@ -315,26 +363,10 @@ export class PointerSystem<TEngine extends Engine = Engine>
 
     #getCameraPointer(cameraID: string): CameraPointer {
         const camera = this._engine.getCamera(cameraID);
-        if (!camera) {
-            const canvasID = DEFAULT_CANVAS_ID;
-            if (!(cameraID in this.#cameraPointers)) {
-                const canvasPointer = this.#getCanvasPointer(canvasID);
-                this.#cameraPointers[cameraID] = {
-                    canvasPointer,
-                    canvasID,
-                    accumulatedScrollDelta: 0,
-                    scrollSteps: 0,
-                    dragStartMousePosition: null,
-                    dragStartCameraPosition: null,
-                };
-            }
-            return this.#cameraPointers[cameraID];
-        }
-
-        const canvasID = camera.canvasID || DEFAULT_CANVAS_ID;
+        const canvasID = camera?.canvasID || DEFAULT_CANVAS_ID;
+        const canvasPointer = this.#getCanvasPointer(canvasID);
 
         if (!(cameraID in this.#cameraPointers)) {
-            const canvasPointer = this.#getCanvasPointer(canvasID);
             this.#cameraPointers[cameraID] = {
                 canvasPointer,
                 canvasID,
