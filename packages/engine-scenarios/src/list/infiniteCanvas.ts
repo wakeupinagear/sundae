@@ -86,19 +86,12 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
     harness.engine.options = {
         cameraOptions: {
             clearColor: 'black',
-            canDrag: true,
-            scrollMode: 'all',
             bounds: {
                 x1: -Infinity,
                 x2: Infinity,
                 y1: -Infinity,
                 y2: Infinity,
             },
-            dragButtons: [
-                PointerButton.LEFT,
-                PointerButton.RIGHT,
-                PointerButton.MIDDLE,
-            ],
         },
     };
     harness.engine.openScene(InfiniteCanvasScene);

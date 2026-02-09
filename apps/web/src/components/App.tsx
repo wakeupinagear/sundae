@@ -6,6 +6,7 @@ import {
     type EngineOptions,
 } from '@repo/engine';
 import { ENGINE_SCENARIOS } from '@repo/engine-scenarios';
+import { PointerButton } from '@repo/engine/pointer';
 import type { EngineWrapper } from '@repo/engine/wrapper';
 import { Harness } from '@repo/react';
 import { ThemeProvider } from '@repo/ui/components/ThemeProvider';
@@ -23,7 +24,13 @@ const MAX_CAMERAS = 64;
 
 const INITIAL_ENGINE_OPTIONS: Partial<EngineOptions> = {
     cameraOptions: {
+        clearColor: '#222222',
         canDrag: true,
+        dragButtons: [
+            PointerButton.LEFT,
+            PointerButton.MIDDLE,
+            PointerButton.RIGHT,
+        ],
         bounds: {
             x1: -400,
             x2: 400,
@@ -31,7 +38,6 @@ const INITIAL_ENGINE_OPTIONS: Partial<EngineOptions> = {
             y2: 300,
         },
         scrollMode: 'all',
-        clearColor: 'black',
     },
     canvasClearColor: 'aqua',
 };

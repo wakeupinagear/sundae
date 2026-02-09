@@ -164,6 +164,7 @@ class TextScene extends Scene {
                 bold: true,
                 position: { x: BOX_SIZE.x / 2, y: 0 },
                 background: ALIGN_BG_COLORS.right,
+                padding: ALIGN_TEXT_PADDING,
                 zIndex: 2,
             },
             {
@@ -311,17 +312,5 @@ class TextScene extends Scene {
 }
 
 export const textRendering: EngineScenario = async (harness) => {
-    harness.engine.options = {
-        cameraOptions: {
-            clearColor: '#222222',
-            canDrag: true,
-            scrollMode: 'all',
-            dragButtons: [
-                PointerButton.LEFT,
-                PointerButton.RIGHT,
-                PointerButton.MIDDLE,
-            ],
-        },
-    };
     harness.engine.openScene(TextScene);
 };

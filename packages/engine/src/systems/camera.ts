@@ -1,6 +1,7 @@
 import type { C_Collider } from '../components/colliders';
 import { DEFAULT_CANVAS_ID, DEFAULT_CLICK_THRESHOLD } from '../constants';
 import { type Engine } from '../engine';
+import { FractionalLerp, LinearLerp } from '../lerp';
 import { BoundingBox, type IBoundingBox } from '../math/boundingBox';
 import { Matrix2D } from '../math/matrix';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
@@ -80,6 +81,20 @@ export class CameraSystem<
     #scaledZoom: number = zoomToScale(0);
     #target: CameraTarget | null = null;
 
+    #positionLerp = new FractionalLerp({
+        get: (() => this.#position).bind(this),
+        set: ((value: IVector<number>) => this.setPosition(value)).bind(this),
+    });
+    #zoomLerp = new FractionalLerp({
+        get: (() => this.#zoom).bind(this),
+        set: ((value: number) => this.setZoom(value)).bind(this),
+    });
+    #rotationLerp = new LinearLerp({
+        get: (() => this.#rotation).bind(this),
+        set: ((value: number) => this.setRotation(value)).bind(this),
+        variant: 'degrees',
+    });
+
     #offset: Vector = new Vector(0);
     #scale: Vector = new Vector(1);
 
@@ -118,7 +133,7 @@ export class CameraSystem<
             dragThreshold: DEFAULT_CLICK_THRESHOLD,
             resetAfterNClicks: 2,
             resetCameraTarget: { type: 'fixed' },
-            targetLerpSpeed: 0.1,
+            targetLerpSpeed: 10,
             cullScale: 1,
             clearColor: '',
             scrollMode: 'none',
@@ -323,7 +338,10 @@ export class CameraSystem<
         return this.#isPointerOverCamera;
     }
 
-    setTarget(target: CameraTargetConstructor): void {
+    setTarget(
+        target: CameraTargetConstructor,
+        lerpSpeed = this.#options.targetLerpSpeed,
+    ): void {
         if (typeof target === 'string') {
             this.#target = { type: 'entity', name: target };
         } else if (target === null) {
@@ -338,6 +356,10 @@ export class CameraSystem<
                 rotation: target.rotation,
             };
         }
+
+        this.#positionLerp.speed = lerpSpeed;
+        this.#zoomLerp.speed = lerpSpeed;
+        this.#rotationLerp.speed = lerpSpeed;
     }
 
     applyOptions(options: CameraSystemOptions): void {
@@ -384,13 +406,14 @@ export class CameraSystem<
         this.#markDirty();
     }
 
-    override earlyUpdate() {
+    override earlyUpdate(deltaTime: number) {
         if (!this._engine.getCamera(this.#id)) {
             return false;
         }
 
+        let updated = false;
         if (this.#target) {
-            this.#updateTarget(this.#target);
+            updated ||= this.#updateTarget(this.#target, deltaTime);
         }
 
         const cameraPointer = this._engine.getCameraPointer(this.#id);
@@ -410,7 +433,6 @@ export class CameraSystem<
             }
         }
 
-        let updated = false;
         const canvas = this._engine.getCanvas(this.#options.canvasID);
         if (canvas) {
             if (!this.#canvasSize) {
@@ -504,23 +526,44 @@ export class CameraSystem<
         }
     }
 
-    #updateTarget(target: CameraTarget): void {
+    #updateTarget(target: CameraTarget, deltaTime: number): boolean {
+        const targetPosition = this.position.clone();
+        let targetZoom = this.zoom;
+        let targetRotation = this.rotation;
+
         if (target.type === 'entity') {
             const entity = this._engine.getEntityByName(target.name);
             if (entity) {
-                this.#position.set(entity.position);
+                targetPosition.set(entity.position);
+            } else {
+                this.#target = null;
+                return false;
             }
         } else if (target.type === 'fixed') {
             if (target.position !== undefined) {
-                this.setPosition(target.position);
+                targetPosition.set(target.position);
             }
             if (target.zoom !== undefined) {
-                this.setZoom(target.zoom);
+                targetZoom = target.zoom;
             }
             if (target.rotation !== undefined) {
-                this.setRotation(target.rotation);
+                targetRotation = target.rotation;
             }
         }
+
+        this.#positionLerp.target = targetPosition;
+        this.#zoomLerp.target = targetZoom;
+        this.#rotationLerp.target = targetRotation;
+
+        const positionChanged = this.#positionLerp.update(deltaTime);
+        const zoomChanged = this.#zoomLerp.update(deltaTime);
+        const rotationChanged = this.#rotationLerp.update(deltaTime);
+        const changed = positionChanged || zoomChanged || rotationChanged;
+        if (!changed) {
+            this.#target = null;
+        }
+
+        return changed;
     }
 
     #updatePointer(
