@@ -247,10 +247,7 @@ export class C_Transform<
     }
 
     #computeBoundingBox() {
-        if (
-            this.entity.visualComponents.length === 0 &&
-            this.entity.children.length === 0
-        ) {
+        if (!this.entity.isVisual() && this.entity.children.length === 0) {
             this.#boundingBox.set(0);
             return;
         }
@@ -260,7 +257,27 @@ export class C_Transform<
         let minY = Infinity;
         let maxY = -Infinity;
 
-        for (const comp of this.entity.visualComponents) {
+        // Background components need to be transformed through the world matrix
+        // to account for camera-relative positioning
+        for (const comp of this.entity.backgroundComponents) {
+            const compBB = comp.boundingBox;
+
+            this.#corners[0].set({ x: compBB.x1, y: compBB.y1 });
+            this.#corners[1].set({ x: compBB.x2, y: compBB.y1 });
+            this.#corners[2].set({ x: compBB.x2, y: compBB.y2 });
+            this.#corners[3].set({ x: compBB.x1, y: compBB.y2 });
+
+            for (let i = 0; i < 4; i++) {
+                const corner = this.#corners[i];
+                corner.set(this.worldMatrix.transformPoint(corner));
+                minX = Math.min(minX, corner.x);
+                maxX = Math.max(maxX, corner.x);
+                minY = Math.min(minY, corner.y);
+                maxY = Math.max(maxY, corner.y);
+            }
+        }
+
+        for (const comp of this.entity.foregroundComponents) {
             const compBB = comp.boundingBox;
 
             this.#corners[0].set({ x: compBB.x1, y: compBB.y1 });
