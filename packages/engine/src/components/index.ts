@@ -3,7 +3,11 @@ import { type Entity } from '../entities';
 import { BoundingBox } from '../math/boundingBox';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
-import type { CollisionContact, Renderable } from '../types';
+import {
+    type CollisionContact,
+    ComponentAppearance,
+    type Renderable,
+} from '../types';
 
 export interface ComponentOptions {
     name?: string;
@@ -86,8 +90,8 @@ export abstract class Component<TEngine extends Engine = Engine>
         return this._boundingBox;
     }
 
-    isVisual(): boolean {
-        return false;
+    get appearance(): ComponentAppearance {
+        return ComponentAppearance.INVISIBLE;
     }
 
     protected _markBoundsDirty(): void {

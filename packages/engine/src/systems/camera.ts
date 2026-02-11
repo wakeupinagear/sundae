@@ -138,8 +138,8 @@ export class CameraSystem<
             clearColor: '',
             scrollMode: 'none',
             zoomSpeed: 0.001,
-            minZoom: -3, // 2^-3 = 0.125 (1/8x scale)
-            maxZoom: 3, // 2^3 = 8 (8x scale)
+            minZoom: -2, // 2^-2 = 0.25 (1/4x scale)
+            maxZoom: 2, // 2^2 = 4 (4x scale)
             bounds: {
                 x1: -Infinity,
                 x2: Infinity,

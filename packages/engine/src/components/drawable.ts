@@ -3,6 +3,7 @@ import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import { type RenderCommandStream } from '../systems/render/command';
 import { RENDER_STYLE_KEYS, type RenderStyle } from '../systems/render/style';
+import { ComponentAppearance } from '../types';
 import { OPACITY_THRESHOLD } from '../utils';
 import { Component, type ComponentOptions } from './index';
 
@@ -24,9 +25,10 @@ export abstract class C_Drawable<
 > extends Component<TEngine> {
     protected _origin: Vector;
     protected _size: Vector;
-    protected _fill: boolean;
     protected _style: DrawableStyle;
     protected _hoverStyle: DrawableStyle;
+
+    protected _fill = false;
 
     #computedStyle: DrawableStyle = {};
     #hoverStyleApplied: boolean = false;
@@ -36,7 +38,7 @@ export abstract class C_Drawable<
 
         this._origin = new Vector(options.origin ?? 0.5);
         this._size = new Vector(options.size ?? 1);
-        this._fill = options.fill ?? false;
+        this.setFill(options.fill ?? this._fill);
 
         this._style = {};
         // Only assign defined properties to save on memory
@@ -79,8 +81,10 @@ export abstract class C_Drawable<
         return (this.#computedStyle.opacity ?? 1) * this._entity.opacity;
     }
 
-    override isVisual(): boolean {
-        return !this._fill;
+    override get appearance(): ComponentAppearance {
+        return this._fill
+            ? ComponentAppearance.BACKGROUND
+            : ComponentAppearance.FOREGROUND;
     }
 
     setOrigin(origin: VectorConstructor): this {
@@ -100,19 +104,24 @@ export abstract class C_Drawable<
     }
 
     setFill(fill: boolean): this {
-        this._fill = fill;
+        if (fill !== this._fill) {
+            this._fill = fill;
+            this._entity.componentAppearancesDirty = true;
+        }
 
         return this;
     }
 
     setStyle(style: RenderStyle): this {
         this._style = { ...this._style, ...style };
+        this._computeStyle();
 
         return this;
     }
 
     setHoverStyle(style: RenderStyle): this {
         this._hoverStyle = { ...this._hoverStyle, ...style };
+        this._computeStyle();
 
         return this;
     }

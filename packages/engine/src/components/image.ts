@@ -1,8 +1,6 @@
-import { C_Collider, type C_ColliderOptions } from '../components/colliders';
-import { type C_RectangleCollider } from '../components/colliders/RectangleCollider';
+import { type C_ColliderOptions } from '../components/colliders';
 import { C_Drawable, type C_DrawableOptions } from '../components/drawable';
 import type { Engine } from '../engine';
-import { Entity, type EntityOptions } from '../entities';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';

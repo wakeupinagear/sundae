@@ -5,7 +5,7 @@ import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { TwoAxisAlignment } from '../types';
-import { type C_Shape, type C_ShapeOptions } from './shape';
+import { type C_Shape } from './shape';
 
 const MONOSPACE_WIDTH_RATIO = 0.6;
 const MONOSPACE_HEIGHT_RATIO = 0.8;
@@ -68,8 +68,6 @@ type TextNode =
 
 type Padding = BoundingBoxConstructor | VectorConstructor | number;
 
-type BackgroundOptions = boolean | string | Partial<C_ShapeOptions>;
-
 export interface C_TextOptions extends C_DrawableOptions {
     text?: string;
     fontSize?: number;
@@ -83,7 +81,6 @@ export interface C_TextOptions extends C_DrawableOptions {
     startTagDelim?: string;
     endTagDelim?: string;
     padding?: Padding;
-    background?: BackgroundOptions;
 }
 
 export interface C_TextJSON extends C_TextOptions {
@@ -105,7 +102,6 @@ export class C_Text<
     #endTagDelim: string;
     #italic: boolean;
     #bold: boolean;
-    #opacity: number;
 
     #padding: BoundingBox = new BoundingBox(0);
 
@@ -131,10 +127,8 @@ export class C_Text<
         this.#endTagDelim = options.endTagDelim ?? '|>';
         this.#italic = options.italic ?? false;
         this.#bold = options.bold ?? false;
-        this.#opacity = options.opacity ?? 1;
 
         this.#padding.set(options.padding ?? 0);
-        this.#setBackground(options.background ?? null);
     }
 
     override get typeString(): string {
@@ -261,10 +255,6 @@ export class C_Text<
         }
     }
 
-    set background(background: BackgroundOptions | null) {
-        this.#setBackground(background);
-    }
-
     override queueRenderCommands(
         stream: RenderCommandStream,
         camera: CameraSystem,
@@ -302,11 +292,15 @@ export class C_Text<
             this.#textDirty = false;
         }
 
+        const totalWidth =
+            this.#textSize.x + this.#padding.x1 + this.#padding.x2;
+        const totalHeight =
+            this.#textSize.y + this.#padding.y1 + this.#padding.y2;
         this._boundingBox.set({
-            x1: this.#textPosition.x - this.#padding.x1,
-            y1: this.#textPosition.y - this.#padding.y1,
-            x2: this.#textPosition.x + this.#textSize.x + this.#padding.x2,
-            y2: this.#textPosition.y + this.#textSize.y + this.#padding.y2,
+            x1: -this._origin.x * totalWidth,
+            y1: -this._origin.y * totalHeight,
+            x2: (1 - this._origin.x) * totalWidth,
+            y2: (1 - this._origin.y) * totalHeight,
         });
     }
 
@@ -444,9 +438,7 @@ export class C_Text<
         }
 
         // Calculate overall dimensions
-        const overallWidth = Math.ceil(
-            Math.max(...trimmedLines.map((l) => l.width), 0),
-        );
+        const overallWidth = Math.max(...trimmedLines.map((l) => l.width), 0);
         let overallHeight = 0;
         for (let i = 0; i < trimmedLines.length; i++) {
             overallHeight += trimmedLines[i].height;
@@ -454,28 +446,32 @@ export class C_Text<
                 overallHeight += this.#lineGap;
             }
         }
-        overallHeight = Math.ceil(overallHeight);
 
         // Calculate alignment offsets
-        const baseX = this._origin.x;
-        const baseY = this._origin.y;
+        // Text position is top-left of content area inside the component's box.
+        const totalWidth = overallWidth + this.#padding.x1 + this.#padding.x2;
+        const totalHeight = overallHeight + this.#padding.y1 + this.#padding.y2;
+        const boxX1 = -this._origin.x * totalWidth;
+        const boxY1 = -this._origin.y * totalHeight;
+        const boxX2 = boxX1 + totalWidth;
+        const boxY2 = boxY1 + totalHeight;
 
         // Horizontal alignment
         switch (this.#textAlign) {
             case 'top-left':
             case 'left':
             case 'bottom-left':
-                this.#textPosition.x = baseX - overallWidth - this.#padding.x2;
+                this.#textPosition.x = boxX1 + this.#padding.x1;
                 break;
             case 'top-center':
             case 'center':
             case 'bottom-center':
-                this.#textPosition.x = baseX - overallWidth / 2;
+                this.#textPosition.x = boxX1 + (totalWidth - overallWidth) / 2;
                 break;
             case 'top-right':
             case 'right':
             case 'bottom-right':
-                this.#textPosition.x = baseX + this.#padding.x1;
+                this.#textPosition.x = boxX2 - this.#padding.x2 - overallWidth;
                 break;
         }
 
@@ -484,17 +480,17 @@ export class C_Text<
             case 'top-left':
             case 'top-center':
             case 'top-right':
-                this.#textPosition.y = baseY - overallHeight - this.#padding.y2;
+                this.#textPosition.y = boxY1 + this.#padding.y1;
                 break;
             case 'left':
             case 'center':
             case 'right':
-                this.#textPosition.y = baseY - overallHeight / 2;
+                this.#textPosition.y = boxY1 + (totalHeight - overallHeight) / 2;
                 break;
             case 'bottom-left':
             case 'bottom-center':
             case 'bottom-right':
-                this.#textPosition.y = baseY + this.#padding.y1;
+                this.#textPosition.y = boxY2 - this.#padding.y2 - overallHeight;
                 break;
         }
 
@@ -518,8 +514,7 @@ export class C_Text<
                 case 'top-left':
                 case 'left':
                 case 'bottom-left':
-                    currentX =
-                        this.#textPosition.x + (overallWidth - line.width);
+                    currentX = this.#textPosition.x;
                     break;
                 case 'top-center':
                 case 'center':
@@ -530,7 +525,8 @@ export class C_Text<
                 case 'top-right':
                 case 'right':
                 case 'bottom-right':
-                    currentX = this.#textPosition.x;
+                    currentX =
+                        this.#textPosition.x + (overallWidth - line.width);
                     break;
             }
 
@@ -858,28 +854,6 @@ export class C_Text<
         } else {
             prevNode = { type: 'style', style: { ...currentStyle } };
             nodes.push(prevNode);
-        }
-    }
-
-    #setBackground(background: BackgroundOptions | null) {
-        if (background) {
-            if (this.#bgShape) {
-                this.#bgShape.destroy();
-                this.#bgShape = null;
-            }
-
-            // Re-create because there's not an easy way to re-initialize the shape with the constructor props
-            this.#bgShape = this.entity.addComponent<C_Shape<TEngine>>({
-                type: 'shape',
-                shape: 'RECT',
-                opacity: 0.5,
-                color: typeof background === 'string' ? background : 'black',
-                ...(typeof background === 'object' ? background : {}),
-                fill: true,
-            });
-        } else if (this.#bgShape) {
-            this.#bgShape.destroy();
-            this.#bgShape = null;
         }
     }
 

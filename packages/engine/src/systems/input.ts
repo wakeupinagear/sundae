@@ -1,6 +1,6 @@
-import { System } from '../systems';
 import { type Engine } from '../engine';
 import { Vector } from '../math/vector';
+import { System } from '../systems';
 import type { WebKey } from '../types';
 
 export interface CapturedKey {
@@ -73,7 +73,9 @@ const DEFAULT_AXIS_STATE: AxisState = {
     changed: false,
 };
 
-export class InputSystem<TEngine extends Engine = Engine> extends System<TEngine> {
+export class InputSystem<
+    TEngine extends Engine = Engine,
+> extends System<TEngine> {
     public static typeString: string = 'InputSystem';
 
     #keyStates: Partial<

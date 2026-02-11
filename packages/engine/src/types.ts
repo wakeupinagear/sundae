@@ -171,3 +171,11 @@ export type Platform =
     | 'android'
     | 'ios'
     | 'unknown';
+
+export const ComponentAppearance = {
+    INVISIBLE: 0,
+    FOREGROUND: 1,
+    BACKGROUND: 2,
+};
+export type ComponentAppearance =
+    (typeof ComponentAppearance)[keyof typeof ComponentAppearance];

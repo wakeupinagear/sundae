@@ -5,7 +5,9 @@ import {
     type ComponentJSON,
     type CustomComponentJSON,
 } from '../components/factory';
+import type { C_ImageJSON } from '../components/image';
 import type { C_Rigidbody } from '../components/rigidbody';
+import type { C_ShapeJSON } from '../components/shape';
 import type { C_Transform } from '../components/transforms';
 import { type Engine } from '../engine';
 import type { BoundingBox } from '../math/boundingBox';
@@ -19,6 +21,7 @@ import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
 import {
     type CollisionContact,
+    ComponentAppearance,
     type OneAxisAlignment,
     type Renderable,
 } from '../types';
@@ -31,6 +34,10 @@ import {
 
 type CullMode = 'components' | 'children' | 'all' | 'none';
 type PositionRelativeToCamera = OneAxisAlignment | 'none';
+
+type BackgroundOptions = boolean | string | C_ShapeJSON | C_ImageJSON;
+
+type BackgroundConstructor = BackgroundOptions | BackgroundOptions[];
 
 export interface EntityOptions {
     name?: string;
@@ -47,6 +54,7 @@ export interface EntityOptions {
     scene?: string;
     components?: ComponentJSON[];
     children?: EntityJSON[];
+    background?: BackgroundConstructor;
 
     rigidbody?: boolean;
     mass?: number;
@@ -91,8 +99,11 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     #childrenZIndexDirty: boolean = false;
 
     protected _components: Component<TEngine>[] = [];
-    protected _visualComponents: Component<TEngine>[] = [];
     #componentsZIndexDirty: boolean = false;
+
+    protected _foregroundComponents: Component<TEngine>[] = [];
+    protected _backgroundComponents: Component<TEngine>[] = [];
+    #componentAppearancesDirty: boolean = false;
 
     protected _cachedComponentsInTree: Record<string, Component[]> = {};
 
@@ -140,6 +151,13 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
         this._cull = rest?.cull ?? 'all';
 
+        this._transform = this.addComponent<C_Transform<TEngine>>({
+            type: 'transform',
+            position: rest?.position ?? 0,
+            rotation: rest?.rotation ?? 0,
+            scale: rest?.scale ?? 1,
+        });
+
         if (rest.components) {
             this.addComponents(...rest.components);
         }
@@ -147,12 +165,9 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             this.addChildren(...rest.children);
         }
 
-        this._transform = this.addComponent<C_Transform<TEngine>>({
-            type: 'transform',
-            position: rest?.position ?? 0,
-            rotation: rest?.rotation ?? 0,
-            scale: rest?.scale ?? 1,
-        });
+        if (rest.background) {
+            this.setBackground(rest.background);
+        }
 
         const {
             rigidbody,
@@ -248,16 +263,35 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         this.#componentsZIndexDirty = dirty;
     }
 
+    set componentAppearancesDirty(dirty: boolean) {
+        this.#componentAppearancesDirty = dirty;
+        this._transform.markBoundsDirty();
+    }
+
     set childrenZIndexDirty(dirty: boolean) {
         this.#childrenZIndexDirty = dirty;
     }
 
     get components(): ReadonlyArray<Component<TEngine>> {
-        return this._components as Component<TEngine>[];
+        return this._components;
     }
 
-    get visualComponents(): ReadonlyArray<Component<TEngine>> {
-        return this._visualComponents as Component<TEngine>[];
+    get foregroundComponents(): ReadonlyArray<Component<TEngine>> {
+        if (!this.#componentAppearancesDirty) {
+            this.#processComponentAppearanceChanges();
+            this.#componentAppearancesDirty = false;
+        }
+
+        return this._foregroundComponents;
+    }
+
+    get backgroundComponents(): ReadonlyArray<Component<TEngine>> {
+        if (!this.#componentAppearancesDirty) {
+            this.#processComponentAppearanceChanges();
+            this.#componentAppearancesDirty = false;
+        }
+
+        return this._backgroundComponents;
     }
 
     get parent(): Readonly<Entity<TEngine>> | null {
@@ -358,6 +392,12 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
 
         return createdComponents as IComponents;
+    }
+
+    setBackground(
+        background: BackgroundConstructor | null,
+    ): ReadonlyArray<Component<TEngine>> {
+        return this.#setBackground(background);
     }
 
     setCollider<TCollider extends C_Collider<TEngine>>(
@@ -615,13 +655,6 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                 this._components.splice(componentIndex, 1);
             }
 
-            if (component.isVisual()) {
-                const visualIndex = this._visualComponents.indexOf(component);
-                if (visualIndex !== -1) {
-                    this._visualComponents.splice(visualIndex, 1);
-                }
-            }
-
             component.destroy();
             this.onChildComponentsOfTypeChanged(component.typeString);
         }
@@ -724,7 +757,11 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     }
 
     isVisual(): boolean {
-        return this._visualComponents.length > 0;
+        return (
+            this._foregroundComponents.length +
+                this._backgroundComponents.length >
+            0
+        );
     }
 
     #destroy(): void {
@@ -759,16 +796,31 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
     }
 
-    #addComponent(component: Component<TEngine>): void {
-        this._components.push(component);
-        if (component.isVisual()) {
-            this._visualComponents.push(component);
-        }
-        this.onChildComponentsOfTypeChanged(component.typeString);
+    #addComponent(comp: Component<TEngine>): void {
+        this._components.push(comp);
+        this.#componentsZIndexDirty = true;
+        this.onChildComponentsOfTypeChanged(comp.typeString);
+        this.#processComponentAppearance(comp);
     }
 
     #sortComponents(): void {
         this._components.sort(this.#sortByZIndex);
+    }
+
+    #processComponentAppearance(comp: Component<TEngine>): void {
+        if (comp.appearance === ComponentAppearance.FOREGROUND) {
+            this._foregroundComponents.push(comp);
+        } else if (comp.appearance === ComponentAppearance.BACKGROUND) {
+            this._backgroundComponents.push(comp);
+        }
+    }
+
+    #processComponentAppearanceChanges() {
+        this._foregroundComponents = [];
+        this._backgroundComponents = [];
+        for (const comp of this._components) {
+            this.#processComponentAppearance(comp);
+        }
     }
 
     #getComponentsInTree<T extends Component<TEngine>>(
@@ -858,5 +910,48 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                         : 0,
             });
         }
+    }
+
+    #setBackground(
+        background: BackgroundConstructor | null,
+    ): ReadonlyArray<Component<TEngine>> {
+        for (const comp of this._backgroundComponents) {
+            comp.destroy();
+        }
+        this._backgroundComponents = [];
+
+        if (background) {
+            const backgroundArray = Array.isArray(background)
+                ? background
+                : [background];
+            for (const bgConstructor of backgroundArray) {
+                let json: ComponentJSON;
+                if (
+                    typeof bgConstructor === 'boolean' ||
+                    typeof bgConstructor === 'string'
+                ) {
+                    json = {
+                        type: 'shape',
+                        shape: 'RECT',
+                        color:
+                            typeof bgConstructor === 'boolean'
+                                ? 'black'
+                                : bgConstructor,
+                        opacity: 0.5,
+                    };
+                } else {
+                    json = bgConstructor;
+                }
+
+                json.fill = true;
+                if (json.zIndex === undefined) {
+                    json.zIndex = -1000;
+                }
+
+                this._backgroundComponents.push(this.addComponent(json));
+            }
+        }
+
+        return this._backgroundComponents;
     }
 }

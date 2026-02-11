@@ -257,8 +257,22 @@ export class C_Transform<
         let minY = Infinity;
         let maxY = -Infinity;
 
-        // Background components need to be transformed through the world matrix
-        // to account for camera-relative positioning
+        if (this.entity.backgroundComponents.length > 0) {
+            this.#corners[0].set({ x: -0.5, y: -0.5 });
+            this.#corners[1].set({ x: 0.5, y: -0.5 });
+            this.#corners[2].set({ x: 0.5, y: 0.5 });
+            this.#corners[3].set({ x: -0.5, y: 0.5 });
+
+            for (let i = 0; i < 4; i++) {
+                const corner = this.#corners[i];
+                corner.set(this.worldMatrix.transformPoint(corner));
+                minX = Math.min(minX, corner.x);
+                maxX = Math.max(maxX, corner.x);
+                minY = Math.min(minY, corner.y);
+                maxY = Math.max(maxY, corner.y);
+            }
+        }
+
         for (const comp of this.entity.backgroundComponents) {
             const compBB = comp.boundingBox;
 

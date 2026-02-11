@@ -1,4 +1,3 @@
-import { PointerButton } from '@repo/engine/pointer';
 import { Scene } from '@repo/engine/scene';
 
 import type { EngineScenario } from '../types';
