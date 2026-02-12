@@ -187,12 +187,23 @@ export abstract class C_Drawable<
     }
 
     private _computeStyle(): void {
+        const prevStyle = { ...this.#computedStyle };
         if (this._entity.collider?.isPointerHovered) {
             this.#computedStyle = { ...this._style, ...this._hoverStyle };
             this.#hoverStyleApplied = true;
         } else {
             this.#computedStyle = { ...this._style };
             this.#hoverStyleApplied = false;
+        }
+
+        if (
+            Object.keys(prevStyle).some(
+                (key) =>
+                    prevStyle[key as keyof RenderStyle] !==
+                    this.#computedStyle[key as keyof RenderStyle],
+            )
+        ) {
+            this._engine.forceRender();
         }
     }
 }

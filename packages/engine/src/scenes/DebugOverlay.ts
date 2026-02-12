@@ -12,7 +12,7 @@ import type {
     RenderCommandStream,
 } from '../systems/render/command';
 import type { RenderStyle } from '../systems/render/style';
-import { Scene } from '../systems/scene';
+import { Scene } from '../systems/scene/index';
 import type { TraceFrame } from '../systems/stats';
 import type { CacheStats } from '../types';
 import { zoomToScale } from '../utils';

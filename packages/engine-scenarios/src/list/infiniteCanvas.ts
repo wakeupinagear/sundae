@@ -1,5 +1,3 @@
-import { Scene } from '@repo/engine/scene';
-
 import type { EngineScenario } from '../types';
 
 const TILE_SIZE = 32;
@@ -9,9 +7,21 @@ const DOT_SIZE = 6;
 const GRID_UNIT = 10 * TILE_SIZE;
 const GRID_LINE_EXTENT = 100_000;
 
-class InfiniteCanvasScene extends Scene {
-    override create() {
-        this.createEntities(
+export const infiniteCanvas: EngineScenario = async (harness) => {
+    harness.engine.options = {
+        cameraOptions: {
+            clearColor: 'black',
+            bounds: {
+                x1: -Infinity,
+                x2: Infinity,
+                y1: -Infinity,
+                y2: Infinity,
+            },
+        },
+    };
+    harness.engine.openScene({
+        name: 'Infinite Canvas',
+        entities: [
             {
                 type: 'infinite_shape',
                 name: 'grid-y',
@@ -77,21 +87,6 @@ class InfiniteCanvasScene extends Scene {
                 color: 'red',
                 scale: DOT_SIZE * 2,
             },
-        );
-    }
-}
-
-export const infiniteCanvas: EngineScenario = async (harness) => {
-    harness.engine.options = {
-        cameraOptions: {
-            clearColor: 'black',
-            bounds: {
-                x1: -Infinity,
-                x2: Infinity,
-                y1: -Infinity,
-                y2: Infinity,
-            },
-        },
-    };
-    harness.engine.openScene(InfiniteCanvasScene);
+        ],
+    });
 };

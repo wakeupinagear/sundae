@@ -55,12 +55,13 @@ import {
     PointerSystem,
 } from './systems/pointer';
 import { RenderSystem } from './systems/render';
+import { type SceneJSON } from './systems/scene/factory';
 import {
-    type Scene,
+    Scene,
     type SceneIdentifier,
     type SceneOptions,
-} from './systems/scene';
-import { SceneSystem } from './systems/scene';
+    SceneSystem,
+} from './systems/scene/index';
 import { type Stats, StatsSystem } from './systems/stats';
 import { type ICanvas, type Platform, type WebKey } from './types';
 
@@ -464,15 +465,34 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         options?: Omit<SceneOptions<this>, 'engine'> & {
             createArgs?: SceneCreateArgs<T>;
         },
-    ): T {
-        const { createArgs, ...sceneOptions } = options ?? {};
-        const scene = new sceneCtor({
-            engine: this,
-            ...sceneOptions,
-        }) as T;
+    ): T;
+    openScene(config: SceneJSON): Scene<this>;
+    openScene<T extends Scene<this>>(
+        sceneCtorOrConfig: SceneConstructor<T, this> | SceneJSON,
+        options?: Omit<SceneOptions<this>, 'engine'> & {
+            createArgs?: SceneCreateArgs<T>;
+        },
+    ): T | Scene<this> {
+        let scene: Scene<this>;
+        let initialEntities: EntityJSON[] = [];
+
+        if (typeof sceneCtorOrConfig === 'function') {
+            const sceneCtor = sceneCtorOrConfig as SceneConstructor<T, this>;
+            scene = new sceneCtor({ engine: this, ...options }) as T;
+        } else {
+            const config = sceneCtorOrConfig as SceneJSON;
+            scene = new Scene<this>({
+                engine: this,
+                name: config.name,
+                zIndex: config.zIndex,
+            });
+            initialEntities = config.entities ?? [];
+        }
+
         this._sceneSystem.openScene(
             scene as unknown as Scene<this>,
-            createArgs ?? [],
+            options?.createArgs ?? [],
+            initialEntities,
         );
 
         return scene;

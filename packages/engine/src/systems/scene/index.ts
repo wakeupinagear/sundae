@@ -1,13 +1,13 @@
-import type { Engine } from '../engine';
-import { type Entity } from '../entities';
+import type { Engine } from '../../engine';
+import { type Entity } from '../../entities';
 import {
     type BaseEntityJSON,
     type CustomEntityJSON,
     type EntityConstructor,
     type EntityJSON,
     type StringEntityJSON,
-} from '../entities/factory';
-import { System } from './index';
+} from '../../entities/factory';
+import { System } from '../index';
 
 type TypedEntityJSON = Extract<StringEntityJSON, { type: string }>;
 // Utility to get all keys from all members of a union.
@@ -123,6 +123,7 @@ export class SceneSystem<
     #queuedNewScenes: Array<{
         scene: Scene<TEngine>;
         createArgs: unknown[];
+        initialEntities: EntityJSON[];
     }> = [];
     #activeScenesByID: Map<number, Scene<TEngine>> = new Map();
     #activeScenesByName: Map<string, Scene<TEngine>> = new Map();
@@ -167,8 +168,12 @@ export class SceneSystem<
         this.#queuedDestroyedScenes = [];
     }
 
-    openScene(scene: Scene<TEngine>, createArgs: unknown[] = []): void {
-        this.#queuedNewScenes.push({ scene, createArgs });
+    openScene(
+        scene: Scene<TEngine>,
+        createArgs: unknown[] = [],
+        initialEntities: EntityJSON[] = [],
+    ): void {
+        this.#queuedNewScenes.push({ scene, createArgs, initialEntities });
     }
 
     closeScene(scene: SceneIdentifier<TEngine>): void {
@@ -201,6 +206,7 @@ export class SceneSystem<
     #makeSceneActive(
         scene: Scene<TEngine>,
         createArgs: unknown[] = [],
+        initialEntities: EntityJSON[] = [],
     ): void {
         this.#activeScenesByID.set(scene.id, scene);
         this.#activeScenesByName.set(scene.name, scene);
@@ -221,6 +227,11 @@ export class SceneSystem<
             this._engine,
             ...createArgs,
         );
+
+        if (initialEntities.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            scene.createEntities(...(initialEntities as any));
+        }
     }
 
     #performQueuedUpdate(): boolean {
@@ -231,8 +242,8 @@ export class SceneSystem<
             const newScenes = [...this.#queuedNewScenes];
             // Allows new scenes to be opened by a scene's create method
             this.#queuedNewScenes = [];
-            for (const { scene, createArgs } of newScenes) {
-                this.#makeSceneActive(scene, createArgs);
+            for (const { scene, createArgs, initialEntities } of newScenes) {
+                this.#makeSceneActive(scene, createArgs, initialEntities);
             }
             updated = true;
         }

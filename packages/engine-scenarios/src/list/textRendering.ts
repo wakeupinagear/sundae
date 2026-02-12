@@ -27,9 +27,10 @@ const ALIGN_BG_COLORS = {
     'bottom-right': '#e76f51',
 } as const;
 
-class TextScene extends Scene {
-    create() {
-        this.engine.createEntities(
+export const textRendering: EngineScenario = async (harness) => {
+    harness.engine.openScene({
+        name: 'Text Rendering',
+        entities: [
             {
                 type: 'shape',
                 name: 'x-axis',
@@ -306,10 +307,6 @@ class TextScene extends Scene {
                 padding: { x1: 6, y1: 6, x2: 12, y2: 12 },
                 zIndex: 2,
             },
-        );
-    }
-}
-
-export const textRendering: EngineScenario = async (harness) => {
-    harness.engine.openScene(TextScene);
+        ],
+    });
 };
