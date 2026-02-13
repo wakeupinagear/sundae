@@ -1,5 +1,6 @@
-import type { Engine } from '@repo/engine';
-import { Component, type ComponentOptions } from '@repo/engine/components';
+import { type Engine, scaleToZoom } from '@repo/engine';
+import type { CameraSystem } from '@repo/engine/camera';
+import { C_Drawable, type C_DrawableOptions } from '@repo/engine/components';
 import { ComponentAppearance } from '@repo/engine/components';
 import type { RenderCommandStream } from '@repo/engine/render';
 import { Scene } from '@repo/engine/scene';
@@ -15,10 +16,9 @@ const STATES_GEOJSON_URL =
 const COUNTIES_GEOJSON_URL =
     'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json';
 
-const COUNTY_MIN_ZOOM = 0.8;
+const COUNTY_MIN_ZOOM = 1.2;
 const EXCLUDED_STATE_NAMES = new Set(['Alaska', 'Hawaii', 'Puerto Rico']);
 const EXCLUDED_STATE_CODES = new Set(['02', '15', '72']);
-const scaleToZoom = (scale: number): number => Math.log2(scale);
 
 type LngLat = [number, number];
 type Ring = LngLat[];
@@ -63,43 +63,35 @@ interface ProjectedFeature<TProperties> {
     rings: ProjectedPoint[][];
 }
 
-interface C_PathOutlineOptions extends ComponentOptions {
+interface C_PathOutlineOptions extends C_DrawableOptions {
     rings: ProjectedPoint[][];
     lineColor?: string;
     lineWidth?: number;
     opacity?: number;
 }
 
-class C_PathOutline extends Component<Engine> {
+class C_PathOutline extends C_Drawable<Engine> {
     #rings: ProjectedPoint[][];
-    #lineColor: string;
-    #lineWidth: number;
-    #opacity: number;
 
     constructor(options: C_PathOutlineOptions) {
         super({ name: 'path-outline', ...options });
         this.#rings = options.rings;
-        this.#lineColor = options.lineColor ?? '#999999';
-        this.#lineWidth = options.lineWidth ?? 1;
-        this.#opacity = options.opacity ?? 1;
     }
 
     override get appearance() {
         return ComponentAppearance.FOREGROUND;
     }
 
-    override queueRenderCommands(stream: RenderCommandStream): boolean {
-        if (!this.enabled || this.#rings.length === 0) {
+    override queueRenderCommands(
+        stream: RenderCommandStream,
+        camera: CameraSystem,
+    ): boolean {
+        if (
+            !super.queueRenderCommands(stream, camera) ||
+            this.#rings.length === 0
+        ) {
             return false;
         }
-
-        stream.setStyle({
-            lineColor: this.#lineColor,
-            lineWidth: this.#lineWidth,
-            lineJoin: 'round',
-            lineCap: 'round',
-        });
-        stream.setOpacity(this.#opacity * this.entity.opacity);
 
         for (const ring of this.#rings) {
             if (ring.length < 2) {
@@ -352,8 +344,11 @@ class USMapScene extends Scene<Engine> {
                     stateGroup.addComponent({
                         type: C_PathOutline,
                         rings: recenterRings(state.rings),
-                        lineColor: '#9fd3ff',
-                        lineWidth: 1.8,
+                        lineColor: '#EEEEEE',
+                        lineWidth: 2,
+                        opacity: 1,
+                        lineJoin: 'round',
+                        lineCap: 'round',
                     });
                 }
 
@@ -379,9 +374,11 @@ class USMapScene extends Scene<Engine> {
                     countyGroup.addComponent({
                         type: C_PathOutline,
                         rings: recenterRings(county.rings),
-                        lineColor: '#3f5466',
+                        lineColor: '#999999',
                         lineWidth: 0.65,
                         opacity: 0.9,
+                        lineJoin: 'round',
+                        lineCap: 'round',
                     });
                 }
 

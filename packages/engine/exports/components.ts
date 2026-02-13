@@ -24,6 +24,7 @@ export {
 export { C_CircleCollider } from '../src/components/colliders/CircleCollider';
 export { C_RectangleCollider } from '../src/components/colliders/RectangleCollider';
 
+export { C_Drawable, type C_DrawableOptions } from '../src/components/drawable';
 export {
     C_Text,
     type C_TextOptions,

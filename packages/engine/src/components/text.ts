@@ -485,7 +485,8 @@ export class C_Text<
             case 'left':
             case 'center':
             case 'right':
-                this.#textPosition.y = boxY1 + (totalHeight - overallHeight) / 2;
+                this.#textPosition.y =
+                    boxY1 + (totalHeight - overallHeight) / 2;
                 break;
             case 'bottom-left':
             case 'bottom-center':

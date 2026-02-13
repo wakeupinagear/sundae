@@ -289,14 +289,26 @@ export class CameraSystem<
             Math.min(this.#options.maxZoom, zoom),
         );
         if (clampedZoom !== this.#zoom) {
+            const previousScale = this.#scaledZoom;
+            const rotationRad = (this.#rotation * Math.PI) / 180;
+            const worldCenter = new Vector(this.#position)
+                .rotate(-rotationRad)
+                .div(previousScale);
+
             this.#zoom = clampedZoom;
             this.#scaledZoom = zoomToScale(clampedZoom);
+            const newPosition = new Vector(worldCenter)
+                .mul(this.#scaledZoom)
+                .rotate(rotationRad);
+            this.#position.set(newPosition);
+
             this.#markDirty();
         }
     }
 
     zoomBy(delta: number, focalPoint?: IVector<number>): void {
         const oldScale = this.#scaledZoom;
+        const oldPosition = this.#position.clone();
         this.setZoom(this.zoom + delta * this.#options.zoomSpeed);
 
         if (focalPoint) {
@@ -308,8 +320,8 @@ export class CameraSystem<
             );
 
             this.setPosition({
-                x: this.position.x + rotatedFocalPoint.x * scaleDelta,
-                y: this.position.y + rotatedFocalPoint.y * scaleDelta,
+                x: oldPosition.x + rotatedFocalPoint.x * scaleDelta,
+                y: oldPosition.y + rotatedFocalPoint.y * scaleDelta,
             });
         }
     }
@@ -546,9 +558,9 @@ export class CameraSystem<
         this.#zoomLerp.target = targetZoom;
         this.#rotationLerp.target = targetRotation;
 
-        const positionChanged = this.#positionLerp.update(deltaTime);
         const zoomChanged = this.#zoomLerp.update(deltaTime);
         const rotationChanged = this.#rotationLerp.update(deltaTime);
+        const positionChanged = this.#positionLerp.update(deltaTime);
         const changed = positionChanged || zoomChanged || rotationChanged;
         if (!changed) {
             this.#target = null;

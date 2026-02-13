@@ -40,6 +40,10 @@
             "types": "./exports/render.ts",
             "default": "./dist/exports/render.js"
         },
+        "./camera": {
+            "types": "./exports/camera.ts",
+            "default": "./dist/exports/camera.js"
+        },
         "./scene": {
             "types": "./exports/scene.ts",
             "default": "./dist/exports/scene.js"

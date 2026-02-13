@@ -20,4 +20,9 @@ export { Matrix2D } from '../src/math/matrix';
 export { type ICanvas, type ICanvasRenderingContext2D } from '../src/types';
 export { System } from '../src/systems';
 export { DebugOverlayFlags } from '../src/scenes/DebugOverlay';
-export { createEngine, type EngineConstructor } from '../src/utils';
+export {
+    createEngine,
+    type EngineConstructor,
+    scaleToZoom,
+    zoomToScale,
+} from '../src/utils';
