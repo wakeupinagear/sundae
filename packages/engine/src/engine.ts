@@ -518,11 +518,15 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         }
     }
 
-    getCanvas(id: string): ICanvas | null {
+    getCanvas(
+        id: string = this.#primaryCanvasID || DEFAULT_CANVAS_ID,
+    ): ICanvas | null {
         return this._canvases[id] ?? null;
     }
 
-    getCanvasSize(id: string): IVector<number> | null {
+    getCanvasSize(
+        id: string = this.#primaryCanvasID || DEFAULT_CANVAS_ID,
+    ): IVector<number> | null {
         const canvas = this.getCanvas(id);
         if (canvas) {
             return {
@@ -553,6 +557,13 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         cameraID = this.#getPrimaryCameraID(),
     ): void {
         this._cameraSystems[cameraID]?.setTarget(target);
+    }
+
+    setCameraResetTarget(
+        target: CameraTargetConstructor,
+        cameraID = this.#getPrimaryCameraID(),
+    ): void {
+        this._cameraSystems[cameraID]?.setResetTarget(target);
     }
 
     getKey(keyCode: WebKey): Readonly<KeyboardKeyState> {

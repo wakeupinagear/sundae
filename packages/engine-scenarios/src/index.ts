@@ -7,6 +7,7 @@ import { renderChaos } from './list/renderChaos';
 import { superSundaeBros } from './list/superSundaeBros';
 import { textRendering } from './list/textRendering';
 import { typeErrors } from './list/type-errors';
+import { usMap } from './list/usMap';
 import type { EngineScenario } from './types';
 
 export * from './types';
@@ -53,6 +54,11 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Infinite Canvas',
                 description: 'An infinite canvas',
                 scenario: infiniteCanvas,
+            },
+            usMap: {
+                name: 'US Map',
+                description: 'A map of the United States',
+                scenario: usMap,
             },
         },
     },

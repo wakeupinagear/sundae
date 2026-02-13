@@ -1,0 +1,435 @@
+import type { Engine } from '@repo/engine';
+import { Component, type ComponentOptions } from '@repo/engine/components';
+import { ComponentAppearance } from '@repo/engine/components';
+import type { RenderCommandStream } from '@repo/engine/render';
+import { Scene } from '@repo/engine/scene';
+
+import type { EngineScenario } from '../types';
+
+const PADDING_PX = 32;
+const MAP_WIDTH_PX = 2440 + PADDING_PX * 2;
+const MAP_HEIGHT_PX = 1340 + PADDING_PX * 2;
+
+const STATES_GEOJSON_URL =
+    'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
+const COUNTIES_GEOJSON_URL =
+    'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json';
+
+const COUNTY_MIN_ZOOM = 0.8;
+const EXCLUDED_STATE_NAMES = new Set(['Alaska', 'Hawaii', 'Puerto Rico']);
+const EXCLUDED_STATE_CODES = new Set(['02', '15', '72']);
+const scaleToZoom = (scale: number): number => Math.log2(scale);
+
+type LngLat = [number, number];
+type Ring = LngLat[];
+type Polygon = Ring[];
+type MultiPolygon = Polygon[];
+
+type Geometry = {
+    type: 'Polygon' | 'MultiPolygon';
+    coordinates: Polygon | MultiPolygon;
+} | null;
+
+interface FeatureCollection<TProperties> {
+    type: 'FeatureCollection';
+    features: Feature<TProperties>[];
+}
+
+interface Feature<TProperties> {
+    id?: number | string;
+    properties: TProperties;
+    geometry: Geometry;
+}
+
+interface StateProperties {
+    name?: string;
+}
+
+interface CountyProperties {
+    STATEFP?: string;
+    STATE?: string | number;
+    NAME?: string;
+    COUNTY?: string;
+}
+
+interface ProjectedPoint {
+    x: number;
+    y: number;
+}
+
+interface ProjectedFeature<TProperties> {
+    id: string;
+    properties: TProperties;
+    rings: ProjectedPoint[][];
+}
+
+interface C_PathOutlineOptions extends ComponentOptions {
+    rings: ProjectedPoint[][];
+    lineColor?: string;
+    lineWidth?: number;
+    opacity?: number;
+}
+
+class C_PathOutline extends Component<Engine> {
+    #rings: ProjectedPoint[][];
+    #lineColor: string;
+    #lineWidth: number;
+    #opacity: number;
+
+    constructor(options: C_PathOutlineOptions) {
+        super({ name: 'path-outline', ...options });
+        this.#rings = options.rings;
+        this.#lineColor = options.lineColor ?? '#999999';
+        this.#lineWidth = options.lineWidth ?? 1;
+        this.#opacity = options.opacity ?? 1;
+    }
+
+    override get appearance() {
+        return ComponentAppearance.FOREGROUND;
+    }
+
+    override queueRenderCommands(stream: RenderCommandStream): boolean {
+        if (!this.enabled || this.#rings.length === 0) {
+            return false;
+        }
+
+        stream.setStyle({
+            lineColor: this.#lineColor,
+            lineWidth: this.#lineWidth,
+            lineJoin: 'round',
+            lineCap: 'round',
+        });
+        stream.setOpacity(this.#opacity * this.entity.opacity);
+
+        for (const ring of this.#rings) {
+            if (ring.length < 2) {
+                continue;
+            }
+
+            let previous = ring[ring.length - 1]!;
+            for (const current of ring) {
+                stream.drawLine(
+                    previous.x,
+                    previous.y,
+                    current.x,
+                    current.y,
+                    1,
+                    1,
+                    1,
+                    1,
+                );
+                previous = current;
+            }
+        }
+
+        return true;
+    }
+
+    protected override _computeBoundingBox(): void {
+        if (this.#rings.length === 0) {
+            this._boundingBox.set(0);
+            return;
+        }
+
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        for (const ring of this.#rings) {
+            for (const point of ring) {
+                minX = Math.min(minX, point.x);
+                minY = Math.min(minY, point.y);
+                maxX = Math.max(maxX, point.x);
+                maxY = Math.max(maxY, point.y);
+            }
+        }
+
+        this._boundingBox.set(minX, minY, maxX, maxY);
+    }
+}
+
+const pad2 = (value: number | string): string => `${value}`.padStart(2, '0');
+
+const getRingsFromGeometry = (geometry: Geometry): Ring[] => {
+    if (!geometry) {
+        return [];
+    }
+
+    if (geometry.type === 'Polygon') {
+        return geometry.coordinates as Polygon;
+    }
+
+    const rings: Ring[] = [];
+    for (const polygon of geometry.coordinates as MultiPolygon) {
+        rings.push(...polygon);
+    }
+    return rings;
+};
+
+const readFeatureCollection = <TProperties>(
+    payload: unknown,
+): FeatureCollection<TProperties> => {
+    return payload as FeatureCollection<TProperties>;
+};
+
+const getFeatureID = <TProperties>(
+    feature: Feature<TProperties>,
+    fallbackPrefix: string,
+    index: number,
+): string => {
+    if (feature.id !== undefined && feature.id !== null) {
+        return `${feature.id}`;
+    }
+
+    return `${fallbackPrefix}-${index}`;
+};
+
+const projectFeatureCollections = (
+    states: FeatureCollection<StateProperties>,
+    counties: FeatureCollection<CountyProperties>,
+): {
+    projectedStates: ProjectedFeature<StateProperties>[];
+    projectedCounties: ProjectedFeature<CountyProperties>[];
+} => {
+    const points: ProjectedPoint[] = [];
+    const allStateRings = states.features
+        .filter((feature) => {
+            const stateName = feature.properties.name;
+            return !stateName || !EXCLUDED_STATE_NAMES.has(stateName);
+        })
+        .map((feature, index) => ({
+            id: getFeatureID(feature, 'state', index),
+            properties: feature.properties,
+            rings: getRingsFromGeometry(feature.geometry),
+        }));
+    const allCountyRings = counties.features
+        .map((feature, index) => ({
+            id: getFeatureID(feature, 'county', index),
+            properties: feature.properties,
+            rings: getRingsFromGeometry(feature.geometry),
+        }))
+        .filter((county) => {
+            const stateCode = getCountyStateCode(county);
+            return !EXCLUDED_STATE_CODES.has(stateCode);
+        });
+
+    // Use states for projection bounds so county outliers do not skew centering.
+    for (const feature of allStateRings) {
+        for (const ring of feature.rings) {
+            for (const [lon, lat] of ring) {
+                points.push({ x: lon, y: lat });
+            }
+        }
+    }
+
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    for (const point of points) {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+    }
+
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const width = Math.max(1, maxX - minX);
+    const height = Math.max(1, maxY - minY);
+    const lonScale = Math.cos((centerY * Math.PI) / 180);
+    const projectedWidth = width * lonScale;
+    const scale = MAP_WIDTH_PX / Math.max(projectedWidth, height);
+
+    const projectRing = (ring: Ring): ProjectedPoint[] =>
+        ring.map(([lon, lat]) => ({
+            x: (lon - centerX) * lonScale * scale,
+            y: (centerY - lat) * scale,
+        }));
+
+    const projectedStates = allStateRings.map((feature) => ({
+        id: feature.id,
+        properties: feature.properties,
+        rings: feature.rings.map(projectRing),
+    }));
+    const projectedCounties = allCountyRings.map((feature) => ({
+        id: feature.id,
+        properties: feature.properties,
+        rings: feature.rings.map(projectRing),
+    }));
+
+    return { projectedStates, projectedCounties };
+};
+
+const getCountyStateCode = (
+    county: Pick<ProjectedFeature<CountyProperties>, 'id' | 'properties'>,
+): string => {
+    const { STATEFP, STATE } = county.properties;
+    if (STATEFP) {
+        return pad2(STATEFP);
+    }
+    if (STATE !== undefined && STATE !== null) {
+        return pad2(STATE);
+    }
+
+    return county.id.slice(0, 2);
+};
+
+class USMapScene extends Scene<Engine> {
+    override create(): void {
+        const baseScale = this.#calculateBaseScale();
+        this._engine.setCameraZoom(scaleToZoom(baseScale));
+
+        const mapRoot = this.createEntity({
+            type: 'entity',
+            name: 'us-map-root',
+        });
+        const statesLayer = mapRoot.addChild({
+            type: 'entity',
+            name: 'states-layer',
+            zIndex: 2,
+        });
+        const countiesLayer = mapRoot.addChild({
+            type: 'entity',
+            name: 'counties-layer',
+            zIndex: 1,
+        });
+
+        Promise.all([
+            globalThis
+                .fetch(STATES_GEOJSON_URL)
+                .then((res) => res.json())
+                .then((payload: unknown) =>
+                    readFeatureCollection<StateProperties>(payload),
+                ),
+            globalThis
+                .fetch(COUNTIES_GEOJSON_URL)
+                .then((res) => res.json())
+                .then((payload: unknown) =>
+                    readFeatureCollection<CountyProperties>(payload),
+                ),
+        ])
+            .then(([statesData, countiesData]) => {
+                const { projectedStates, projectedCounties } =
+                    projectFeatureCollections(statesData, countiesData);
+
+                let minX = Number.POSITIVE_INFINITY;
+                let minY = Number.POSITIVE_INFINITY;
+                let maxX = Number.NEGATIVE_INFINITY;
+                let maxY = Number.NEGATIVE_INFINITY;
+                for (const feature of projectedStates) {
+                    for (const ring of feature.rings) {
+                        for (const point of ring) {
+                            minX = Math.min(minX, point.x);
+                            minY = Math.min(minY, point.y);
+                            maxX = Math.max(maxX, point.x);
+                            maxY = Math.max(maxY, point.y);
+                        }
+                    }
+                }
+                const offsetX = (minX + maxX) / 2;
+                const offsetY = (minY + maxY) / 2;
+                const recenterRings = (rings: ProjectedPoint[][]) =>
+                    rings.map((ring) =>
+                        ring.map((point) => ({
+                            x: point.x - offsetX,
+                            y: point.y - offsetY,
+                        })),
+                    );
+
+                const countyStateGroups = new Map<
+                    string,
+                    ReturnType<typeof countiesLayer.addChild>
+                >();
+
+                for (const state of projectedStates) {
+                    const name = state.properties.name ?? state.id;
+                    const stateGroup = statesLayer.addChild({
+                        type: 'entity',
+                        name: `state-${name}`,
+                    });
+                    stateGroup.addComponent({
+                        type: C_PathOutline,
+                        rings: recenterRings(state.rings),
+                        lineColor: '#9fd3ff',
+                        lineWidth: 1.8,
+                    });
+                }
+
+                for (const county of projectedCounties) {
+                    const stateCode = getCountyStateCode(county);
+                    let stateCountyGroup = countyStateGroups.get(stateCode);
+                    if (!stateCountyGroup) {
+                        stateCountyGroup = countiesLayer.addChild({
+                            type: 'entity',
+                            name: `counties-state-${stateCode}`,
+                        });
+                        countyStateGroups.set(stateCode, stateCountyGroup);
+                    }
+
+                    const countyName = county.properties.NAME ?? county.id;
+                    const countyGroup = stateCountyGroup.addChild({
+                        type: 'entity',
+                        name: `county-${countyName}-${county.id}`,
+                        lod: {
+                            minZoom: COUNTY_MIN_ZOOM * baseScale,
+                        },
+                    });
+                    countyGroup.addComponent({
+                        type: C_PathOutline,
+                        rings: recenterRings(county.rings),
+                        lineColor: '#3f5466',
+                        lineWidth: 0.65,
+                        opacity: 0.9,
+                    });
+                }
+
+                this.engine.log(
+                    `US map loaded (${projectedStates.length} states, ${projectedCounties.length} counties).`,
+                );
+                this.engine.forceRender();
+            })
+            .catch((error: unknown) => {
+                this.engine.error('Failed to load US map resources.', error);
+            });
+    }
+
+    update(): boolean | void {
+        const baseScale = this.#calculateBaseScale();
+        this._engine.setCameraResetTarget({
+            position: {
+                x: 0,
+                y: 0,
+            },
+            zoom: scaleToZoom(baseScale),
+        });
+    }
+
+    #calculateBaseScale(): number {
+        const startingCanvasSize = this.engine.getCanvasSize();
+        const scale = startingCanvasSize
+            ? Math.min(
+                  startingCanvasSize.x / MAP_WIDTH_PX,
+                  startingCanvasSize.y / MAP_HEIGHT_PX,
+              )
+            : 0.5;
+
+        return scale;
+    }
+}
+
+export const usMap: EngineScenario = (harness) => {
+    harness.engine.options = {
+        cameraOptions: {
+            maxZoom: 4,
+            bounds: {
+                x1: -MAP_WIDTH_PX / 2,
+                x2: MAP_WIDTH_PX / 2,
+                y1: -MAP_HEIGHT_PX / 2,
+                y2: MAP_HEIGHT_PX / 2,
+            },
+        },
+    };
+    harness.engine.openScene(USMapScene);
+};

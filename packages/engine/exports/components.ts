@@ -39,3 +39,8 @@ export {
     type C_ShapeOptions,
     type C_ShapeJSON,
 } from '../src/components/shape';
+export {
+    ComponentAppearance,
+    type OneAxisAlignment,
+    type Renderable,
+} from '../src/types';

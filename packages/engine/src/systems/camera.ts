@@ -25,7 +25,7 @@ export interface CameraOptions {
     dragCursor?: CursorType;
     dragThreshold?: number;
     resetAfterNClicks?: number;
-    resetCameraTarget?: CameraTarget;
+    resetCameraTarget?: CameraTarget | null;
     targetLerpSpeed?: number;
     cullScale?: number;
     clearColor?: string;
@@ -342,24 +342,15 @@ export class CameraSystem<
         target: CameraTargetConstructor,
         lerpSpeed = this.#options.targetLerpSpeed,
     ): void {
-        if (typeof target === 'string') {
-            this.#target = { type: 'entity', name: target };
-        } else if (target === null) {
-            this.#target = null;
-        } else if ('type' in target && target.type === 'entity') {
-            this.#target = { type: 'entity', name: target.name };
-        } else {
-            this.#target = {
-                type: 'fixed',
-                position: target.position,
-                zoom: target.zoom,
-                rotation: target.rotation,
-            };
-        }
+        this.#target = this.#computeCameraTarget(target);
 
         this.#positionLerp.speed = lerpSpeed;
         this.#zoomLerp.speed = lerpSpeed;
         this.#rotationLerp.speed = lerpSpeed;
+    }
+
+    setResetTarget(target: CameraTargetConstructor): void {
+        this.#options.resetCameraTarget = this.#computeCameraTarget(target);
     }
 
     applyOptions(options: CameraSystemOptions): void {
@@ -851,5 +842,22 @@ export class CameraSystem<
         }
 
         return `${this.#position.x}|${this.#position.y}|${this.#rotation}|${this.#zoom}|${canvasSize.x}|${canvasSize.y}`;
+    }
+
+    #computeCameraTarget(target: CameraTargetConstructor): CameraTarget | null {
+        if (typeof target === 'string') {
+            return { type: 'entity', name: target };
+        } else if (target === null) {
+            return null;
+        } else if ('type' in target && target.type === 'entity') {
+            return { type: 'entity', name: target.name };
+        }
+
+        return {
+            type: 'fixed',
+            position: target.position,
+            zoom: target.zoom,
+            rotation: target.rotation,
+        };
     }
 }
