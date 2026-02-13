@@ -204,6 +204,9 @@ class USMapScene extends Scene<Engine> {
             type: 'entity',
             name: 'counties-layer',
             zIndex: 1,
+            lod: {
+                minZoom: COUNTY_MIN_ZOOM * baseScale,
+            },
         });
 
         Promise.all([
@@ -288,26 +291,24 @@ class USMapScene extends Scene<Engine> {
                     }
 
                     const countyName = county.properties.NAME ?? county.id;
-                    const countyGroup = stateCountyGroup.addChild({
-                        type: 'entity',
-                        name: `county-${countyName}-${county.id}`,
-                        lod: {
-                            minZoom: COUNTY_MIN_ZOOM * baseScale,
-                        },
-                    });
                     const countyRings = recenterRings(county.rings);
                     for (let r = 0; r < countyRings.length; r++) {
                         const ring = countyRings[r]!;
                         if (ring.length < 2) continue;
-                        countyGroup.addChild({
+                        stateCountyGroup.addChild({
                             type: 'polygon',
                             name: `county-${countyName}-${county.id}-ring-${r}`,
                             points: ring,
                             lineColor: '#999999',
                             lineWidth: 0.65,
-                            opacity: 0.9,
                             lineJoin: 'round',
                             lineCap: 'round',
+                            pointerTarget: true,
+                            hoverStyle: {
+                                lineColor: '#0000FF',
+                                lineWidth: 2,
+                            },
+                            hoverZIndex: 10,
                         });
                     }
                 }

@@ -12,7 +12,7 @@ class PitScene extends Scene {
             type: 'shape',
             shape: 'RECT',
             color: '#DDDDDD',
-            collision: true,
+            collision: 'solid',
         };
         this.createEntities(
             {
@@ -44,7 +44,7 @@ class PitScene extends Scene {
                     x: 500 * (_engine.random() - 0.5),
                     y: 400 * (_engine.random() - 0.5),
                 },
-                collision: true,
+                collision: 'solid',
                 pointerTarget: true,
                 mass: 1,
                 hoverStyle: {

@@ -71,7 +71,7 @@ export class SpatialHashGrid<
 
     queryPairs(): [TEntity, TEntity][] {
         const pairs: [TEntity, TEntity][] = [];
-        const checkedPairs = new Set<string>();
+        const checkedPairs = new Map<string, Set<string>>();
 
         for (const cell of this.#grid.values()) {
             if (cell.size < 2) continue;
@@ -83,13 +83,22 @@ export class SpatialHashGrid<
 
                 for (let j = i + 1; j < entities.length; j++) {
                     const entityB = entities[j];
-                    const pairId =
-                        entityA.id < entityB.id
-                            ? `${entityA.id}:${entityB.id}`
-                            : `${entityB.id}:${entityA.id}`;
-                    if (checkedPairs.has(pairId)) continue;
+                    let firstID = entityA.id;
+                    let secondID = entityB.id;
+                    if (firstID > secondID) {
+                        firstID = entityB.id;
+                        secondID = entityA.id;
+                    }
 
-                    checkedPairs.add(pairId);
+                    let checkedAgainst = checkedPairs.get(firstID);
+                    if (!checkedAgainst) {
+                        checkedAgainst = new Set();
+                        checkedPairs.set(firstID, checkedAgainst);
+                    } else if (checkedAgainst.has(secondID)) {
+                        continue;
+                    }
+
+                    checkedAgainst.add(secondID);
                     if (bboxA.intersects(entityB.transform.boundingBox)) {
                         pairs.push([entityA, entityB]);
                     }

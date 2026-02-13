@@ -742,7 +742,7 @@ export class CameraSystem<
     }
 
     #getAllPointerTargets(pointerWorldPosition: Vector): C_Collider<TEngine>[] {
-        const grid = this._engine.physicsSystem.spatialGrid;
+        const grid = this._engine.physicsSystem.pointerTargetSpatialGrid;
         const entities = grid.queryPoint(pointerWorldPosition);
 
         return entities

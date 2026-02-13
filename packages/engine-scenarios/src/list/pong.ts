@@ -27,7 +27,7 @@ class E_Paddle extends E_Shape {
             ...options,
             shape: 'RECT',
             color: 'white',
-            collision: true,
+            collision: 'solid',
             mass: 1e6,
             bounce: 1,
         });
@@ -86,7 +86,7 @@ class PongScene extends Scene {
             shape: 'RECT',
             scale: { x: 1000, y: 100 },
             color: '#BBBBBB',
-            collision: true,
+            collision: 'solid',
             kinematic: true,
             bounce: 1,
         };
@@ -112,7 +112,7 @@ class PongScene extends Scene {
             shape: 'ELLIPSE',
             color: 'white',
             scale: { x: 20, y: 20 },
-            collision: true,
+            collision: 'solid',
             bounce: 1,
         }) as E_Shape;
         this.ballReset();

@@ -22,6 +22,7 @@ export class C_Polygon<
 
     constructor(options: C_PolygonOptions) {
         super({ name: 'polygon', ...options });
+
         this.#points = options.points.map((point) => new Vector(point));
     }
 

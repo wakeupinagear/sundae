@@ -101,11 +101,24 @@ export abstract class Component<TEngine extends Engine = Engine>
         }
     }
 
+    protected _markZIndexDirty(): void {
+        if (this._entity) {
+            this._entity.componentsZIndexDirty = true;
+            this._entity.onChildComponentsOfTypeChanged(this.typeString);
+        }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update(_deltaTime: number): boolean | void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     onCollision(contact: CollisionContact<TEngine>): void {}
+
+    onPointerEnter(): void {}
+
+    onPointerStay(): void {}
+
+    onPointerLeave(): void {}
 
     destroy(): void {}
 
@@ -121,10 +134,7 @@ export abstract class Component<TEngine extends Engine = Engine>
     setZIndex(zIndex: number): this {
         if (this._zIndex !== zIndex && !isNaN(zIndex)) {
             this._zIndex = zIndex;
-            if (this._entity) {
-                this._entity.componentsZIndexDirty = true;
-                this._entity.onChildComponentsOfTypeChanged(this.typeString);
-            }
+            this._markZIndexDirty();
         }
 
         return this;

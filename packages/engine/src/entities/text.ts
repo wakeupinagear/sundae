@@ -16,15 +16,7 @@ const TEXT_ALIGN_TO_ORIGIN: Record<TwoAxisAlignment, VectorConstructor> = {
     'bottom-right': { x: 0, y: 0 },
 };
 
-export interface E_TextOptions extends EntityOptions, C_TextOptions {
-    collision?: boolean;
-    mass?: number;
-    kinematic?: boolean;
-    velocity?: VectorConstructor;
-    force?: VectorConstructor;
-    gravityScale?: VectorConstructor;
-    bounce?: number;
-}
+export interface E_TextOptions extends EntityOptions, C_TextOptions {}
 
 export interface E_TextJSON extends E_TextOptions {
     type: 'text';

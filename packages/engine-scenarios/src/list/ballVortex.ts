@@ -29,7 +29,7 @@ class VortexScene extends Scene {
             type: 'shape',
             shape: 'RECT',
             color: '#DDDDDD',
-            collision: true,
+            collision: 'solid',
             kinematic: true,
         };
 
@@ -64,7 +64,7 @@ class VortexScene extends Scene {
                     x: 300 * (_engine.random() - 0.5),
                     y: 400 * (_engine.random() - 0.5),
                 },
-                collision: true,
+                collision: 'solid',
                 pointerTarget: true,
                 mass: 1,
                 hoverStyle: {

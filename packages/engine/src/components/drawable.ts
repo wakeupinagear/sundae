@@ -5,13 +5,17 @@ import { type RenderCommandStream } from '../systems/render/command';
 import { RENDER_STYLE_KEYS, type RenderStyle } from '../systems/render/style';
 import { ComponentAppearance } from '../types';
 import { OPACITY_THRESHOLD } from '../utils';
+import type { C_ColliderOptions } from './colliders';
 import { Component, type ComponentOptions } from './index';
 
 interface DrawableStyle extends RenderStyle {
     opacity?: number;
 }
 
-export interface C_DrawableOptions extends ComponentOptions, DrawableStyle {
+export interface C_DrawableOptions
+    extends ComponentOptions,
+        C_ColliderOptions,
+        DrawableStyle {
     origin?: VectorConstructor;
     size?: VectorConstructor;
     fill?: boolean;
@@ -31,7 +35,6 @@ export abstract class C_Drawable<
     protected _fill = false;
 
     #computedStyle: DrawableStyle = {};
-    #hoverStyleApplied: boolean = false;
 
     constructor(options: DrawableOptions) {
         super({ name: 'drawable', ...options });
@@ -54,7 +57,7 @@ export abstract class C_Drawable<
         }
 
         this._hoverStyle = options.hoverStyle ?? {};
-        this._computeStyle();
+        this.#computeStyle();
     }
 
     get origin(): Readonly<Vector> {
@@ -114,14 +117,14 @@ export abstract class C_Drawable<
 
     setStyle(style: RenderStyle): this {
         this._style = { ...this._style, ...style };
-        this._computeStyle();
+        this.#computeStyle();
 
         return this;
     }
 
     setHoverStyle(style: RenderStyle): this {
         this._hoverStyle = { ...this._hoverStyle, ...style };
-        this._computeStyle();
+        this.#computeStyle();
 
         return this;
     }
@@ -135,15 +138,6 @@ export abstract class C_Drawable<
         }
 
         return this;
-    }
-
-    override update(): boolean | void {
-        if (
-            this._entity.collider?.hoverJustChanged ||
-            (!this._entity.collider && this.#hoverStyleApplied)
-        ) {
-            this._computeStyle();
-        }
     }
 
     public override queueRenderCommands(
@@ -177,6 +171,14 @@ export abstract class C_Drawable<
         return false;
     }
 
+    override onPointerEnter(): void {
+        this.#computeStyle(true);
+    }
+
+    override onPointerLeave(): void {
+        this.#computeStyle(false);
+    }
+
     protected override _computeBoundingBox(): void {
         this._boundingBox.set(
             -this._origin.x * this._size.x,
@@ -186,16 +188,14 @@ export abstract class C_Drawable<
         );
     }
 
-    private _computeStyle(): void {
+    #computeStyle(
+        pointerHovered: boolean = this._entity.collider?.isPointerHovered ??
+            false,
+    ): void {
         const prevStyle = { ...this.#computedStyle };
-        if (this._entity.collider?.isPointerHovered) {
-            this.#computedStyle = { ...this._style, ...this._hoverStyle };
-            this.#hoverStyleApplied = true;
-        } else {
-            this.#computedStyle = { ...this._style };
-            this.#hoverStyleApplied = false;
-        }
-
+        this.#computedStyle = pointerHovered
+            ? { ...this._style, ...this._hoverStyle }
+            : { ...this._style };
         if (
             Object.keys(prevStyle).some(
                 (key) =>

@@ -8,16 +8,22 @@ import { type C_Rigidbody } from '../rigidbody';
 import type { C_CircleCollider } from './CircleCollider';
 import { type C_RectangleCollider } from './RectangleCollider';
 
-type ColliderType = 'circle' | 'rectangle';
+export type { C_PolygonCollider } from './PolygonCollider';
+
+type ColliderType = 'circle' | 'rectangle' | 'polygon';
+
+type CollisionMode = 'trigger' | 'solid' | 'none';
 
 export type CollisionBounds = Vector[];
 
-export interface C_ColliderOptions extends ComponentOptions {
-    isTrigger?: boolean;
+type ColliderPointerEventHandler = ((collider: C_Collider) => void) | null;
 
+export interface C_ColliderOptions extends ComponentOptions {
+    collision?: CollisionMode;
     pointerTarget?: boolean;
-    onPointerEnter?: ((collider: C_Collider) => void) | null;
-    onPointerLeave?: ((collider: C_Collider) => void) | null;
+    onPointerEnter?: ColliderPointerEventHandler;
+    onPointerStay?: ColliderPointerEventHandler;
+    onPointerLeave?: ColliderPointerEventHandler;
     cursorOnHover?: CursorType | null;
     cursorPriority?: number;
 }
@@ -27,11 +33,11 @@ export abstract class C_Collider<
 > extends Component<TEngine> {
     _type!: ColliderType;
 
-    #isTrigger: boolean;
-
+    #collision: CollisionMode;
     #pointerTarget: boolean;
-    #onPointerEnter: C_ColliderOptions['onPointerEnter'];
-    #onPointerLeave: C_ColliderOptions['onPointerLeave'];
+    #onPointerEnterCB: ColliderPointerEventHandler;
+    #onPointerStayCB: ColliderPointerEventHandler;
+    #onPointerLeaveCB: ColliderPointerEventHandler;
     #cursorOnHover: C_ColliderOptions['cursorOnHover'];
     #cursorPriority: number;
 
@@ -47,35 +53,27 @@ export abstract class C_Collider<
     constructor(options: C_ColliderOptions) {
         super(options);
 
-        this.#isTrigger = options.isTrigger ?? false;
-
+        this.#collision = options.collision ?? 'none';
         this.#pointerTarget = options.pointerTarget ?? false;
-        this.#onPointerEnter = options.onPointerEnter ?? null;
-        this.#onPointerLeave = options.onPointerLeave ?? null;
+        this.#onPointerEnterCB = options.onPointerEnter ?? null;
+        this.#onPointerStayCB = options.onPointerStay ?? null;
+        this.#onPointerLeaveCB = options.onPointerLeave ?? null;
         this.#cursorOnHover = options.cursorOnHover ?? null;
         this.#cursorPriority = options.cursorPriority ?? 5;
 
         this._engine.physicsSystem.registerPhysicsEntity(this.entity);
     }
 
-    override destroy(): void {
-        super.destroy();
-
-        if (!this.entity.rigidbody) {
-            this._engine.physicsSystem.unregisterPhysicsEntity(this.entity);
-        }
-    }
-
     get type(): ColliderType {
         return this._type;
     }
 
-    get isTrigger(): boolean {
-        return this.#isTrigger;
+    get collisionMode(): CollisionMode {
+        return this.#collision;
     }
 
-    set isTrigger(isTrigger: boolean) {
-        this.#isTrigger = isTrigger;
+    set collisionMode(collisionMode: CollisionMode) {
+        this.#collision = collisionMode;
     }
 
     get pointerTarget(): boolean {
@@ -123,20 +121,17 @@ export abstract class C_Collider<
             this.#prevIsPointerHovered !== this.#isPointerHovered
         ) {
             if (this.#isPointerHovered) {
-                this.#onPointerEnter?.(this);
-                if (this.#cursorOnHover) {
-                    this._engine.requestCursor(
-                        this.#cursorOnHover,
-                        this.#cursorPriority,
-                    );
-                }
+                this.#onPointerEnter();
             } else {
-                this.#onPointerLeave?.(this);
+                this.#onPointerLeave();
             }
 
             this.#prevIsPointerHovered = this.#isPointerHovered;
             this.#hoverJustChanged = true;
         } else {
+            if (this.#isPointerHovered) {
+                this.#onPointerStay();
+            }
             this.#hoverJustChanged = Boolean(
                 this.#isPointerHovered && !this.#pointerTarget,
             );
@@ -145,6 +140,17 @@ export abstract class C_Collider<
         this.#isPointerHovered = false;
 
         return false;
+    }
+
+    override destroy(): void {
+        super.destroy();
+
+        if (this.#prevIsPointerHovered) {
+            this.#onPointerLeave();
+        }
+        if (!this.entity.rigidbody) {
+            this._engine.physicsSystem.unregisterPhysicsEntity(this.entity);
+        }
     }
 
     abstract checkIfPointInside(worldPosition: Vector): boolean;
@@ -327,24 +333,18 @@ export abstract class C_Collider<
         };
     };
 
-    static isCollisionEnabledInOptions(
-        options: C_ColliderOptions & { collision?: boolean },
-    ): boolean {
-        return (
-            options.collision ??
-            options.isTrigger ??
-            options.pointerTarget ??
-            false
-        );
+    static isCollisionEnabledInOptions(options: C_ColliderOptions): boolean {
+        return Boolean(options.collision !== 'none' || options.pointerTarget);
     }
 
     static getCollisionOptionsForEntity(
-        options: C_ColliderOptions & { collision?: boolean },
+        options: C_ColliderOptions,
     ): Partial<C_ColliderOptions> {
         return {
-            isTrigger: options.isTrigger ?? !options.collision,
+            collision: options.collision ?? 'none',
             pointerTarget: options.pointerTarget ?? false,
             onPointerEnter: options.onPointerEnter ?? null,
+            onPointerStay: options.onPointerStay ?? null,
             onPointerLeave: options.onPointerLeave ?? null,
             cursorOnHover: options.cursorOnHover ?? null,
         };
@@ -383,6 +383,10 @@ export abstract class C_Collider<
                 this as unknown as C_RectangleCollider<TEngine>,
             );
         }
+        // Polygon vs anything: stubbed (no collision resolution implemented)
+        if (this.type === 'polygon' || otherCollider.type === 'polygon') {
+            return null;
+        }
 
         return null;
     }
@@ -396,5 +400,27 @@ export abstract class C_Collider<
 
     _computeCollisionBounds(): void {
         this._collisionBounds = [];
+    }
+
+    #onPointerEnter(): void {
+        if (this.#cursorOnHover) {
+            this._engine.requestCursor(
+                this.#cursorOnHover,
+                this.#cursorPriority,
+            );
+        }
+
+        this.#onPointerEnterCB?.(this);
+        this._entity.onPointerEnter();
+    }
+
+    #onPointerStay(): void {
+        this.#onPointerStayCB?.(this);
+        this._entity.onPointerStay();
+    }
+
+    #onPointerLeave(): void {
+        this.#onPointerLeaveCB?.(this);
+        this._entity.onPointerLeave();
     }
 }

@@ -47,6 +47,7 @@ export interface EntityOptions {
     name?: string;
     enabled?: boolean;
     zIndex?: number;
+    hoverZIndex?: number;
     opacity?: number;
     cull?: CullMode;
     position?: number | IVector<number> | Vector;
@@ -84,7 +85,11 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     protected _engine: TEngine;
 
     protected _enabled: boolean;
+
     protected _zIndex: number;
+    protected _hoverZIndex: number;
+    #computedZIndex: number;
+
     protected _opacity: number;
 
     protected _transform: C_Transform<TEngine>;
@@ -130,6 +135,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
         this._enabled = rest?.enabled ?? true;
         this._zIndex = rest?.zIndex ?? 0;
+        this._hoverZIndex = rest?.hoverZIndex ?? 0;
+        this.#computedZIndex = this._zIndex;
         this._opacity = rest?.opacity ?? 1;
 
         this._positionRelativeToCamera = rest?.positionRelativeToCamera
@@ -259,7 +266,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     }
 
     get zIndex(): number {
-        return this._zIndex;
+        return this.#computedZIndex;
     }
 
     get opacity(): number {
@@ -524,6 +531,32 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
     }
 
+    onPointerEnter(): void {
+        this.#computeZIndex(true);
+        for (const comp of this._components) {
+            if (comp.enabled) {
+                comp.onPointerEnter();
+            }
+        }
+    }
+
+    onPointerStay(): void {
+        for (const comp of this._components) {
+            if (comp.enabled) {
+                comp.onPointerStay();
+            }
+        }
+    }
+
+    onPointerLeave(): void {
+        this.#computeZIndex(false);
+        for (const comp of this._components) {
+            if (comp.enabled) {
+                comp.onPointerLeave();
+            }
+        }
+    }
+
     engineUpdate(deltaTime: number): boolean {
         let updated = this._updated;
         this._updated = false;
@@ -619,9 +652,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     setZIndex(zIndex: number): this {
         if (this._zIndex !== zIndex && !isNaN(zIndex)) {
             this._zIndex = zIndex;
-            if (this._parent) {
-                this._parent.childrenZIndexDirty = true;
-            }
+            this.#computeZIndex();
         }
 
         return this;
@@ -1003,5 +1034,17 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
 
         return this._backgroundComponents;
+    }
+
+    #computeZIndex(
+        pointerHovered: boolean = this._collider?.isPointerHovered ?? false,
+    ): void {
+        const prevZIndex = this.zIndex;
+        this.#computedZIndex = pointerHovered
+            ? this._hoverZIndex
+            : this._zIndex;
+        if (this._parent && prevZIndex !== this.#computedZIndex) {
+            this._parent.childrenZIndexDirty = true;
+        }
     }
 }

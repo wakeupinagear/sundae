@@ -54,12 +54,16 @@ export class PhysicsSystem<
 
     #raycasts: Raycast<TEngine>[] = [];
 
-    #spatialGrid: SpatialHashGrid<Entity<TEngine>>;
+    #collisionSpatialGrid: SpatialHashGrid<Entity<TEngine>>;
+    #pointerTargetSpatialGrid: SpatialHashGrid<Entity<TEngine>>;
 
     constructor(engine: TEngine) {
         super(engine);
 
-        this.#spatialGrid = new SpatialHashGrid(
+        this.#collisionSpatialGrid = new SpatialHashGrid(
+            engine.options.spatialHashCellSize,
+        );
+        this.#pointerTargetSpatialGrid = new SpatialHashGrid(
             engine.options.spatialHashCellSize,
         );
     }
@@ -91,12 +95,16 @@ export class PhysicsSystem<
         return this.#raycasts;
     }
 
-    get spatialGrid() {
-        return this.#spatialGrid;
+    get collisionSpatialGrid() {
+        return this.#collisionSpatialGrid;
+    }
+
+    get pointerTargetSpatialGrid() {
+        return this.#pointerTargetSpatialGrid;
     }
 
     getStats(): Readonly<SpatialHashGridStats> | null {
-        return this.#spatialGrid.getStats();
+        return this.#collisionSpatialGrid.getStats();
     }
 
     override earlyUpdate(): boolean | void {
@@ -128,7 +136,8 @@ export class PhysicsSystem<
 
     unregisterPhysicsEntity(entity: Entity<TEngine>): void {
         this.#physicsEntities.delete(entity.id);
-        this.#spatialGrid.remove(entity);
+        this.#collisionSpatialGrid.remove(entity);
+        this.#pointerTargetSpatialGrid.remove(entity);
     }
 
     raycast(request: RaycastRequest<TEngine>): Raycast<TEngine>['result'] {
@@ -261,18 +270,24 @@ export class PhysicsSystem<
             return;
         }
 
-        const pairs = this.#spatialGrid.queryPairs();
+        const pairs = this.#collisionSpatialGrid.queryPairs();
         for (const [entityA, entityB] of pairs) {
             this.#broadPhaseDescend(entityA, entityB);
         }
     }
 
     #buildSpatialGrid(): void {
-        this.#spatialGrid.clear();
+        this.#collisionSpatialGrid.clear();
+        this.#pointerTargetSpatialGrid.clear();
         for (const entity of this.#physicsEntities.values()) {
             const collider = entity.collider;
             if (collider) {
-                this.#spatialGrid.insert(entity);
+                if (collider.collisionMode !== 'none') {
+                    this.#collisionSpatialGrid.insert(entity);
+                }
+                if (collider.pointerTarget) {
+                    this.#pointerTargetSpatialGrid.insert(entity);
+                }
             }
         }
     }
@@ -281,7 +296,12 @@ export class PhysicsSystem<
         entityA: Readonly<Entity<TEngine>>,
         entityB: Readonly<Entity<TEngine>>,
     ) {
-        if (entityA.collider && entityB.collider) {
+        if (
+            entityA.collider &&
+            entityB.collider &&
+            entityA.collider.collisionMode !== 'none' &&
+            entityB.collider.collisionMode !== 'none'
+        ) {
             if (entityA.collider.rigidbody || entityB.collider.rigidbody) {
                 if (this.#pairIndex < this.#pairs.length) {
                     this.#pairs[this.#pairIndex][0] = entityA.collider;
@@ -329,7 +349,9 @@ export class PhysicsSystem<
 
             for (let p = 0; p < pairCount; p++) {
                 const [collA, collB] = this.#pairs[p];
-                const isTriggerPair = collA.isTrigger || collB.isTrigger;
+                const isTriggerPair =
+                    collA.collisionMode === 'trigger' ||
+                    collB.collisionMode === 'trigger';
                 const contact =
                     !isTriggerPair || isFirstIteration
                         ? collA.resolveCollision(collB)

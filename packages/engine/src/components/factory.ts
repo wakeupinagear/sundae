@@ -7,6 +7,10 @@ import {
     type C_CircleColliderJSON,
 } from './colliders/CircleCollider';
 import {
+    C_PolygonCollider,
+    type C_PolygonColliderJSON,
+} from './colliders/PolygonCollider';
+import {
     C_RectangleCollider,
     type C_RectangleColliderJSON,
 } from './colliders/RectangleCollider';
@@ -66,6 +70,7 @@ export type StringComponentJSON =
     | C_LerpOpacityJSON
     | C_LerpRotationJSON
     | C_CircleColliderJSON
+    | C_PolygonColliderJSON
     | C_RectangleColliderJSON
     | C_RigidbodyJSON;
 
@@ -107,6 +112,8 @@ export function createComponentFromJSON<TEngine extends Engine = Engine>(
             return new C_LerpRotation<TEngine>(json);
         case 'circleCollider':
             return new C_CircleCollider<TEngine>(json);
+        case 'polygonCollider':
+            return new C_PolygonCollider<TEngine>(json);
         case 'rectangleCollider':
             return new C_RectangleCollider<TEngine>(json);
         case 'rigidbody':

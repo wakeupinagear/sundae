@@ -187,7 +187,7 @@ class LevelScene extends Scene {
                                 ...properties,
                                 type: 'shape',
                                 shape: 'RECT',
-                                collision: true,
+                                collision: 'solid',
                             });
                             break;
                     }

@@ -350,15 +350,19 @@ export class C_ColliderDebug<
             return;
         }
 
-        if (!culled && entity.collider) {
+        if (
+            !culled &&
+            entity.collider &&
+            entity.collider.collisionMode !== 'none'
+        ) {
             const collider = entity.collider;
             const bounds = collider.collisionBounds;
             const bbox = entity.transform.boundingBox;
 
-            stream.setOpacity(collider.isTrigger ? 0.5 : 1);
+            stream.setOpacity(collider.collisionMode === 'trigger' ? 0.5 : 1);
             stream.setStyle({
                 lineColor: 'lime',
-                lineWidth: 2 / zoomToScale(camera.zoom),
+                lineWidth: 4 / zoomToScale(camera.zoom),
             });
 
             if (collider.type === 'circle') {
@@ -382,6 +386,7 @@ export class C_ColliderDebug<
 
             stream.setStyle({
                 color: 'blue',
+                lineWidth: 2 / zoomToScale(camera.zoom),
             });
             const minDimension = Math.min(bbox.x2 - bbox.x1, bbox.y2 - bbox.y1);
             const pointSize = Math.min(Math.floor(minDimension) * 0.75, 8);

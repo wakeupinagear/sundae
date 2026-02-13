@@ -4,17 +4,8 @@ import type { C_CircleCollider } from '../../components/colliders/CircleCollider
 import type { C_RectangleCollider } from '../../components/colliders/RectangleCollider';
 import type { C_Shape, C_ShapeOptions } from '../../components/shape';
 import type { Engine } from '../../engine';
-import type { VectorConstructor } from '../../math/vector';
 
-export interface E_ShapeOptions extends EntityOptions, C_ShapeOptions {
-    collision?: boolean;
-    mass?: number;
-    kinematic?: boolean;
-    velocity?: VectorConstructor;
-    force?: VectorConstructor;
-    gravityScale?: VectorConstructor;
-    bounce?: number;
-}
+export interface E_ShapeOptions extends EntityOptions, C_ShapeOptions {}
 
 export interface E_ShapeJSON extends E_ShapeOptions {
     type: 'shape';
