@@ -694,6 +694,8 @@ export class CameraSystem<
                     );
                 }
             } else if (
+                this.#isPointerOverCamera &&
+                this.#options.resetAfterNClicks > 0 &&
                 dragButtons.some((button) =>
                     this._engine.getPointerButtonClicked(
                         button,

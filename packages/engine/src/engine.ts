@@ -1014,7 +1014,25 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     }
 
     #applyOptions(newOptions: Partial<TOptions>): void {
-        this._options = { ...this._options, ...newOptions };
+        const nextOptions: Partial<TOptions> = { ...newOptions };
+        if (newOptions.cameraOptions !== undefined) {
+            const previousBounds = this._options.cameraOptions?.bounds;
+            const nextBounds = newOptions.cameraOptions.bounds;
+            nextOptions.cameraOptions = {
+                ...this._options.cameraOptions,
+                ...newOptions.cameraOptions,
+                ...(nextBounds !== undefined
+                    ? {
+                          bounds: {
+                              ...previousBounds,
+                              ...nextBounds,
+                          },
+                      }
+                    : {}),
+            } as TOptions['cameraOptions'];
+        }
+
+        this._options = { ...this._options, ...nextOptions };
 
         for (const name in this._options.images) {
             const src = this._options.images[name];

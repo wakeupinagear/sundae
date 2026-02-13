@@ -24,7 +24,7 @@ const MAX_CAMERAS = 64;
 
 const INITIAL_ENGINE_OPTIONS: Partial<EngineOptions> = {
     cameraOptions: {
-        clearColor: '#222222',
+        clearColor: '#111111',
         canDrag: true,
         dragButtons: [
             PointerButton.LEFT,

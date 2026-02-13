@@ -141,6 +141,7 @@ export function Harness<
             );
         }
 
+        wrapperRef.current.setOptions(initialEngineOptions ?? {});
         if (externalEngineWrapperRef) {
             externalEngineWrapperRef.current = wrapperRef.current;
         }

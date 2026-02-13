@@ -37,7 +37,7 @@ export function CanvasTracker({
 
     useEffect(() => {
         const localCanvas = canvasRef.current;
-        if (!localCanvas || !wrapper.current) {
+        if (!localCanvas) {
             return;
         }
 

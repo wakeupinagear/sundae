@@ -1,7 +1,7 @@
 import type { IVector } from './math/vector';
 
 const SNAP_EPSILON = 1e-6;
-const BASELINE_RATE = 1;
+const BASELINE_RATE = 0.1;
 
 export type LerpValueType = number | IVector<number>;
 
@@ -76,16 +76,19 @@ export abstract class Lerp<T extends LerpValueType> {
             typeof currentValue === 'object' &&
             typeof this.#targetValue === 'object'
         ) {
-            if (
-                currentValue.x === this.#targetValue.x &&
-                currentValue.y === this.#targetValue.y
-            ) {
+            const deltaX = this.#targetValue.x - currentValue.x;
+            const deltaY = this.#targetValue.y - currentValue.y;
+            const distanceToTarget = Math.hypot(deltaX, deltaY);
+            if (distanceToTarget <= SNAP_EPSILON) {
                 return false;
             }
 
+            const stepDistance = this._lerp(0, distanceToTarget, deltaTime);
+            const progress = Math.min(stepDistance / distanceToTarget, 1);
+
             currentValue = {
-                x: this._lerp(currentValue.x, this.#targetValue.x, deltaTime),
-                y: this._lerp(currentValue.y, this.#targetValue.y, deltaTime),
+                x: currentValue.x + deltaX * progress,
+                y: currentValue.y + deltaY * progress,
             } as T;
         }
 

@@ -468,6 +468,7 @@ export const renderChaos: EngineScenario = async (harness) => {
     harness.engine.options = {
         cameraOptions: {
             scrollMode: 'none',
+            resetAfterNClicks: 0,
         },
     };
     harness.engine.openScene(ChaosScene);

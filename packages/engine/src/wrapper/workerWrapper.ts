@@ -7,7 +7,7 @@ import {
     FromEngineMsgType,
     type ToEngineMsg,
     ToEngineMsgType,
-    type WorkerConstructor
+    type WorkerConstructor,
 } from '../worker';
 
 export class WorkerWrapper<

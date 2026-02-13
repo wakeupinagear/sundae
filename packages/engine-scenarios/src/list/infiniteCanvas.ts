@@ -10,7 +10,6 @@ const GRID_LINE_EXTENT = 100_000;
 export const infiniteCanvas: EngineScenario = async (harness) => {
     harness.engine.options = {
         cameraOptions: {
-            clearColor: 'black',
             bounds: {
                 x1: -Infinity,
                 x2: Infinity,
