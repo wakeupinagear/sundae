@@ -272,8 +272,7 @@ export class C_BoundingBoxDebug<
     ): void {
         if (!entity.enabled || entity.name === this.#sceneEntityName) return;
 
-        const culled =
-            entity.cull !== 'none' && entity.isCulled(camera.cullBoundingBox);
+        const culled = entity.cull !== 'none' && entity.isCulled(camera);
         if (culled && entity.cull === 'all') {
             return;
         }
@@ -346,8 +345,7 @@ export class C_ColliderDebug<
     ): void {
         if (!entity.enabled || entity.name === this.#sceneEntityName) return;
 
-        const culled =
-            entity.cull !== 'none' && entity.isCulled(camera.cullBoundingBox);
+        const culled = entity.cull !== 'none' && entity.isCulled(camera);
         if (culled && entity.cull === 'all') {
             return;
         }

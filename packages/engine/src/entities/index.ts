@@ -10,7 +10,6 @@ import type { C_Rigidbody } from '../components/rigidbody';
 import type { C_ShapeJSON } from '../components/shape';
 import type { C_Transform } from '../components/transforms';
 import { type Engine } from '../engine';
-import type { BoundingBox } from '../math/boundingBox';
 import {
     type IVector,
     type ImmutableVector,
@@ -39,6 +38,11 @@ type BackgroundOptions = boolean | string | C_ShapeJSON | C_ImageJSON;
 
 type BackgroundConstructor = BackgroundOptions | BackgroundOptions[];
 
+interface LODOptions {
+    minZoom?: number;
+    maxZoom?: number;
+}
+
 export interface EntityOptions {
     name?: string;
     enabled?: boolean;
@@ -55,6 +59,7 @@ export interface EntityOptions {
     components?: ComponentJSON[];
     children?: EntityJSON[];
     background?: BackgroundConstructor;
+    lod?: LODOptions;
 
     rigidbody?: boolean;
     mass?: number;
@@ -106,6 +111,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     #componentAppearancesDirty: boolean = false;
 
     protected _cachedComponentsInTree: Record<string, Component[]> = {};
+
+    protected _lod: LODOptions | null = null;
 
     constructor(options: EntityOptions) {
         const {
@@ -196,6 +203,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                 gravityScale,
                 bounce,
             });
+        }
+
+        if (rest.lod) {
+            this._lod = rest.lod;
         }
     }
 
@@ -308,6 +319,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     get positionRelativeToCamera(): IVector<PositionRelativeToCamera> {
         return this._positionRelativeToCamera;
+    }
+
+    get lod(): LODOptions | null {
+        return this._lod;
     }
 
     addChild<TCtor extends EntityConstructor>(
@@ -443,6 +458,11 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
 
         return this._rigidbody as C_Rigidbody<TEngine> | null;
+    }
+
+    setLOD(lod: LODOptions): this {
+        this._lod = lod;
+        return this;
     }
 
     // TODO: cache or smth
@@ -681,6 +701,16 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             return;
         }
 
+        if (this._lod) {
+            const lod = this._lod;
+            if (
+                camera.zoom > (lod.maxZoom ?? Infinity) ||
+                camera.zoom < (lod.minZoom ?? -Infinity)
+            ) {
+                return;
+            }
+        }
+
         if (this._scaleRelativeToCamera.x || this._scaleRelativeToCamera.y) {
             const scale = zoomToScale(camera.zoom);
             this.transform.setScaleMult(
@@ -702,8 +732,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             this.transform.setRotationOffset(-camera.rotation);
         }
 
-        const culled =
-            this._cull !== 'none' && this.isCulled(camera.cullBoundingBox);
+        const culled = this._cull !== 'none' && this.isCulled(camera);
         if (culled && this._cull === 'all') {
             return;
         }
@@ -752,8 +781,29 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         stream.popTransform();
     }
 
-    isCulled(cameraBoundingBox: BoundingBox): boolean {
-        return !cameraBoundingBox.intersects(this.transform.boundingBox);
+    isCulled(camera: CameraSystem): boolean {
+        if (
+            !camera.cullBoundingBox.intersects(this.transform.boundingBox) ||
+            this.isLODCulled(camera)
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    isLODCulled(camera: CameraSystem): boolean {
+        if (this._lod) {
+            const lod = this._lod;
+            if (
+                camera.zoom > (lod.maxZoom ?? Infinity) ||
+                camera.zoom < (lod.minZoom ?? -Infinity)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     isVisual(): boolean {

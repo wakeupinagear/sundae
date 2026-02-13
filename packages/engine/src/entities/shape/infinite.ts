@@ -7,11 +7,9 @@ import {
 } from '../../math/vector';
 import type { CameraSystem } from '../../systems/camera';
 import type { RenderCommandStream } from '../../systems/render/command';
-import { zoomToScale } from '../../utils';
 
 export interface E_InfiniteShapeOptions extends E_ShapeOptions {
     tileSize: VectorConstructor;
-    zoomCullThresh?: number;
     offset?: VectorConstructor;
     infiniteAxes?: Partial<IVector<boolean>>;
 }
@@ -31,7 +29,6 @@ export class E_InfiniteShape<
     TEngine extends Engine = Engine,
 > extends E_Shape<TEngine> {
     #tileSize: Vector;
-    #zoomCullThresh: number | null;
     #offset: Vector;
     #infiniteAxes: IVector<boolean>;
 
@@ -53,7 +50,6 @@ export class E_InfiniteShape<
         super({ name, cull: 'none', scale, ...rest });
 
         this.#tileSize = new Vector(tileSize);
-        this.#zoomCullThresh = options.zoomCullThresh ?? null;
         this.#offset = new Vector(options.offset ?? 0);
         this.#infiniteAxes = {
             x: options.infiniteAxes?.x ?? true,
@@ -70,14 +66,6 @@ export class E_InfiniteShape<
 
     set tileSize(tileSize: VectorConstructor) {
         this.#tileSize.set(tileSize);
-    }
-
-    get zoomCullThresh(): number | null {
-        return this.#zoomCullThresh;
-    }
-
-    set zoomCullThresh(zoomCullThresh: number) {
-        this.#zoomCullThresh = zoomCullThresh;
     }
 
     get offset(): Vector {
@@ -136,8 +124,7 @@ export class E_InfiniteShape<
     #calculateRepeat(camera: CameraSystem, state: RepeatState) {
         const tileSizeX = Math.max(this.#tileSize.x, 1),
             tileSizeY = Math.max(this.#tileSize.y, 1);
-        const scale = zoomToScale(camera.zoom);
-        if (this.#zoomCullThresh === null || scale >= this.#zoomCullThresh) {
+        if (!this.isCulled(camera)) {
             const bbox = camera.boundingBox;
             const minX = bbox.x1;
             const maxX = bbox.x2;
@@ -178,5 +165,9 @@ export class E_InfiniteShape<
         } else {
             state.enabled = false;
         }
+    }
+
+    override isCulled(camera: CameraSystem): boolean {
+        return this.isLODCulled(camera);
     }
 }

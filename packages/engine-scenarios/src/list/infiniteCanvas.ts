@@ -16,6 +16,7 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
                 y1: -Infinity,
                 y2: Infinity,
             },
+            minZoom: -3,
         },
     };
     harness.engine.openScene({
@@ -57,7 +58,9 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
                 tileSize: TILE_SIZE,
                 scale: DOT_SIZE,
                 offset: TILE_SIZE * 0.5,
-                zoomCullThresh: 0.2,
+                lod: {
+                    minZoom: -2,
+                },
             },
             {
                 type: 'infinite_shape',
