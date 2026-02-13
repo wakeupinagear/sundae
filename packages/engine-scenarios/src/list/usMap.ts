@@ -1,8 +1,4 @@
 import { type Engine, scaleToZoom } from '@repo/engine';
-import type { CameraSystem } from '@repo/engine/camera';
-import { C_Drawable, type C_DrawableOptions } from '@repo/engine/components';
-import { ComponentAppearance } from '@repo/engine/components';
-import type { RenderCommandStream } from '@repo/engine/render';
 import { Scene } from '@repo/engine/scene';
 
 import type { EngineScenario } from '../types';
@@ -61,84 +57,6 @@ interface ProjectedFeature<TProperties> {
     id: string;
     properties: TProperties;
     rings: ProjectedPoint[][];
-}
-
-interface C_PathOutlineOptions extends C_DrawableOptions {
-    rings: ProjectedPoint[][];
-    lineColor?: string;
-    lineWidth?: number;
-    opacity?: number;
-}
-
-class C_PathOutline extends C_Drawable<Engine> {
-    #rings: ProjectedPoint[][];
-
-    constructor(options: C_PathOutlineOptions) {
-        super({ name: 'path-outline', ...options });
-        this.#rings = options.rings;
-    }
-
-    override get appearance() {
-        return ComponentAppearance.FOREGROUND;
-    }
-
-    override queueRenderCommands(
-        stream: RenderCommandStream,
-        camera: CameraSystem,
-    ): boolean {
-        if (
-            !super.queueRenderCommands(stream, camera) ||
-            this.#rings.length === 0
-        ) {
-            return false;
-        }
-
-        for (const ring of this.#rings) {
-            if (ring.length < 2) {
-                continue;
-            }
-
-            let previous = ring[ring.length - 1]!;
-            for (const current of ring) {
-                stream.drawLine(
-                    previous.x,
-                    previous.y,
-                    current.x,
-                    current.y,
-                    1,
-                    1,
-                    1,
-                    1,
-                );
-                previous = current;
-            }
-        }
-
-        return true;
-    }
-
-    protected override _computeBoundingBox(): void {
-        if (this.#rings.length === 0) {
-            this._boundingBox.set(0);
-            return;
-        }
-
-        let minX = Number.POSITIVE_INFINITY;
-        let minY = Number.POSITIVE_INFINITY;
-        let maxX = Number.NEGATIVE_INFINITY;
-        let maxY = Number.NEGATIVE_INFINITY;
-
-        for (const ring of this.#rings) {
-            for (const point of ring) {
-                minX = Math.min(minX, point.x);
-                minY = Math.min(minY, point.y);
-                maxX = Math.max(maxX, point.x);
-                maxY = Math.max(maxY, point.y);
-            }
-        }
-
-        this._boundingBox.set(minX, minY, maxX, maxY);
-    }
 }
 
 const pad2 = (value: number | string): string => `${value}`.padStart(2, '0');
@@ -341,15 +259,21 @@ class USMapScene extends Scene<Engine> {
                         type: 'entity',
                         name: `state-${name}`,
                     });
-                    stateGroup.addComponent({
-                        type: C_PathOutline,
-                        rings: recenterRings(state.rings),
-                        lineColor: '#EEEEEE',
-                        lineWidth: 2,
-                        opacity: 1,
-                        lineJoin: 'round',
-                        lineCap: 'round',
-                    });
+                    const stateRings = recenterRings(state.rings);
+                    for (let r = 0; r < stateRings.length; r++) {
+                        const ring = stateRings[r]!;
+                        if (ring.length < 2) continue;
+                        stateGroup.addChild({
+                            type: 'polygon',
+                            name: `state-${name}-ring-${r}`,
+                            points: ring,
+                            lineColor: '#EEEEEE',
+                            lineWidth: 2,
+                            opacity: 1,
+                            lineJoin: 'round',
+                            lineCap: 'round',
+                        });
+                    }
                 }
 
                 for (const county of projectedCounties) {
@@ -371,15 +295,21 @@ class USMapScene extends Scene<Engine> {
                             minZoom: COUNTY_MIN_ZOOM * baseScale,
                         },
                     });
-                    countyGroup.addComponent({
-                        type: C_PathOutline,
-                        rings: recenterRings(county.rings),
-                        lineColor: '#999999',
-                        lineWidth: 0.65,
-                        opacity: 0.9,
-                        lineJoin: 'round',
-                        lineCap: 'round',
-                    });
+                    const countyRings = recenterRings(county.rings);
+                    for (let r = 0; r < countyRings.length; r++) {
+                        const ring = countyRings[r]!;
+                        if (ring.length < 2) continue;
+                        countyGroup.addChild({
+                            type: 'polygon',
+                            name: `county-${countyName}-${county.id}-ring-${r}`,
+                            points: ring,
+                            lineColor: '#999999',
+                            lineWidth: 0.65,
+                            opacity: 0.9,
+                            lineJoin: 'round',
+                            lineCap: 'round',
+                        });
+                    }
                 }
 
                 this.engine.log(

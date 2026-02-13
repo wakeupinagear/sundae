@@ -25,6 +25,7 @@ import {
     C_LerpRotation,
     type C_LerpRotationJSON,
 } from './lerp';
+import { C_Polygon, type C_PolygonJSON } from './polygon';
 import { C_Rigidbody, type C_RigidbodyJSON } from './rigidbody';
 import { C_Transform, type C_TransformJSON } from './transforms';
 
@@ -58,6 +59,7 @@ export type StringComponentJSON =
     | C_TransformJSON
     | C_TextJSON
     | C_ShapeJSON
+    | C_PolygonJSON
     | C_ImageJSON
     | C_LerpJSON
     | C_LerpPositionJSON
@@ -91,6 +93,8 @@ export function createComponentFromJSON<TEngine extends Engine = Engine>(
             return new C_Text<TEngine>(json);
         case 'shape':
             return new C_Shape<TEngine>(json);
+        case 'polygon':
+            return new C_Polygon<TEngine>(json);
         case 'image':
             return new C_Image<TEngine>(json);
         case 'lerp':

@@ -5,6 +5,7 @@ import {
     type InternalEntityOptions,
 } from '../entities';
 import { E_Image, type E_ImageJSON } from './image';
+import { E_Polygon, type E_PolygonJSON } from './polygon';
 import { E_Shape, type E_ShapeJSON } from './shape';
 import { E_InfiniteShape, type E_InfiniteShapeJSON } from './shape/infinite';
 import { E_Text, type E_TextJSON } from './text';
@@ -37,6 +38,7 @@ export type StringEntityJSON =
     | E_TextJSON
     | E_ShapeJSON
     | E_InfiniteShapeJSON
+    | E_PolygonJSON
     | E_ImageJSON
     | BaseEntityJSON;
 
@@ -66,6 +68,8 @@ export function createEntityFromJSON<TEngine extends Engine = Engine>(
             return new E_Shape<TEngine>(json);
         case 'infinite_shape':
             return new E_InfiniteShape<TEngine>(json);
+        case 'polygon':
+            return new E_Polygon<TEngine>(json);
         case 'image':
             return new E_Image<TEngine>(json);
         default:

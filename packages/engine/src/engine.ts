@@ -946,6 +946,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                     for (const canvas of Object.values(this._canvases)) {
                         const ctx = canvas?.getContext('2d');
                         if (canvas && ctx) {
+                            ctx.setTransform(1, 0, 0, 1, 0, 0);
                             ctx.fillStyle = this._options.canvasClearColor;
                             ctx.fillRect(0, 0, canvas.width, canvas.height);
                         }

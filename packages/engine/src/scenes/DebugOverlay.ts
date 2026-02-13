@@ -281,7 +281,7 @@ export class C_BoundingBoxDebug<
             this.#drawBoundingBox(entity.transform.boundingBox, stream, {
                 lineColor: `rgba(255, 0, 0, ${1 - level * 0.05})`,
                 color: '',
-                lineWidth: 1,
+                lineWidth: 2 / zoomToScale(camera.zoom),
             });
         }
 

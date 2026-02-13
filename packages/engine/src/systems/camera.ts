@@ -494,6 +494,7 @@ export class CameraSystem<
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
+        ctx.save();
 
         const cssWidth = canvas.width / dpr;
         const cssHeight = canvas.height / dpr;
@@ -512,9 +513,8 @@ export class CameraSystem<
         }
 
         const isFullScreen =
-            w === canvas.width && h === canvas.height && x === 0 && y === 0;
+            w === cssWidth && h === cssHeight && x === 0 && y === 0;
         if (!isFullScreen) {
-            ctx.save();
             ctx.beginPath();
             ctx.rect(x, y, w, h);
             ctx.clip();
@@ -524,9 +524,7 @@ export class CameraSystem<
 
         this._engine.renderSystem.render(ctx, this._engine.rootEntity, this);
 
-        if (!isFullScreen) {
-            ctx.restore();
-        }
+        ctx.restore();
     }
 
     #updateTarget(target: CameraTarget, deltaTime: number): boolean {
