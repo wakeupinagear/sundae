@@ -76,7 +76,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 padding: 12,
                 scale: 0.75,
                 scaleRelativeToCamera: true,
-                zIndex: 1,
+                zIndex: 10,
             },
             {
                 name: 'top-left',
@@ -90,7 +90,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 position: { x: -BOX_SIZE.x / 2, y: -BOX_SIZE.y / 2 },
                 background: ALIGN_BG_COLORS['top-left'],
                 padding: ALIGN_TEXT_PADDING,
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'bottom-right',
@@ -104,7 +104,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 position: { x: BOX_SIZE.x / 2, y: BOX_SIZE.y / 2 },
                 background: ALIGN_BG_COLORS['bottom-right'],
                 padding: ALIGN_TEXT_PADDING,
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'top-center',
@@ -118,7 +118,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 position: { x: 0, y: -BOX_SIZE.y / 2 },
                 background: ALIGN_BG_COLORS['top-center'],
                 padding: ALIGN_TEXT_PADDING,
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'bottom-center',
@@ -132,7 +132,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 position: { x: 0, y: BOX_SIZE.y / 2 },
                 background: ALIGN_BG_COLORS['bottom-center'],
                 padding: ALIGN_TEXT_PADDING,
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'left',
@@ -146,7 +146,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 position: { x: -BOX_SIZE.x / 2, y: 0 },
                 background: ALIGN_BG_COLORS.left,
                 padding: ALIGN_TEXT_PADDING,
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'right',
@@ -160,7 +160,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 position: { x: BOX_SIZE.x / 2, y: 0 },
                 background: ALIGN_BG_COLORS.right,
                 padding: ALIGN_TEXT_PADDING,
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'bottom-left',
@@ -174,7 +174,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 position: { x: -BOX_SIZE.x / 2, y: BOX_SIZE.y / 2 },
                 background: ALIGN_BG_COLORS['bottom-left'],
                 padding: ALIGN_TEXT_PADDING,
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'top-right',
@@ -188,7 +188,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 position: { x: BOX_SIZE.x / 2, y: -BOX_SIZE.y / 2 },
                 background: ALIGN_BG_COLORS['top-right'],
                 padding: ALIGN_TEXT_PADDING,
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'top-left-screen',
@@ -202,7 +202,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 background: ALIGN_BG_COLORS['top-left'],
                 positionRelativeToCamera: 'start',
                 padding: { x1: 12, y1: 12, x2: 6, y2: 6 },
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'top-center-screen',
@@ -216,7 +216,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 background: ALIGN_BG_COLORS['top-center'],
                 positionRelativeToCamera: { x: 'center', y: 'start' },
                 padding: { x1: 6, y1: 12, x2: 6, y2: 6 },
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'top-right-screen',
@@ -230,7 +230,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 background: ALIGN_BG_COLORS['top-right'],
                 positionRelativeToCamera: { x: 'end', y: 'start' },
                 padding: { x1: 6, y1: 12, x2: 12, y2: 6 },
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'left-screen',
@@ -244,7 +244,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 background: ALIGN_BG_COLORS.left,
                 positionRelativeToCamera: { x: 'start', y: 'center' },
                 padding: { x1: 12, y1: 6, x2: 6, y2: 6 },
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'right-screen',
@@ -258,7 +258,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 background: ALIGN_BG_COLORS.right,
                 positionRelativeToCamera: { x: 'end', y: 'center' },
                 padding: { x1: 6, y1: 6, x2: 12, y2: 6 },
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'bottom-left-screen',
@@ -272,7 +272,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 background: ALIGN_BG_COLORS['bottom-left'],
                 positionRelativeToCamera: { x: 'start', y: 'end' },
                 padding: { x1: 12, y1: 6, x2: 6, y2: 12 },
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'bottom-center-screen',
@@ -286,7 +286,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 background: ALIGN_BG_COLORS['bottom-center'],
                 positionRelativeToCamera: { x: 'center', y: 'end' },
                 padding: { x1: 6, y1: 6, x2: 6, y2: 12 },
-                zIndex: 2,
+                zIndex: 20,
             },
             {
                 name: 'bottom-right-screen',
@@ -300,7 +300,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 background: ALIGN_BG_COLORS['bottom-right'],
                 positionRelativeToCamera: 'end',
                 padding: { x1: 6, y1: 6, x2: 12, y2: 12 },
-                zIndex: 2,
+                zIndex: 20,
             },
         ],
     });

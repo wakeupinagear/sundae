@@ -195,7 +195,6 @@ class USMapScene extends Scene<Engine> {
         this.#countiesLayer = mapRoot.addChild({
             type: 'entity',
             name: 'counties-layer',
-            zIndex: 1,
             lod: {
                 minZoom: COUNTY_MIN_ZOOM,
                 fadeThreshold: 0.001,

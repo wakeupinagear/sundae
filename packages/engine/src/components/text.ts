@@ -122,7 +122,7 @@ export class C_Text<
         this.#text = options.text ?? '';
         this.#fontSize = options.fontSize ?? 12;
         this.#fontFamily = options.fontFamily ?? 'monospace';
-        this.#lineGap = options.lineGap ?? Math.round(this.#fontSize * 0.5);
+        this.#lineGap = options.lineGap ?? this.#fontSize * 0.5;
         this.#textAlign = options.textAlign ?? 'top-left';
         this.#trim = options.trim ?? 'all';
         this.#startTagDelim = options.startTagDelim ?? '<|';

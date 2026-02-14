@@ -2,17 +2,20 @@ import { DebugOverlayFlags } from '@repo/engine';
 
 import { ballPit } from './list/ballPit';
 import { ballVortex } from './list/ballVortex';
+import { cursors } from './list/cursors';
 import { debugging } from './list/debugging';
 import { images } from './list/images';
 import { infiniteCanvas } from './list/infiniteCanvas';
 import { inputs } from './list/inputs';
 import { pong } from './list/pong';
+import { primitives } from './list/primitives';
 import { raycasts } from './list/raycasts';
 import { renderChaos } from './list/renderChaos';
 import { superSundaeBros } from './list/superSundaeBros';
 import { textRendering } from './list/textRendering';
 import { typeErrors } from './list/type-errors';
 import { usMap } from './list/usMap';
+import { zIndex } from './list/zIndex';
 import type { EngineScenario } from './types';
 
 export * from './types';
@@ -41,6 +44,11 @@ export const ENGINE_SCENARIOS: ScenarioList = {
         name: 'Features',
         description: 'Feature scenarios',
         scenarios: {
+            primitives: {
+                name: 'Primitives',
+                description: 'Circle, rectangle, line, arrows, polygon',
+                scenario: primitives,
+            },
             images: {
                 name: 'Images',
                 description: 'Image scenarios',
@@ -63,6 +71,16 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Keyboard Inputs',
                 description: 'Interact with the engine',
                 scenario: inputs,
+            },
+            cursors: {
+                name: 'Pointer Cursor',
+                description: 'Buttons that set cursor type on hover',
+                scenario: cursors,
+            },
+            zIndex: {
+                name: 'Z-Index',
+                description: 'Overlapping shapes with different draw order',
+                scenario: zIndex,
             },
             debugging: {
                 name: 'Debugging',

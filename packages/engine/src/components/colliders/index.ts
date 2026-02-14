@@ -407,18 +407,13 @@ export abstract class C_Collider<
     }
 
     #onPointerEnter(): void {
-        if (this.#cursorOnHover) {
-            this._engine.requestCursor(
-                this.#cursorOnHover,
-                this.#cursorPriority,
-            );
-        }
-
+        this.#applyCursor();
         this.#onPointerEnterCB?.(this);
         this._entity.onPointerEnter();
     }
 
     #onPointerStay(): void {
+        this.#applyCursor();
         this.#onPointerStayCB?.(this);
         this._entity.onPointerStay();
     }
@@ -426,5 +421,14 @@ export abstract class C_Collider<
     #onPointerLeave(): void {
         this.#onPointerLeaveCB?.(this);
         this._entity.onPointerLeave();
+    }
+
+    #applyCursor(): void {
+        if (this.#cursorOnHover) {
+            this._engine.requestCursor(
+                this.#cursorOnHover,
+                this.#cursorPriority,
+            );
+        }
     }
 }

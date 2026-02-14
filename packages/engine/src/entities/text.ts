@@ -35,6 +35,7 @@ export class E_Text<TEngine extends Engine = Engine> extends Entity<TEngine> {
             ...options,
             type: 'text',
             name: 'Text',
+            zIndex: 0,
         });
     }
 

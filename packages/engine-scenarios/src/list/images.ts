@@ -13,7 +13,6 @@ const TEXT_OPTIONS: E_TextOptions = {
     fontSize: TEXT_FONT_SIZE,
     bold: true,
     color: 'white',
-    zIndex: 1,
     position: TEXT_OFFSET,
     textAlign: 'right',
 };

@@ -321,6 +321,11 @@ export class C_Transform<
         this.#boundingBox.y1 = minY;
         this.#boundingBox.x2 = maxX;
         this.#boundingBox.y2 = maxY;
+
+        this.#corners[0].set({ x: minX, y: minY });
+        this.#corners[1].set({ x: maxX, y: minY });
+        this.#corners[2].set({ x: maxX, y: maxY });
+        this.#corners[3].set({ x: minX, y: maxY });
     }
 
     #markLocalDirty() {

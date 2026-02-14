@@ -389,6 +389,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         const createdComponent = this._engine.createComponentFromJSON({
             engine: this._engine,
             entity: this,
+            zIndex: 1,
             ...component,
         });
         this.#addComponent(createdComponent);
@@ -413,13 +414,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                 continue;
             }
 
-            const createdComponent = this._engine.createComponentFromJSON({
-                engine: this._engine,
-                entity: this,
-                ...componentJSON,
-            });
+            const createdComponent = this.addComponent(componentJSON);
             createdComponents.push(createdComponent);
-            this.#addComponent(createdComponent);
         }
 
         return createdComponents as IComponents;

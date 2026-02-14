@@ -67,16 +67,19 @@ export class E_InfiniteShape<
             this.#shapeComponent = this.addComponent({
                 ...componentOptions,
                 type: 'circle',
+                zIndex: 0,
             });
         } else if (shape === 'rectangle') {
             this.#shapeComponent = this.addComponent({
                 ...componentOptions,
                 type: 'rectangle',
+                zIndex: 0,
             });
         } else {
             this.#shapeComponent = this.addComponent({
                 ...componentOptions,
                 type: 'line',
+                zIndex: 0,
             });
         }
 

@@ -26,6 +26,7 @@ export class E_Rectangle<
             ...options,
             type: 'rectangle',
             name: 'Rectangle',
+            zIndex: 0,
         });
 
         if (C_Collider.isCollisionEnabledInOptions(options)) {

@@ -21,6 +21,7 @@ export class E_Line<
             ...options,
             type: 'line',
             name: 'Line',
+            zIndex: 0,
         });
     }
 

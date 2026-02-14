@@ -23,6 +23,7 @@ export class E_Circle<
             ...options,
             type: 'circle',
             name: 'Circle',
+            zIndex: 0,
         });
 
         if (C_Collider.isCollisionEnabledInOptions(options)) {

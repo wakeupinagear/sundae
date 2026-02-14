@@ -21,6 +21,7 @@ export class E_Polygon<
             ...options,
             type: 'polygon',
             name: 'Polygon',
+            zIndex: 0,
         });
 
         if (C_Collider.isCollisionEnabledInOptions(options)) {
