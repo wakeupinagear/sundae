@@ -29,6 +29,7 @@ interface MultiSelectProps<T> {
     searchEnabled?: boolean;
     placeholder?: string;
     className?: string;
+    disabled?: boolean;
 }
 
 function MultiSelect<T extends string | number>({
@@ -38,17 +39,19 @@ function MultiSelect<T extends string | number>({
     searchEnabled,
     placeholder = 'Select items',
     className,
+    disabled,
 }: MultiSelectProps<T>) {
     const [open, setOpen] = React.useState(false);
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
+            <PopoverTrigger asChild disabled={disabled}>
                 <Button
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
                     className={cn('justify-between', className)}
+                    disabled={disabled}
                 >
                     <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left">
                         {items.length > 0

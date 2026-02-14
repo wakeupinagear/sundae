@@ -102,24 +102,30 @@ export function App() {
         };
     }, []);
 
-    const { scenario, scenarioKey, maxCameras, canChangeCameraCount } =
-        useMemo(() => {
-            const scenario =
-                ENGINE_SCENARIOS[categoryID]?.scenarios[scenarioID] || null;
-            const scenarioKey = scenarioToID(categoryID, scenarioID);
-            const url = new URL(window.location.href);
-            url.hash = scenarioKey;
-            window.history.replaceState({}, '', url.toString());
+    const {
+        scenario,
+        scenarioKey,
+        maxCameras,
+        canChangeCameraCount,
+        scenarioDebugOverlayFlags,
+    } = useMemo(() => {
+        const scenario =
+            ENGINE_SCENARIOS[categoryID]?.scenarios[scenarioID] || null;
+        const scenarioKey = scenarioToID(categoryID, scenarioID);
+        const url = new URL(window.location.href);
+        url.hash = scenarioKey;
+        window.history.replaceState({}, '', url.toString());
 
-            const maxCameras = scenario?.maxCameras ?? MAX_CAMERAS;
+        const maxCameras = scenario?.maxCameras ?? MAX_CAMERAS;
 
-            return {
-                scenario,
-                scenarioKey,
-                maxCameras,
-                canChangeCameraCount: maxCameras > 1,
-            };
-        }, [categoryID, scenarioID]);
+        return {
+            scenario,
+            scenarioKey,
+            maxCameras,
+            canChangeCameraCount: maxCameras > 1,
+            scenarioDebugOverlayFlags: scenario?.debugOverlayFlags,
+        };
+    }, [categoryID, scenarioID]);
 
     const prevCamerasRef = useRef<number[]>([-1, -1]);
     const cameraHash = useRef<number>(0);
@@ -131,20 +137,27 @@ export function App() {
             prevCamerasRef.current = [cameraCount, maxCameras];
             cameraHash.current = (Math.random() * 2 ** 32) >>> 0;
         }
+        const activeDebugOverlay = scenarioDebugOverlayFlags ?? debugOverlay;
         const options: Partial<EngineOptions> = {
             cameras: makeGridCameras(
                 Math.min(cameraCount, maxCameras),
                 cameraHash.current,
             ),
-            debugOverlay,
-            engineTraces: debugOverlay !== DebugOverlayFlags.NONE,
+            debugOverlay: activeDebugOverlay,
+            engineTraces: activeDebugOverlay !== DebugOverlayFlags.NONE,
             randomSeed: trueRandom
                 ? (Math.random() * 2 ** 32) >>> 0
                 : undefined,
         };
 
         return options;
-    }, [debugOverlay, trueRandom, cameraCount, maxCameras]);
+    }, [
+        debugOverlay,
+        scenarioDebugOverlayFlags,
+        trueRandom,
+        cameraCount,
+        maxCameras,
+    ]);
 
     const canvasContainerRef = useRef<HTMLDivElement>(null);
     const engineWrapperRef = useRef<EngineWrapper<
@@ -190,6 +203,9 @@ export function App() {
                             canChangeCameraCount={canChangeCameraCount}
                             maxCameras={MAX_CAMERAS}
                             scenarioMaxCameras={maxCameras}
+                            scenarioDebugOverlayFlags={
+                                scenario?.debugOverlayFlags
+                            }
                         />
                     </div>
                 </aside>

@@ -15,7 +15,9 @@ const TagKeys = {
     FAMILY: 'family',
     OPACITY: 'opacity',
     BOLD: 'bold',
+    BOLD_SHORT: 'b',
     ITALIC: 'italic',
+    ITALIC_SHORT: 'i',
 } as const;
 type TagKeys = (typeof TagKeys)[keyof typeof TagKeys];
 
@@ -80,6 +82,7 @@ export interface C_TextOptions extends C_DrawableOptions {
     startTagDelim?: string;
     endTagDelim?: string;
     padding?: Padding;
+    maxWidth?: number;
 }
 
 export interface C_TextJSON extends C_TextOptions {
@@ -101,6 +104,7 @@ export class C_Text<
     #endTagDelim: string;
     #italic: boolean;
     #bold: boolean;
+    #maxWidth?: number;
 
     #padding: BoundingBox = new BoundingBox(0);
 
@@ -125,6 +129,7 @@ export class C_Text<
         this.#endTagDelim = options.endTagDelim ?? '|>';
         this.#italic = options.italic ?? false;
         this.#bold = options.bold ?? false;
+        this.#maxWidth = options.maxWidth;
 
         this.#padding.set(options.padding ?? 0);
     }
@@ -253,6 +258,17 @@ export class C_Text<
         }
     }
 
+    get maxWidth(): number | undefined {
+        return this.#maxWidth;
+    }
+
+    set maxWidth(maxWidth: number | undefined) {
+        if (maxWidth != this.#maxWidth) {
+            this.#maxWidth = maxWidth;
+            this.#markTextDirty();
+        }
+    }
+
     override queueRenderCommands(
         stream: RenderCommandStream,
         camera: CameraSystem,
@@ -336,6 +352,87 @@ export class C_Text<
             italic: this.#italic,
         };
         this.#drawActions.push({ type: 'setStyle', ...currentStyle });
+        const maxWidth = this.#maxWidth;
+
+        const pushTextNode = (text: string) => {
+            if (!text) return;
+            const prevNode = currentLine[currentLine.length - 1];
+            if (prevNode?.type === 'text') {
+                prevNode.text += text;
+            } else {
+                currentLine.push({ type: 'text', text });
+            }
+            currentLineWidth +=
+                currentStyle.fontSize * MONOSPACE_WIDTH_RATIO * text.length;
+            maxFontSizeInLine = Math.max(
+                maxFontSizeInLine,
+                currentStyle.fontSize,
+            );
+        };
+
+        const pushLine = () => {
+            const height = maxFontSizeInLine * MONOSPACE_HEIGHT_RATIO;
+            lines.push({
+                nodes: currentLine,
+                width: currentLineWidth,
+                height,
+                maxFontSize: maxFontSizeInLine,
+            });
+            currentLine = [];
+            currentLineWidth = 0;
+            maxFontSizeInLine = currentStyle.fontSize;
+        };
+
+        const wrapTextOnMaxWidth = (text: string) => {
+            if (maxWidth == null || maxWidth <= 0) {
+                pushTextNode(text);
+                return;
+            }
+
+            const charWidth = currentStyle.fontSize * MONOSPACE_WIDTH_RATIO;
+            const tokens = text.match(/ +|[^ ]+/g) ?? [];
+
+            for (const token of tokens) {
+                const isSpaceToken = token.trim().length === 0;
+                const tokenWidth = charWidth * token.length;
+                if (currentLineWidth + tokenWidth <= maxWidth) {
+                    pushTextNode(token);
+                    continue;
+                }
+
+                if (isSpaceToken) {
+                    if (currentLineWidth > 0) {
+                        pushLine();
+                    }
+                    continue;
+                }
+
+                if (currentLineWidth > 0) {
+                    pushLine();
+                }
+
+                if (tokenWidth <= maxWidth) {
+                    pushTextNode(token);
+                    continue;
+                }
+
+                // Token is longer than maxWidth, so split by characters.
+                let chunk = '';
+                for (const char of token) {
+                    const chunkWidth = charWidth * chunk.length;
+                    if (chunk && chunkWidth + charWidth > maxWidth) {
+                        pushTextNode(chunk);
+                        pushLine();
+                        chunk = char;
+                    } else {
+                        chunk += char;
+                    }
+                }
+                if (chunk) {
+                    pushTextNode(chunk);
+                }
+            }
+        };
 
         for (const node of nodes) {
             if (node.type === 'style') {
@@ -346,23 +443,9 @@ export class C_Text<
                 );
                 currentLine.push(node);
             } else if (node.type === 'newline') {
-                const height = maxFontSizeInLine * MONOSPACE_HEIGHT_RATIO;
-                lines.push({
-                    nodes: currentLine,
-                    width: currentLineWidth,
-                    height,
-                    maxFontSize: maxFontSizeInLine,
-                });
-                currentLine = [];
-                currentLineWidth = 0;
-                maxFontSizeInLine = this.#fontSize;
+                pushLine();
             } else if (node.type === 'text') {
-                const textWidth =
-                    currentStyle.fontSize *
-                    MONOSPACE_WIDTH_RATIO *
-                    node.text.length;
-                currentLineWidth += textWidth;
-                currentLine.push(node);
+                wrapTextOnMaxWidth(node.text);
             }
         }
 
@@ -532,7 +615,7 @@ export class C_Text<
                     break;
             }
 
-            let currentFontSize = this.#fontSize;
+            let currentFontSize = lastFontSize;
 
             for (const node of line.nodes) {
                 if (node.type === 'style') {
@@ -725,6 +808,7 @@ export class C_Text<
                                     }
                                     break;
                                 case TagKeys.BOLD:
+                                case TagKeys.BOLD_SHORT:
                                     if (
                                         currentStyle.bold !== defaultStyle.bold
                                     ) {
@@ -733,6 +817,7 @@ export class C_Text<
                                     }
                                     break;
                                 case TagKeys.ITALIC:
+                                case TagKeys.ITALIC_SHORT:
                                     if (
                                         currentStyle.italic !==
                                         defaultStyle.italic
@@ -786,7 +871,8 @@ export class C_Text<
                                     }
                                     break;
                                 }
-                                case TagKeys.BOLD: {
+                                case TagKeys.BOLD:
+                                case TagKeys.BOLD_SHORT: {
                                     const newBold =
                                         value === 'true' || value === '1';
                                     if (currentStyle.bold !== newBold) {
@@ -795,7 +881,8 @@ export class C_Text<
                                     }
                                     break;
                                 }
-                                case TagKeys.ITALIC: {
+                                case TagKeys.ITALIC:
+                                case TagKeys.ITALIC_SHORT: {
                                     const newItalic =
                                         value === 'true' || value === '1';
                                     if (currentStyle.italic !== newItalic) {
@@ -808,10 +895,12 @@ export class C_Text<
                         } else {
                             switch (key) {
                                 case TagKeys.BOLD:
+                                case TagKeys.BOLD_SHORT:
                                     currentStyle.bold = true;
                                     styleChanged = true;
                                     break;
                                 case TagKeys.ITALIC:
+                                case TagKeys.ITALIC_SHORT:
                                     currentStyle.italic = true;
                                     styleChanged = true;
                                     break;

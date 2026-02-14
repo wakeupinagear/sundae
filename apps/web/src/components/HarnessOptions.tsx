@@ -24,12 +24,14 @@ type Props = {
     canChangeCameraCount: boolean;
     maxCameras: number;
     scenarioMaxCameras: number;
+    scenarioDebugOverlayFlags?: DebugOverlayFlags;
 };
 
 export default function HarnessOptions({
     canChangeCameraCount,
     maxCameras,
     scenarioMaxCameras,
+    scenarioDebugOverlayFlags = DebugOverlayFlags.NONE,
 }: Props) {
     const cameraCount = useAppStore((state) => state.cameraCount);
     const setCameraCount = useAppStore((state) => state.setCameraCount);
@@ -43,13 +45,13 @@ export default function HarnessOptions({
     const debugOverlayItems = useMemo<DebugOverlayFlags[]>(() => {
         const items: DebugOverlayFlags[] = [];
         for (const flag of ALL_DEBUG_OVERLAY_FLAGS) {
-            if (debugOverlay & flag) {
+            if ((debugOverlay | scenarioDebugOverlayFlags) & flag) {
                 items.push(flag);
             }
         }
 
         return items;
-    }, [debugOverlay]);
+    }, [debugOverlay, scenarioDebugOverlayFlags]);
 
     return (
         <div className="flex flex-col gap-2 p-2 text-sm">
@@ -87,6 +89,7 @@ export default function HarnessOptions({
                     items={debugOverlayItems}
                     placeholder="None"
                     className="w-24"
+                    disabled={!!scenarioDebugOverlayFlags}
                     onChange={(_, changedItem, mode) => {
                         if (mode === 'added') {
                             setDebugOverlay(debugOverlay | changedItem);

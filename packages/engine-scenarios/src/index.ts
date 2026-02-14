@@ -1,5 +1,9 @@
+import { DebugOverlayFlags } from '@repo/engine';
+
 import { ballPit } from './list/ballPit';
 import { ballVortex } from './list/ballVortex';
+import { debugging } from './list/debugging';
+import { images } from './list/images';
 import { infiniteCanvas } from './list/infiniteCanvas';
 import { inputs } from './list/inputs';
 import { pong } from './list/pong';
@@ -19,6 +23,7 @@ export interface ScenarioMetadata {
     scenario: EngineScenario;
     skipInTests?: boolean;
     maxCameras?: number;
+    debugOverlayFlags?: DebugOverlayFlags;
 }
 
 export interface ScenarioCategory {
@@ -35,8 +40,13 @@ export const ENGINE_SCENARIOS: ScenarioList = {
         name: 'Features',
         description: 'Feature scenarios',
         scenarios: {
+            images: {
+                name: 'Images',
+                description: 'Image scenarios',
+                scenario: images,
+            },
             inputs: {
-                name: 'Keyboard and Mouse Inputs',
+                name: 'Keyboard Inputs',
                 description: 'Interact with the engine',
                 scenario: inputs,
             },
@@ -44,6 +54,12 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Text Rendering',
                 description: 'Text rendering scenarios',
                 scenario: textRendering,
+            },
+            debugging: {
+                name: 'Debugging',
+                description: 'Debugging scenarios',
+                scenario: debugging,
+                debugOverlayFlags: DebugOverlayFlags.ALL,
             },
         },
     },

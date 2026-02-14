@@ -30,14 +30,6 @@ export class E_Image<TEngine extends Engine = Engine> extends Entity<TEngine> {
         }
     }
 
-    get imageName(): string {
-        return this.#image.imageName;
-    }
-
-    set imageName(imageName: string) {
-        this.#image.imageName = imageName;
-    }
-
     get image(): C_Image<TEngine> {
         return this.#image;
     }

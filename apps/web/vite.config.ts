@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'path';
 import { defineConfig } from 'vite';
 
@@ -44,18 +45,56 @@ export default defineConfig({
         {
             name: 'serve-dev-scenario-assets',
             configureServer(server) {
-                server.middlewares.use('/scenario-assets', (req, res, next) => {
-                    const urlPath = req.url?.replace(/^\/+/, '') ?? '';
+                const scenarioAssetsHandler = (
+                    req: IncomingMessage,
+                    res: ServerResponse,
+                    next: () => void,
+                ) => {
+                    const url = req.url ?? '';
+                    const urlPath = url
+                        .replace(/^\/scenario-assets\/?/, '')
+                        .replace(/^\/+/, '');
+                    if (!urlPath) {
+                        next();
+                        return;
+                    }
                     const filePath = path.join(ASSETS_DIR, urlPath);
 
                     if (
-                        fs.existsSync(filePath) &&
-                        fs.statSync(filePath).isFile()
+                        !fs.existsSync(filePath) ||
+                        !fs.statSync(filePath).isFile()
                     ) {
-                        fs.createReadStream(filePath).pipe(res);
-                    } else {
                         next();
+                        return;
                     }
+
+                    const ext = path.extname(filePath).toLowerCase();
+                    const contentTypes: Record<string, string> = {
+                        '.svg': 'image/svg+xml',
+                        '.png': 'image/png',
+                        '.jpg': 'image/jpeg',
+                        '.jpeg': 'image/jpeg',
+                        '.webp': 'image/webp',
+                        '.json': 'application/json',
+                    };
+                    const contentType = contentTypes[ext];
+                    if (contentType) {
+                        res.setHeader('Content-Type', contentType);
+                    }
+
+                    fs.createReadStream(filePath).pipe(res);
+                };
+
+                // Run before Vite's transform middleware so .svg (and other assets)
+                // are served as raw files instead of being intercepted and
+                // returned empty or as transformed modules.
+                (
+                    server.middlewares as {
+                        stack: Array<{ route: string; handle: unknown }>;
+                    }
+                ).stack.unshift({
+                    route: '/scenario-assets',
+                    handle: scenarioAssetsHandler,
                 });
             },
         },

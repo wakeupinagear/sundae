@@ -6,7 +6,7 @@ import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
 
 export interface C_ImageOptions extends C_DrawableOptions, C_ColliderOptions {
-    imageName: string;
+    image: string;
     repeat?: VectorConstructor;
 }
 
@@ -19,13 +19,13 @@ export class C_Image<
 > extends C_Drawable<TEngine> {
     public static typeString: string = 'C_Image';
 
-    #imageName: string;
+    #image: string;
     #repeat: Vector;
 
     constructor(options: C_ImageOptions) {
         super(options);
 
-        this.#imageName = options.imageName;
+        this.#image = options.image;
         this.#repeat = new Vector(options.repeat ?? 1);
     }
 
@@ -33,12 +33,12 @@ export class C_Image<
         return C_Image.typeString;
     }
 
-    get imageName(): string {
-        return this.#imageName;
+    get image(): string {
+        return this.#image;
     }
 
-    set imageName(imageName: string) {
-        this.#imageName = imageName;
+    set image(image: string) {
+        this.#image = image;
     }
 
     get repeat(): Vector {
@@ -55,7 +55,7 @@ export class C_Image<
     ): boolean {
         if (
             !this._entity ||
-            !this.#imageName ||
+            !this.#image ||
             !super.queueRenderCommands(stream, camera)
         ) {
             return false;
@@ -66,7 +66,7 @@ export class C_Image<
             -this.origin.y * this.size.y,
             this.size.x,
             this.size.y,
-            this.#imageName,
+            this.#image,
             this.#repeat.x,
             this.#repeat.y,
             1,
