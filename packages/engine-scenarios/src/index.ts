@@ -11,6 +11,7 @@ import { usMap } from './list/usMap';
 import type { EngineScenario } from './types';
 
 export * from './types';
+export * from './assets';
 
 export interface ScenarioMetadata {
     name: string;

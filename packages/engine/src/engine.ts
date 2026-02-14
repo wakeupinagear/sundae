@@ -26,13 +26,15 @@ import { generatePRNG } from './math/random';
 import { type IVector, type VectorConstructor } from './math/vector';
 import { DebugOverlayFlags, DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
+import { AssetSystem } from './systems/asset';
+import type { AssetLoaderConstructor } from './systems/asset/loader';
+import type { LoadedImage, LoadedJSON } from './systems/asset/types';
 import {
     type CameraOptions,
     CameraSystem,
     type CameraSystemOptions,
     type CameraTargetConstructor,
 } from './systems/camera';
-import { ImageSystem, type LoadedImage } from './systems/image';
 import {
     type AxisState,
     type ButtonState,
@@ -149,6 +151,7 @@ export interface EngineOptions {
     physicsPerSecond: number;
     spatialHashCellSize: number;
 
+    assetLoader: AssetLoaderConstructor;
     images: Record<string, string | HTMLImageElement>;
     asyncImageLoading: boolean;
 
@@ -191,6 +194,7 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     gravityScale: 9.8 * 20,
     gravityDirection: { x: 0, y: 1 },
 
+    assetLoader: 'browser',
     images: {},
     asyncImageLoading: true,
 
@@ -230,7 +234,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     protected _sceneSystem: SceneSystem<this>;
     protected _inputSystem: InputSystem<this>;
     protected _pointerSystem: PointerSystem<this>;
-    protected _imageSystem: ImageSystem<this>;
+    protected _assetSystem: AssetSystem<this>;
     protected _physicsSystem: PhysicsSystem<this>;
     protected _statsSystem: StatsSystem<this>;
     protected _logSystem: LogSystem<this>;
@@ -279,7 +283,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._inputSystem = new InputSystem(this);
         this._pointerSystem = new PointerSystem(this);
         this._sceneSystem = new SceneSystem(this);
-        this._imageSystem = new ImageSystem(this);
+        this._assetSystem = new AssetSystem(
+            this,
+            options.assetLoader ?? DEFAULT_ENGINE_OPTIONS.assetLoader,
+        );
         this._physicsSystem = new PhysicsSystem(this);
 
         // Order isn't important since systems are manually updated
@@ -664,7 +671,11 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     }
 
     getImage(name: string): Readonly<LoadedImage> | null {
-        return this._imageSystem.getImage(name);
+        return this._assetSystem.getImage(name);
+    }
+
+    getJSON(name: string): Readonly<LoadedJSON> | null {
+        return this._assetSystem.getJSON(name);
     }
 
     raycast(request: RaycastRequest<this>): Raycast<this>['result'] {
@@ -932,10 +943,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                 });
             }
 
-            const loadingImages = this._imageSystem.getLoadingImages();
+            const loadingAssets = this._assetSystem.getLoadingAssets();
             this.#forceRender =
                 this.#forceRender &&
-                (this.options.asyncImageLoading || loadingImages.length === 0);
+                (this.options.asyncImageLoading || loadingAssets.length === 0);
         });
 
         this.trace('Render', () => {
@@ -1048,7 +1059,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
         for (const name in this._options.images) {
             const src = this._options.images[name];
-            this._imageSystem.loadImage(name, src);
+            this._assetSystem.loadImage(name, src);
         }
         this._options.images = {};
 

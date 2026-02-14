@@ -1,16 +1,14 @@
 import { type Engine, scaleToZoom } from '@repo/engine';
+import type { LoadedJSON } from '@repo/engine/asset';
+import type { Entity } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
+import { SCENARIO_ASSETS } from '../assets';
 import type { EngineScenario } from '../types';
 
 const PADDING_PX = 32;
 const MAP_WIDTH_PX = 2440 + PADDING_PX * 2;
 const MAP_HEIGHT_PX = 1340 + PADDING_PX * 2;
-
-const STATES_GEOJSON_URL =
-    'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
-const COUNTIES_GEOJSON_URL =
-    'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json';
 
 const COUNTY_MIN_ZOOM = 1.2;
 const EXCLUDED_STATE_NAMES = new Set(['Alaska', 'Hawaii', 'Puerto Rico']);
@@ -187,6 +185,10 @@ const getCountyStateCode = (
 };
 
 class USMapScene extends Scene<Engine> {
+    #statesLayer!: Entity;
+    #countiesLayer!: Entity;
+    #loadedMap = false;
+
     override create(): void {
         const baseScale = this.#calculateBaseScale();
         this._engine.setCameraZoom(scaleToZoom(baseScale));
@@ -195,12 +197,12 @@ class USMapScene extends Scene<Engine> {
             type: 'entity',
             name: 'us-map-root',
         });
-        const statesLayer = mapRoot.addChild({
+        this.#statesLayer = mapRoot.addChild({
             type: 'entity',
             name: 'states-layer',
             zIndex: 2,
         });
-        const countiesLayer = mapRoot.addChild({
+        this.#countiesLayer = mapRoot.addChild({
             type: 'entity',
             name: 'counties-layer',
             zIndex: 1,
@@ -208,122 +210,22 @@ class USMapScene extends Scene<Engine> {
                 minZoom: COUNTY_MIN_ZOOM * baseScale,
             },
         });
-
-        Promise.all([
-            globalThis
-                .fetch(STATES_GEOJSON_URL)
-                .then((res) => res.json())
-                .then((payload: unknown) =>
-                    readFeatureCollection<StateProperties>(payload),
-                ),
-            globalThis
-                .fetch(COUNTIES_GEOJSON_URL)
-                .then((res) => res.json())
-                .then((payload: unknown) =>
-                    readFeatureCollection<CountyProperties>(payload),
-                ),
-        ])
-            .then(([statesData, countiesData]) => {
-                const { projectedStates, projectedCounties } =
-                    projectFeatureCollections(statesData, countiesData);
-
-                let minX = Number.POSITIVE_INFINITY;
-                let minY = Number.POSITIVE_INFINITY;
-                let maxX = Number.NEGATIVE_INFINITY;
-                let maxY = Number.NEGATIVE_INFINITY;
-                for (const feature of projectedStates) {
-                    for (const ring of feature.rings) {
-                        for (const point of ring) {
-                            minX = Math.min(minX, point.x);
-                            minY = Math.min(minY, point.y);
-                            maxX = Math.max(maxX, point.x);
-                            maxY = Math.max(maxY, point.y);
-                        }
-                    }
-                }
-                const offsetX = (minX + maxX) / 2;
-                const offsetY = (minY + maxY) / 2;
-                const recenterRings = (rings: ProjectedPoint[][]) =>
-                    rings.map((ring) =>
-                        ring.map((point) => ({
-                            x: point.x - offsetX,
-                            y: point.y - offsetY,
-                        })),
-                    );
-
-                const countyStateGroups = new Map<
-                    string,
-                    ReturnType<typeof countiesLayer.addChild>
-                >();
-
-                for (const state of projectedStates) {
-                    const name = state.properties.name ?? state.id;
-                    const stateGroup = statesLayer.addChild({
-                        type: 'entity',
-                        name: `state-${name}`,
-                    });
-                    const stateRings = recenterRings(state.rings);
-                    for (let r = 0; r < stateRings.length; r++) {
-                        const ring = stateRings[r]!;
-                        if (ring.length < 2) continue;
-                        stateGroup.addChild({
-                            type: 'polygon',
-                            name: `state-${name}-ring-${r}`,
-                            points: ring,
-                            lineColor: '#EEEEEE',
-                            lineWidth: 2,
-                            opacity: 1,
-                            lineJoin: 'round',
-                            lineCap: 'round',
-                        });
-                    }
-                }
-
-                for (const county of projectedCounties) {
-                    const stateCode = getCountyStateCode(county);
-                    let stateCountyGroup = countyStateGroups.get(stateCode);
-                    if (!stateCountyGroup) {
-                        stateCountyGroup = countiesLayer.addChild({
-                            type: 'entity',
-                            name: `counties-state-${stateCode}`,
-                        });
-                        countyStateGroups.set(stateCode, stateCountyGroup);
-                    }
-
-                    const countyName = county.properties.NAME ?? county.id;
-                    const countyRings = recenterRings(county.rings);
-                    for (let r = 0; r < countyRings.length; r++) {
-                        const ring = countyRings[r]!;
-                        if (ring.length < 2) continue;
-                        stateCountyGroup.addChild({
-                            type: 'polygon',
-                            name: `county-${countyName}-${county.id}-ring-${r}`,
-                            points: ring,
-                            lineColor: '#999999',
-                            lineWidth: 0.65,
-                            lineJoin: 'round',
-                            lineCap: 'round',
-                            pointerTarget: true,
-                            hoverStyle: {
-                                lineColor: '#0000FF',
-                                lineWidth: 2,
-                            },
-                            hoverZIndex: 10,
-                        });
-                    }
-                }
-
-                this.engine.log(
-                    `US map loaded (${projectedStates.length} states, ${projectedCounties.length} counties).`,
-                );
-                this.engine.forceRender();
-            })
-            .catch((error: unknown) => {
-                this.engine.error('Failed to load US map resources.', error);
-            });
     }
 
-    update(): boolean | void {
+    update() {
+        if (!this.#loadedMap) {
+            const statesJSON = this._engine.getJSON(
+                SCENARIO_ASSETS.US_MAP.STATES,
+            );
+            const countiesJSON = this._engine.getJSON(
+                SCENARIO_ASSETS.US_MAP.COUNTIES,
+            );
+            if (statesJSON && countiesJSON) {
+                this.#loadedMap = true;
+                this.#generateMap(statesJSON, countiesJSON);
+            }
+        }
+
         const baseScale = this.#calculateBaseScale();
         this._engine.setCameraResetTarget({
             position: {
@@ -334,7 +236,105 @@ class USMapScene extends Scene<Engine> {
         });
     }
 
-    #calculateBaseScale(): number {
+    #generateMap(statesJSON: LoadedJSON, countiesJSON: LoadedJSON) {
+        {
+            const { projectedStates, projectedCounties } =
+                projectFeatureCollections(
+                    statesJSON.json as unknown as FeatureCollection<StateProperties>,
+                    countiesJSON.json as unknown as FeatureCollection<CountyProperties>,
+                );
+
+            let minX = Number.POSITIVE_INFINITY;
+            let minY = Number.POSITIVE_INFINITY;
+            let maxX = Number.NEGATIVE_INFINITY;
+            let maxY = Number.NEGATIVE_INFINITY;
+            for (const feature of projectedStates) {
+                for (const ring of feature.rings) {
+                    for (const point of ring) {
+                        minX = Math.min(minX, point.x);
+                        minY = Math.min(minY, point.y);
+                        maxX = Math.max(maxX, point.x);
+                        maxY = Math.max(maxY, point.y);
+                    }
+                }
+            }
+            const offsetX = (minX + maxX) / 2;
+            const offsetY = (minY + maxY) / 2;
+            const recenterRings = (rings: ProjectedPoint[][]) =>
+                rings.map((ring) =>
+                    ring.map((point) => ({
+                        x: point.x - offsetX,
+                        y: point.y - offsetY,
+                    })),
+                );
+
+            const countyStateGroups = new Map<string, Entity>();
+
+            for (const state of projectedStates) {
+                const name = state.properties.name ?? state.id;
+                const stateGroup = this.#statesLayer.addChild({
+                    type: 'entity',
+                    name: `state-${name}`,
+                });
+                const stateRings = recenterRings(state.rings);
+                for (let r = 0; r < stateRings.length; r++) {
+                    const ring = stateRings[r]!;
+                    if (ring.length < 2) continue;
+                    stateGroup.addChild({
+                        type: 'polygon',
+                        name: `state-${name}-ring-${r}`,
+                        points: ring,
+                        lineColor: '#EEEEEE',
+                        lineWidth: 2,
+                        opacity: 1,
+                        lineJoin: 'round',
+                        lineCap: 'round',
+                    });
+                }
+            }
+
+            for (const county of projectedCounties) {
+                const stateCode = getCountyStateCode(county);
+                let stateCountyGroup = countyStateGroups.get(stateCode);
+                if (!stateCountyGroup) {
+                    stateCountyGroup = this.#countiesLayer.addChild({
+                        type: 'entity',
+                        name: `counties-state-${stateCode}`,
+                    });
+                    countyStateGroups.set(stateCode, stateCountyGroup);
+                }
+
+                const countyName = county.properties.NAME ?? county.id;
+                const countyRings = recenterRings(county.rings);
+                for (let r = 0; r < countyRings.length; r++) {
+                    const ring = countyRings[r]!;
+                    if (ring.length < 2) continue;
+                    stateCountyGroup.addChild({
+                        type: 'polygon',
+                        name: `county-${countyName}-${county.id}-ring-${r}`,
+                        points: ring,
+                        lineColor: '#999999',
+                        lineWidth: 0.65,
+                        lineJoin: 'round',
+                        lineCap: 'round',
+                        pointerTarget: true,
+                        hoverStyle: {
+                            lineColor: '#0000FF',
+                            lineWidth: 2,
+                        },
+                        hoverZIndex: 10,
+                    });
+                }
+            }
+
+            this.engine.log(
+                `US map loaded (${projectedStates.length} states, ${projectedCounties.length} counties).`,
+            );
+            this.engine.forceRender();
+        }
+    }
+
+    #calculateBaseScale() {
         const startingCanvasSize = this.engine.getCanvasSize();
         const scale = startingCanvasSize
             ? Math.min(

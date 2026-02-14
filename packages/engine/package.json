@@ -20,9 +20,9 @@
             "types": "./exports/entities.ts",
             "default": "./dist/exports/entities.js"
         },
-        "./image": {
-            "types": "./exports/image.ts",
-            "default": "./dist/exports/image.js"
+        "./asset": {
+            "types": "./exports/asset.ts",
+            "default": "./dist/exports/asset.js"
         },
         "./input": {
             "types": "./exports/input.ts",

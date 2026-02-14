@@ -1,9 +1,15 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import fs from 'node:fs';
 import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+    server: {
+        fs: {
+            allow: ['..'],
+        },
+    },
     plugins: [
         react(),
         tailwindcss(),
@@ -28,6 +34,29 @@ export default defineConfig({
                     });
                     return [];
                 }
+            },
+        },
+        {
+            name: 'serve-dev-scenario-assets',
+            configureServer(server) {
+                const assetsDir = path.resolve(
+                    __dirname,
+                    '../../packages/engine-scenarios/assets',
+                );
+
+                server.middlewares.use('/scenario-assets', (req, res, next) => {
+                    const urlPath = req.url?.replace(/^\/+/, '') ?? '';
+                    const filePath = path.join(assetsDir, urlPath);
+
+                    if (
+                        fs.existsSync(filePath) &&
+                        fs.statSync(filePath).isFile()
+                    ) {
+                        fs.createReadStream(filePath).pipe(res);
+                    } else {
+                        next();
+                    }
+                });
             },
         },
     ],

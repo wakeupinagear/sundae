@@ -14,6 +14,10 @@ export abstract class System<TEngine extends Engine = Engine> {
         return System.typeString;
     }
 
+    get engine(): TEngine {
+        return this._engine;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     earlyUpdate(_deltaTime: number): boolean | void {}
 
