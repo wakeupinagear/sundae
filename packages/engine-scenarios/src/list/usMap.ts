@@ -6,11 +6,10 @@ import { Scene } from '@repo/engine/scene';
 import { SCENARIO_ASSETS } from '../assets';
 import type { EngineScenario } from '../types';
 
-const PADDING_PX = 32;
-const MAP_WIDTH_PX = 2440 + PADDING_PX * 2;
-const MAP_HEIGHT_PX = 1340 + PADDING_PX * 2;
+const MAP_WIDTH_PX = 2440;
+const MAP_HEIGHT_PX = 1340;
 
-const COUNTY_MIN_ZOOM = 1.2;
+const COUNTY_MIN_ZOOM = -0.4;
 const EXCLUDED_STATE_NAMES = new Set(['Alaska', 'Hawaii', 'Puerto Rico']);
 const EXCLUDED_STATE_CODES = new Set(['02', '15', '72']);
 
@@ -73,12 +72,6 @@ const getRingsFromGeometry = (geometry: Geometry): Ring[] => {
         rings.push(...polygon);
     }
     return rings;
-};
-
-const readFeatureCollection = <TProperties>(
-    payload: unknown,
-): FeatureCollection<TProperties> => {
-    return payload as FeatureCollection<TProperties>;
 };
 
 const getFeatureID = <TProperties>(
@@ -190,9 +183,6 @@ class USMapScene extends Scene<Engine> {
     #loadedMap = false;
 
     override create(): void {
-        const baseScale = this.#calculateBaseScale();
-        this._engine.setCameraZoom(scaleToZoom(baseScale));
-
         const mapRoot = this.createEntity({
             type: 'entity',
             name: 'us-map-root',
@@ -207,7 +197,8 @@ class USMapScene extends Scene<Engine> {
             name: 'counties-layer',
             zIndex: 1,
             lod: {
-                minZoom: COUNTY_MIN_ZOOM * baseScale,
+                minZoom: COUNTY_MIN_ZOOM,
+                fadeThreshold: 0.001,
             },
         });
     }
@@ -226,13 +217,12 @@ class USMapScene extends Scene<Engine> {
             }
         }
 
-        const baseScale = this.#calculateBaseScale();
         this._engine.setCameraResetTarget({
             position: {
                 x: 0,
                 y: 0,
             },
-            zoom: scaleToZoom(baseScale),
+            zoom: this.#calculateFitZoom(),
         });
     }
 
@@ -327,14 +317,11 @@ class USMapScene extends Scene<Engine> {
                 }
             }
 
-            this.engine.log(
-                `US map loaded (${projectedStates.length} states, ${projectedCounties.length} counties).`,
-            );
-            this.engine.forceRender();
+            this.engine.setCameraZoom(this.#calculateFitZoom());
         }
     }
 
-    #calculateBaseScale() {
+    #calculateFitZoom() {
         const startingCanvasSize = this.engine.getCanvasSize();
         const scale = startingCanvasSize
             ? Math.min(
@@ -343,7 +330,7 @@ class USMapScene extends Scene<Engine> {
               )
             : 0.5;
 
-        return scale;
+        return scaleToZoom(scale);
     }
 }
 

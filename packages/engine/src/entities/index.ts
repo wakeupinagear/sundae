@@ -24,7 +24,7 @@ import {
     type OneAxisAlignment,
     type Renderable,
 } from '../types';
-import { zoomToScale } from '../utils';
+import { OPACITY_THRESHOLD, zoomToScale } from '../utils';
 import {
     type CustomEntityJSON,
     type EntityConstructor,
@@ -41,6 +41,7 @@ type BackgroundConstructor = BackgroundOptions | BackgroundOptions[];
 interface LODOptions {
     minZoom?: number;
     maxZoom?: number;
+    fadeThreshold?: number;
 }
 
 export interface EntityOptions {
@@ -732,13 +733,34 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             return;
         }
 
+        let opacityOverride = 1;
         if (this._lod) {
-            const lod = this._lod;
-            if (
-                camera.zoom > (lod.maxZoom ?? Infinity) ||
-                camera.zoom < (lod.minZoom ?? -Infinity)
-            ) {
+            const {
+                maxZoom = Infinity,
+                minZoom = -Infinity,
+                fadeThreshold = 0,
+            } = this._lod;
+            if (camera.zoom > maxZoom || camera.zoom < minZoom) {
                 return;
+            }
+
+            if (fadeThreshold >= 0 && this._opacity >= OPACITY_THRESHOLD) {
+                const zoom = camera.zoom;
+                const fadeRadius = Math.abs(fadeThreshold);
+                if (fadeRadius > 0) {
+                    if (Number.isFinite(minZoom)) {
+                        opacityOverride = Math.min(
+                            Math.abs(zoom - minZoom),
+                            opacityOverride,
+                        );
+                    }
+                    if (Number.isFinite(maxZoom)) {
+                        opacityOverride = Math.min(
+                            Math.abs(zoom - maxZoom),
+                            opacityOverride,
+                        );
+                    }
+                }
             }
         }
 
@@ -780,36 +802,46 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             this.#componentsZIndexDirty = false;
         }
 
-        stream.pushTransform(this._transform.localMatrix);
+        if (this._opacity >= OPACITY_THRESHOLD) {
+            stream.pushTransform(this._transform.localMatrix);
 
-        if (!cullChildren) {
-            // Negative z-index children first
-            for (const child of this._children) {
-                if (child.zIndex < 0 && child.enabled) {
-                    child.queueRenderCommands(stream, camera);
+            const opacity = this._opacity * opacityOverride;
+            const opacityNotOne = opacity <= 1 - OPACITY_THRESHOLD;
+            if (opacityNotOne) {
+                stream.pushOpacity(opacity);
+            }
+
+            if (!cullChildren) {
+                // Negative z-index children first
+                for (const child of this._children) {
+                    if (child.zIndex < 0 && child.enabled) {
+                        child.queueRenderCommands(stream, camera);
+                    }
                 }
             }
-        }
-
-        if (!cullComponents) {
-            // Then components
-            for (const component of this._components) {
-                if (component.enabled) {
-                    component.queueRenderCommands(stream, camera);
+            if (!cullComponents) {
+                // Then components
+                for (const component of this._components) {
+                    if (component.enabled) {
+                        component.queueRenderCommands(stream, camera);
+                    }
                 }
             }
-        }
-
-        if (!cullChildren) {
-            // Then non-negative z-index children
-            for (const child of this._children) {
-                if (child.zIndex >= 0 && child.enabled) {
-                    child.queueRenderCommands(stream, camera);
+            if (!cullChildren) {
+                // Then non-negative z-index children
+                for (const child of this._children) {
+                    if (child.zIndex >= 0 && child.enabled) {
+                        child.queueRenderCommands(stream, camera);
+                    }
                 }
             }
-        }
 
-        stream.popTransform();
+            if (opacityNotOne) {
+                stream.popOpacity();
+            }
+
+            stream.popTransform();
+        }
     }
 
     isCulled(camera: CameraSystem): boolean {

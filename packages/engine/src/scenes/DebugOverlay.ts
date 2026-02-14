@@ -261,6 +261,8 @@ export class C_BoundingBoxDebug<
             );
         }
 
+        this._onFinishQueueRenderCommands(stream);
+
         return true;
     }
 
@@ -298,7 +300,6 @@ export class C_BoundingBoxDebug<
         stream: RenderCommandStream,
         style: RenderStyle,
     ): void {
-        stream.setOpacity(1);
         stream.setStyle(style);
         stream.drawRect(bbox.x1, bbox.y1, bbox.x2 - bbox.x1, bbox.y2 - bbox.y1);
     }
@@ -334,6 +335,8 @@ export class C_ColliderDebug<
             this.#drawEntityCollider(child, stream, camera);
         }
         stream.popTransform();
+
+        this._onFinishQueueRenderCommands(stream);
 
         return true;
     }
@@ -454,6 +457,8 @@ class C_RaycastDebug<
                 }
             }
         }
+
+        this._onFinishQueueRenderCommands(stream);
 
         return true;
     }

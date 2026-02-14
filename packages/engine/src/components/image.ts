@@ -73,6 +73,8 @@ export class C_Image<
             1,
         );
 
+        this._onFinishQueueRenderCommands(stream);
+
         return true;
     }
 }

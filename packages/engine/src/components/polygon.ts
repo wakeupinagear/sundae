@@ -78,6 +78,8 @@ export class C_Polygon<
             );
         }
 
+        this._onFinishQueueRenderCommands(stream);
+
         return true;
     }
 }

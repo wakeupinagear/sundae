@@ -72,6 +72,10 @@ export class DynamicNumberArray<T extends ArrayType> {
         if (count > 8) this.#buffer[this.#pointer++] = v9!;
     }
 
+    top() {
+        return this.#buffer[this.#pointer - 1];
+    }
+
     pop(count = 1) {
         this.#pointer = Math.max(0, this.#pointer - count);
     }

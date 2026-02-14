@@ -5,6 +5,8 @@ import type { CacheStats } from '../../types';
 import { OPACITY_THRESHOLD } from '../../utils';
 import { type RenderStyle } from './style';
 
+const STARTING_ENTITY_DEPTH_SIZE = 10;
+
 export const RenderCommandType = {
     PUSH_TRANSFORM: 0,
     POP_TRANSFORM: 1,
@@ -81,6 +83,8 @@ const TRANSFORM_COMPONENTS = 6;
 export interface RenderCommandStats {
     setStyle: CacheStats;
     setOpacity: CacheStats;
+    pushOpacity: CacheStats;
+    popOpacity: CacheStats;
     transform: CacheStats;
     drawRect: CacheStats;
     drawEllipse: CacheStats;
@@ -107,11 +111,20 @@ export class RenderCommandStream {
     #currentOpacity: number = 1;
 
     #pushTransformStack: DynamicNumberArray<Float32Array> =
-        new DynamicNumberArray(Float32Array, TRANSFORM_COMPONENTS * 10);
+        new DynamicNumberArray(
+            Float32Array,
+            TRANSFORM_COMPONENTS * STARTING_ENTITY_DEPTH_SIZE,
+        );
+    #opacityStack: DynamicNumberArray<Float32Array> = new DynamicNumberArray(
+        Float32Array,
+        STARTING_ENTITY_DEPTH_SIZE,
+    );
 
     #stats: RenderCommandStats = {
         setStyle: { total: 0, cached: 0 },
         setOpacity: { total: 0, cached: 0 },
+        pushOpacity: { total: 0, cached: 0 },
+        popOpacity: { total: 0, cached: 0 },
         transform: { total: 0, cached: 0 },
         drawRect: { total: 0, cached: 0 },
         drawEllipse: { total: 0, cached: 0 },
@@ -144,6 +157,10 @@ export class RenderCommandStream {
 
     get stats(): Readonly<RenderCommandStats> | null {
         return this.#stats;
+    }
+
+    get currentOpacity(): number {
+        return this.#currentOpacity;
     }
 
     pushTransform(t: Matrix2D) {
@@ -183,6 +200,26 @@ export class RenderCommandStream {
         this.#commands.push(RenderCommandType.SET_OPACITY);
         this.#data.push(opacity);
         this.#stats.setOpacity.total++;
+    }
+
+    pushOpacity(opacity: number) {
+        this.#opacityStack.push(this.#currentOpacity);
+        this.#currentOpacity *= opacity;
+        this.#commands.push(RenderCommandType.SET_OPACITY);
+        this.#data.push(this.#currentOpacity);
+        this.#stats.pushOpacity.total++;
+    }
+
+    popOpacity() {
+        if (this.#opacityStack.length > 0) {
+            this.#currentOpacity = this.#opacityStack.top();
+            this.#opacityStack.pop();
+        } else {
+            this.#currentOpacity = 1;
+        }
+        this.#commands.push(RenderCommandType.SET_OPACITY);
+        this.#data.push(this.#currentOpacity);
+        this.#stats.popOpacity.total++;
     }
 
     drawRect(
@@ -293,6 +330,8 @@ export class RenderCommandStream {
         this.#stats = {
             setStyle: { total: 0, cached: 0 },
             setOpacity: { total: 0, cached: 0 },
+            pushOpacity: { total: 0, cached: 0 },
+            popOpacity: { total: 0, cached: 0 },
             transform: { total: 0, cached: 0 },
             drawRect: { total: 0, cached: 0 },
             drawEllipse: { total: 0, cached: 0 },

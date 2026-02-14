@@ -169,6 +169,10 @@ export class CameraSystem<
         return this.#zoom;
     }
 
+    get scaledZoom(): Readonly<number> {
+        return this.#scaledZoom;
+    }
+
     get cameraPointer(): CameraPointer | null {
         return this._engine.getCameraPointer(this.#id);
     }

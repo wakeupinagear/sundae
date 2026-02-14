@@ -81,7 +81,7 @@ export abstract class C_Drawable<
     }
 
     get opacity(): number {
-        return (this.#computedStyle.opacity ?? 1) * this._entity.opacity;
+        return this.#computedStyle.opacity ?? 1;
     }
 
     override get appearance(): ComponentAppearance {
@@ -147,7 +147,7 @@ export abstract class C_Drawable<
     ): boolean {
         const opacity = this.opacity;
         if (opacity >= OPACITY_THRESHOLD) {
-            stream.setOpacity(opacity);
+            stream.pushOpacity(opacity);
             stream.setStyle(this.#computedStyle);
 
             if (this._fill) {
@@ -169,6 +169,10 @@ export abstract class C_Drawable<
         }
 
         return false;
+    }
+
+    protected _onFinishQueueRenderCommands(stream: RenderCommandStream): void {
+        stream.popOpacity();
     }
 
     override onPointerEnter(): void {

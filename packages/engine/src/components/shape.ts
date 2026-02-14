@@ -211,6 +211,8 @@ export class C_Shape<
             }
         }
 
+        this._onFinishQueueRenderCommands(stream);
+
         return true;
     }
 

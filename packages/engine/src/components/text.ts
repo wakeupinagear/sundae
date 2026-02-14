@@ -268,6 +268,7 @@ export class C_Text<
             this.#textDirty = false;
         }
 
+        const opacity = stream.currentOpacity * this.opacity;
         for (const action of this.#drawActions) {
             if (action.type === 'setStyle') {
                 const fontStyle = action.italic ? 'italic ' : '';
@@ -277,11 +278,13 @@ export class C_Text<
                     font: `${fontStyle}${fontWeight}${action.fontSize}px ${action.fontFamily}`,
                 });
             } else if (action.type === 'setOpacity') {
-                stream.setOpacity(action.opacity * this.opacity);
+                stream.setOpacity(action.opacity * opacity);
             } else {
                 stream.drawText(action.text, action.x, action.y);
             }
         }
+
+        this._onFinishQueueRenderCommands(stream);
 
         return true;
     }

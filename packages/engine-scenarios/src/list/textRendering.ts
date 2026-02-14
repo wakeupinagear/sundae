@@ -1,5 +1,3 @@
-import { Scene } from '@repo/engine/scene';
-
 import type { EngineScenario } from '../types';
 
 const CENTER_TEXT = `<|size=30 bold color=purple|>🍨 Sundae<|/color|> has fancy text!<|/size /bold|>
