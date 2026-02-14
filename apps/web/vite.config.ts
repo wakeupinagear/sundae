@@ -4,6 +4,11 @@ import fs from 'node:fs';
 import path from 'path';
 import { defineConfig } from 'vite';
 
+const ASSETS_DIR = path.resolve(
+    __dirname,
+    '../../packages/engine-scenarios/assets',
+);
+
 export default defineConfig({
     server: {
         fs: {
@@ -39,14 +44,9 @@ export default defineConfig({
         {
             name: 'serve-dev-scenario-assets',
             configureServer(server) {
-                const assetsDir = path.resolve(
-                    __dirname,
-                    '../../packages/engine-scenarios/assets',
-                );
-
                 server.middlewares.use('/scenario-assets', (req, res, next) => {
                     const urlPath = req.url?.replace(/^\/+/, '') ?? '';
-                    const filePath = path.join(assetsDir, urlPath);
+                    const filePath = path.join(ASSETS_DIR, urlPath);
 
                     if (
                         fs.existsSync(filePath) &&
@@ -57,6 +57,20 @@ export default defineConfig({
                         next();
                     }
                 });
+            },
+        },
+        {
+            name: 'copy-scenario-assets-to-public',
+            apply: 'build',
+            buildStart() {
+                const targetDir = path.resolve(
+                    __dirname,
+                    './public/scenario-assets',
+                );
+
+                fs.rmSync(targetDir, { recursive: true, force: true });
+                fs.mkdirSync(path.dirname(targetDir), { recursive: true });
+                fs.cpSync(ASSETS_DIR, targetDir, { recursive: true });
             },
         },
     ],
