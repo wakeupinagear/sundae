@@ -16,10 +16,7 @@ export {
     type E_ImageOptions,
     type E_ImageJSON,
 } from '../src/entities/image';
-export {
-    E_ShapeBase,
-    type E_ShapeBaseOptions,
-} from '../src/entities/shape';
+export { E_ShapeBase, type E_ShapeBaseOptions } from '../src/entities/shape';
 export {
     E_Circle,
     type E_CircleOptions,

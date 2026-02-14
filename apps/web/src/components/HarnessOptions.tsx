@@ -42,16 +42,18 @@ export default function HarnessOptions({
     const runInWorker = useAppStore((state) => state.runInWorker);
     const setRunInWorker = useAppStore((state) => state.setRunInWorker);
 
+    const scenarioLockedFlags = scenarioDebugOverlayFlags ?? 0;
     const debugOverlayItems = useMemo<DebugOverlayFlags[]>(() => {
         const items: DebugOverlayFlags[] = [];
+        const effective = debugOverlay | scenarioLockedFlags;
         for (const flag of ALL_DEBUG_OVERLAY_FLAGS) {
-            if ((debugOverlay | scenarioDebugOverlayFlags) & flag) {
+            if (effective & flag) {
                 items.push(flag);
             }
         }
 
         return items;
-    }, [debugOverlay, scenarioDebugOverlayFlags]);
+    }, [debugOverlay, scenarioLockedFlags]);
 
     return (
         <div className="flex flex-col gap-2 p-2 text-sm">
@@ -89,7 +91,9 @@ export default function HarnessOptions({
                     items={debugOverlayItems}
                     placeholder="None"
                     className="w-24"
-                    disabled={!!scenarioDebugOverlayFlags}
+                    disabled={Boolean(
+                        scenarioLockedFlags === DebugOverlayFlags.ALL,
+                    )}
                     onChange={(_, changedItem, mode) => {
                         if (mode === 'added') {
                             setDebugOverlay(debugOverlay | changedItem);

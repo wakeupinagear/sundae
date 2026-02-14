@@ -1,3 +1,4 @@
+import type { C_CircleJSON } from '../components/circle';
 import type { C_Collider } from '../components/colliders';
 import {
     type Component,
@@ -5,7 +6,6 @@ import {
     type ComponentJSON,
     type CustomComponentJSON,
 } from '../components/factory';
-import type { C_CircleJSON } from '../components/circle';
 import type { C_ImageJSON } from '../components/image';
 import type { C_LineJSON } from '../components/line';
 import type { C_RectangleJSON } from '../components/rectangle';
@@ -26,7 +26,7 @@ import {
     type OneAxisAlignment,
     type Renderable,
 } from '../types';
-import { OPACITY_THRESHOLD, zoomToScale } from '../utils';
+import { OPACITY_THRESHOLD } from '../utils';
 import {
     type CustomEntityJSON,
     type EntityConstructor,
@@ -773,11 +773,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
 
         if (this._scaleRelativeToCamera.x || this._scaleRelativeToCamera.y) {
-            const scale = zoomToScale(camera.zoom);
             this.transform.setScaleMult(
                 new Vector(
-                    this._scaleRelativeToCamera.x ? 1 / scale : 1,
-                    this._scaleRelativeToCamera.y ? 1 / scale : 1,
+                    this._scaleRelativeToCamera.x ? 1 / camera.scaledZoom : 1,
+                    this._scaleRelativeToCamera.y ? 1 / camera.scaledZoom : 1,
                 ),
             );
         }
@@ -966,7 +965,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     #syncRelativePositionToCamera(camera: CameraSystem): void {
         const cameraSize = camera.size;
         if (cameraSize) {
-            const scale = zoomToScale(camera.zoom);
+            const scale = camera.scaledZoom;
 
             // Calculate world center of the camera viewport
             const worldCenterOffset = {

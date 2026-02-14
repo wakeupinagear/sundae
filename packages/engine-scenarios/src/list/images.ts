@@ -3,8 +3,9 @@ import type { E_TextOptions } from '@repo/engine/entities';
 import { SCENARIO_ASSETS } from '../assets';
 import type { EngineScenario } from '../types';
 
-const IMAGE_SCALE = 300;
-const IMAGE_OFFSET = 200;
+const Y_OFFSET = 16;
+const IMAGE_SCALE = 250;
+const IMAGE_OFFSET = 150;
 const TEXT_FONT_SIZE = 24 / IMAGE_SCALE;
 const TEXT_OFFSET = { x: -0.5, y: -0.57 };
 
@@ -31,7 +32,7 @@ export const images: EngineScenario = (harness) => {
                 name: 'sundae',
                 image: SCENARIO_ASSETS.SUNDAE_IMAGES.PNG,
                 scale: IMAGE_SCALE,
-                position: { x: -IMAGE_OFFSET, y: -IMAGE_OFFSET },
+                position: { x: -IMAGE_OFFSET, y: -IMAGE_OFFSET + Y_OFFSET },
                 children: [
                     {
                         type: 'text',
@@ -45,7 +46,7 @@ export const images: EngineScenario = (harness) => {
                 name: 'sundae',
                 image: SCENARIO_ASSETS.SUNDAE_IMAGES.JPG,
                 scale: IMAGE_SCALE,
-                position: { x: IMAGE_OFFSET, y: -IMAGE_OFFSET },
+                position: { x: IMAGE_OFFSET, y: -IMAGE_OFFSET + Y_OFFSET },
                 children: [
                     {
                         type: 'text',
@@ -59,7 +60,7 @@ export const images: EngineScenario = (harness) => {
                 name: 'sundae',
                 image: SCENARIO_ASSETS.SUNDAE_IMAGES.SVG,
                 scale: IMAGE_SCALE,
-                position: { x: -IMAGE_OFFSET, y: IMAGE_OFFSET },
+                position: { x: -IMAGE_OFFSET, y: IMAGE_OFFSET + Y_OFFSET },
                 children: [
                     {
                         type: 'text',
@@ -73,7 +74,7 @@ export const images: EngineScenario = (harness) => {
                 name: 'sundae',
                 image: SCENARIO_ASSETS.SUNDAE_IMAGES.WEBP,
                 scale: IMAGE_SCALE,
-                position: { x: IMAGE_OFFSET, y: IMAGE_OFFSET },
+                position: { x: IMAGE_OFFSET, y: IMAGE_OFFSET + Y_OFFSET },
                 children: [
                     {
                         type: 'text',

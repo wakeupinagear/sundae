@@ -11,11 +11,14 @@ beforeAll(() => {
 });
 
 for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
-    for (const { skipInTests, name, scenario } of Object.values(
-        scenarioMetadata.scenarios,
-    )) {
+    for (const {
+        skipInTests,
+        name,
+        scenario,
+        debugOverlayFlags,
+    } of Object.values(scenarioMetadata.scenarios)) {
         if (skipInTests) continue;
 
-        defineSnapshotTest(name, scenario, { canvas });
+        defineSnapshotTest(name, scenario, { canvas, debugOverlayFlags });
     }
 }

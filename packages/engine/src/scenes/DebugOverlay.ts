@@ -15,7 +15,6 @@ import type { RenderStyle } from '../systems/render/style';
 import { Scene } from '../systems/scene/index';
 import type { TraceFrame } from '../systems/stats';
 import type { CacheStats } from '../types';
-import { zoomToScale } from '../utils';
 
 const IMPORTANT_TRACE_THRESHOLD = 0.2;
 const IMPORTANT_TRACE_STALE_TIME = 5000;
@@ -239,18 +238,17 @@ export class C_BoundingBoxDebug<
         }
         stream.popTransform();
 
-        const zoom = zoomToScale(camera.zoom);
         this.#drawBoundingBox(camera.cullBoundingBox, stream, {
             lineColor: camera.isPointerOverCamera ? 'yellow' : 'blue',
-            lineWidth: 4 / zoom,
+            lineWidth: 4 / camera.scaledZoom,
         });
 
         const pointerPosition = camera.getPointerPosition();
         if (pointerPosition) {
-            const halfAxis = MOUSE_HALF_AXIS / zoom;
+            const halfAxis = MOUSE_HALF_AXIS / camera.scaledZoom;
             stream.setStyle({
                 lineColor: 'white',
-                lineWidth: 2 / zoom,
+                lineWidth: 2 / camera.scaledZoom,
             });
             stream.drawLine(
                 pointerPosition.x - halfAxis,
@@ -288,7 +286,7 @@ export class C_BoundingBoxDebug<
             this.#drawBoundingBox(entity.transform.boundingBox, stream, {
                 lineColor: `rgba(255, 0, 0, ${1 - level * 0.05})`,
                 color: '',
-                lineWidth: 2 / zoomToScale(camera.zoom),
+                lineWidth: 2 / camera.scaledZoom,
             });
         }
 
@@ -370,7 +368,7 @@ export class C_ColliderDebug<
             stream.setOpacity(collider.collisionMode === 'trigger' ? 0.5 : 1);
             stream.setStyle({
                 lineColor: 'lime',
-                lineWidth: 4 / zoomToScale(camera.zoom),
+                lineWidth: 3 / camera.scaledZoom,
             });
 
             if (collider.type === 'circle') {
@@ -394,10 +392,12 @@ export class C_ColliderDebug<
 
             stream.setStyle({
                 color: 'blue',
-                lineWidth: 2 / zoomToScale(camera.zoom),
+                lineWidth: 2 / camera.scaledZoom,
             });
             const minDimension = Math.min(bbox.x2 - bbox.x1, bbox.y2 - bbox.y1);
-            const pointSize = Math.min(Math.floor(minDimension) * 0.75, 8);
+            const pointSize =
+                Math.min(Math.floor(minDimension) * 0.75, 8) /
+                camera.scaledZoom;
             for (const bound of bounds) {
                 stream.drawEllipse(
                     bound.x,
@@ -430,34 +430,39 @@ class C_RaycastDebug<
 
         const raycasts = this._engine.physicsSystem.raycastsThisFrame;
         if (raycasts.length) {
-            stream.setOpacity(1);
+            stream.setStyle({
+                lineColor: 'red',
+                lineWidth: 2 / camera.scaledZoom,
+            });
             for (const raycast of raycasts) {
-                stream.setStyle({
-                    color: 'red',
-                    lineWidth: 2,
-                });
+                const endX = raycast.result
+                    ? raycast.result.point.x
+                    : raycast.request.origin.x +
+                      raycast.request.direction.x * raycast.request.maxDistance;
+                const endY = raycast.result
+                    ? raycast.result.point.y
+                    : raycast.request.origin.y +
+                      raycast.request.direction.y * raycast.request.maxDistance;
                 stream.drawLine(
                     raycast.request.origin.x,
                     raycast.request.origin.y,
-                    raycast.request.origin.x +
-                        raycast.request.direction.x *
-                            raycast.request.maxDistance,
-                    raycast.request.origin.y +
-                        raycast.request.direction.y *
-                            raycast.request.maxDistance,
+                    endX,
+                    endY,
                 );
+            }
 
+            stream.setStyle({
+                color: 'yellow',
+                lineColor: 'green',
+                lineWidth: 2 / camera.scaledZoom,
+            });
+            for (const raycast of raycasts) {
                 if (raycast.result) {
-                    stream.setStyle({
-                        color: 'yellow',
-                        lineColor: 'green',
-                        lineWidth: 2,
-                    });
                     stream.drawEllipse(
                         raycast.result.point.x,
                         raycast.result.point.y,
-                        raycast.result.point.x + 10,
-                        raycast.result.point.y + 10,
+                        raycast.result.point.x + 8 / camera.scaledZoom,
+                        raycast.result.point.y + 8 / camera.scaledZoom,
                     );
                 }
             }

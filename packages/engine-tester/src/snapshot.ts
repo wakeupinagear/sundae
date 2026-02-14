@@ -4,6 +4,7 @@ import { Canvas, Image } from 'skia-canvas';
 import { test } from 'vitest';
 
 import { Engine, type EngineOptions } from '@repo/engine';
+import { type DebugOverlayFlags } from '@repo/engine';
 import type { EngineScenario, IEngineHarness } from '@repo/engine-scenarios';
 import { FilesystemAssetLoader } from '@repo/node';
 
@@ -125,6 +126,7 @@ class SnapshotHarness implements IEngineHarness {
 
 interface SnapshotTestOptions {
     canvas?: Canvas;
+    debugOverlayFlags?: DebugOverlayFlags;
 }
 
 export function defineSnapshotTest(
@@ -135,7 +137,11 @@ export function defineSnapshotTest(
     const canvas: Canvas = options.canvas ?? new Canvas(800, 600);
 
     test(name, async () => {
-        const harness = new SnapshotHarness(canvas, {}, { testName: name });
+        const harness = new SnapshotHarness(
+            canvas,
+            { debugOverlay: options.debugOverlayFlags },
+            { testName: name },
+        );
         await fn(harness);
         if (harness.snapshotCount === 0) {
             await harness.step(12);

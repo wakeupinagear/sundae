@@ -7,6 +7,7 @@ import { images } from './list/images';
 import { infiniteCanvas } from './list/infiniteCanvas';
 import { inputs } from './list/inputs';
 import { pong } from './list/pong';
+import { raycasts } from './list/raycasts';
 import { renderChaos } from './list/renderChaos';
 import { superSundaeBros } from './list/superSundaeBros';
 import { textRendering } from './list/textRendering';
@@ -45,15 +46,23 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 description: 'Image scenarios',
                 scenario: images,
             },
+            textRendering: {
+                name: 'Text',
+                description: 'Text rendering scenarios',
+                scenario: textRendering,
+            },
+            raycasts: {
+                name: 'Raycasts',
+                description: 'Raycast scenarios',
+                scenario: raycasts,
+                debugOverlayFlags:
+                    DebugOverlayFlags.VISUAL_RAYCASTS |
+                    DebugOverlayFlags.VISUAL_COLLIDERS,
+            },
             inputs: {
                 name: 'Keyboard Inputs',
                 description: 'Interact with the engine',
                 scenario: inputs,
-            },
-            textRendering: {
-                name: 'Text Rendering',
-                description: 'Text rendering scenarios',
-                scenario: textRendering,
             },
             debugging: {
                 name: 'Debugging',

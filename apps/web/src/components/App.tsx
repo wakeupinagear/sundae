@@ -137,7 +137,8 @@ export function App() {
             prevCamerasRef.current = [cameraCount, maxCameras];
             cameraHash.current = (Math.random() * 2 ** 32) >>> 0;
         }
-        const activeDebugOverlay = scenarioDebugOverlayFlags ?? debugOverlay;
+        const scenarioLockedFlags = scenarioDebugOverlayFlags ?? 0;
+        const activeDebugOverlay = scenarioLockedFlags | debugOverlay;
         const options: Partial<EngineOptions> = {
             cameras: makeGridCameras(
                 Math.min(cameraCount, maxCameras),

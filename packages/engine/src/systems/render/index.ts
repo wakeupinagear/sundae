@@ -5,7 +5,6 @@ import { HashFactory } from '../../hashFactory';
 import { ItemCache } from '../../itemCache';
 import { Matrix2D } from '../../math/matrix';
 import type { ICanvasRenderingContext2D } from '../../types';
-import { zoomToScale } from '../../utils';
 import type { LoadedImage } from '../asset/types';
 import type { CameraSystem } from '../camera';
 import { System } from '../index';
@@ -98,7 +97,7 @@ export class RenderSystem<
         cameraTransform
             .translateSelf(-camera.position.x, -camera.position.y)
             .rotateSelf(camera.rotation)
-            .scaleSelf(zoomToScale(camera.zoom));
+            .scaleSelf(camera.scaledZoom);
 
         this.#stream.pushTransform(cameraTransform);
 
