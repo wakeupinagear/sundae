@@ -323,14 +323,12 @@ export class PointerSystem<TEngine extends Engine = Engine>
                 },
             };
             pointer.prevState.position.set(position);
-
-            this.#applyCanvasCursor(pointer, 'default');
         }
     }
 
     override lateUpdate(): boolean | void {
         for (const pointer of Object.values(this.#canvasPointers)) {
-            this.#applyCanvasCursor(pointer);
+            this.#applyCanvasCursor(pointer, 'default');
         }
     }
 
