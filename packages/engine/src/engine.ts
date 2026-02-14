@@ -874,8 +874,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     }
 
     disableDebugOverlay(): void {
-        this.destroyScene(DEBUG_OVERLAY_SCENE_NAME);
-        this.#debugOverlayScene = null;
+        if (this.#debugOverlayScene) {
+            this.destroyScene(DEBUG_OVERLAY_SCENE_NAME);
+            this.#debugOverlayScene = null;
+        }
     }
 
     startNextFrame(): void {
@@ -934,9 +936,13 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
             const loadingAssets = this._assetSystem.getLoadingAssets();
             const assetLoadingBehavior = this.options.assetLoadingBehavior;
+            const shouldUpdate =
+                loadingAssets.length === 0 ||
+                assetLoadingBehavior === 'async' ||
+                assetLoadingBehavior === 'block-render';
 
             this.trace('engineUpdate', () => {
-                if (assetLoadingBehavior === 'block-update') {
+                if (shouldUpdate) {
                     const engineUpdated = this.#engineUpdate(deltaTime);
                     if (engineUpdated) {
                         this.#forceRender = true;
