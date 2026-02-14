@@ -254,8 +254,7 @@ class ChaosScene extends Scene {
                 zIndex: (i % 3) - 1,
             });
             e.addComponents({
-                type: 'shape',
-                shape: 'ELLIPSE',
+                type: 'circle',
                 color: `hsla(${(i * 37) % 360}, 80%, 60%, 0.9)`,
                 lineWidth: 2,
             });
@@ -277,8 +276,7 @@ class ChaosScene extends Scene {
                 zIndex: -3,
             });
             e.addComponents({
-                type: 'shape',
-                shape: 'ELLIPSE',
+                type: 'circle',
                 color: `hsla(${(i * 53 + 180) % 360}, 70%, 55%, 0.85)`,
                 lineWidth: 1,
             });
@@ -302,8 +300,7 @@ class ChaosScene extends Scene {
                 zIndex: -2,
             });
             lineEntity.addComponents({
-                type: 'shape',
-                shape: 'LINE',
+                type: 'line',
                 start,
                 end,
                 lineColor: `hsl(${(i * 25) % 360}, 70%, 50%)`,
@@ -328,8 +325,7 @@ class ChaosScene extends Scene {
                 zIndex: -1,
             });
             lineEntity.addComponents({
-                type: 'shape',
-                shape: 'LINE',
+                type: 'line',
                 start,
                 end,
                 lineColor: `hsla(${(i * 15 + 200) % 360}, 60%, 55%, 0.8)`,
@@ -346,8 +342,7 @@ class ChaosScene extends Scene {
                 scale: 12 + (i % 5) * 4,
             });
             e.addComponents({
-                type: 'shape',
-                shape: i % 3 === 0 ? 'ELLIPSE' : 'RECT',
+                type: i % 3 === 0 ? 'circle' : 'rectangle',
                 color: `hsl(${(i * 60) % 360}, 90%, 55%)`,
                 lineWidth: 1,
             });
@@ -364,8 +359,7 @@ class ChaosScene extends Scene {
                 scale: 8 + (i % 3) * 4,
             });
             e.addComponents({
-                type: 'shape',
-                shape: i % 2 === 0 ? 'ELLIPSE' : 'RECT',
+                type: i % 2 === 0 ? 'circle' : 'rectangle',
                 color: `hsl(${(i * 40 + 30) % 360}, 85%, 60%)`,
                 lineWidth: 1,
             });
@@ -381,8 +375,7 @@ class ChaosScene extends Scene {
                 scale: 10 + (i % 4) * 3,
             });
             e.addComponents({
-                type: 'shape',
-                shape: i % 4 === 0 ? 'ELLIPSE' : 'RECT',
+                type: i % 4 === 0 ? 'circle' : 'rectangle',
                 color: `hsl(${(i * 20) % 360}, 95%, 50%)`,
                 lineWidth: 1,
             });
@@ -407,8 +400,7 @@ class ChaosScene extends Scene {
                 : this._engine.createEntities(entityOptions)[0];
             entity.addComponents({
                 name: `Box Level ${i + 1}`,
-                type: 'shape',
-                shape: 'RECT',
+                type: 'rectangle',
                 color: `hsl(${(i * 40) % 360}, 70%, 50%)`,
                 lineWidth: 0.1,
             });

@@ -25,7 +25,7 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
             {
                 type: 'infinite_shape',
                 name: 'grid-y',
-                shape: 'LINE',
+                shape: 'line',
                 start: { x: -GRID_LINE_EXTENT, y: 0 },
                 end: { x: GRID_LINE_EXTENT, y: 0 },
                 lineColor: '#666666',
@@ -39,7 +39,7 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
             {
                 type: 'infinite_shape',
                 name: 'grid-x',
-                shape: 'LINE',
+                shape: 'line',
                 start: { x: 0, y: -GRID_LINE_EXTENT },
                 end: { x: 0, y: GRID_LINE_EXTENT },
                 lineColor: '#666666',
@@ -53,7 +53,7 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
             {
                 name: 'dots',
                 type: 'infinite_shape',
-                shape: 'ELLIPSE',
+                shape: 'circle',
                 color: '#333333',
                 tileSize: TILE_SIZE,
                 scale: DOT_SIZE,
@@ -65,7 +65,7 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
             {
                 type: 'infinite_shape',
                 name: 'x-axis',
-                shape: 'ELLIPSE',
+                shape: 'circle',
                 lineColor: 'green',
                 lineWidth: 2,
                 tileSize: TILE_SIZE,
@@ -75,7 +75,7 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
             {
                 type: 'infinite_shape',
                 name: 'y-axis',
-                shape: 'ELLIPSE',
+                shape: 'circle',
                 lineColor: 'blue',
                 lineWidth: 2,
                 tileSize: TILE_SIZE,
@@ -84,8 +84,7 @@ export const infiniteCanvas: EngineScenario = async (harness) => {
             },
             {
                 name: 'origin',
-                type: 'shape',
-                shape: 'ELLIPSE',
+                type: 'circle',
                 color: 'red',
                 scale: DOT_SIZE * 2,
             },

@@ -53,8 +53,9 @@ export abstract class C_Collider<
     constructor(options: C_ColliderOptions) {
         super(options);
 
-        this.#collision = options.collision ?? 'none';
         this.#pointerTarget = options.pointerTarget ?? false;
+        this.#collision =
+            options.collision ?? (options.pointerTarget ? 'none' : 'solid');
         this.#onPointerEnterCB = options.onPointerEnter ?? null;
         this.#onPointerStayCB = options.onPointerStay ?? null;
         this.#onPointerLeaveCB = options.onPointerLeave ?? null;
@@ -334,19 +335,22 @@ export abstract class C_Collider<
     };
 
     static isCollisionEnabledInOptions(options: C_ColliderOptions): boolean {
-        return Boolean(options.collision !== 'none' || options.pointerTarget);
+        return Boolean(
+            (options.collision !== undefined && options.collision !== 'none') ||
+                options.pointerTarget,
+        );
     }
 
     static getCollisionOptionsForEntity(
         options: C_ColliderOptions,
     ): Partial<C_ColliderOptions> {
         return {
-            collision: options.collision ?? 'none',
-            pointerTarget: options.pointerTarget ?? false,
-            onPointerEnter: options.onPointerEnter ?? null,
-            onPointerStay: options.onPointerStay ?? null,
-            onPointerLeave: options.onPointerLeave ?? null,
-            cursorOnHover: options.cursorOnHover ?? null,
+            collision: options.collision,
+            pointerTarget: options.pointerTarget,
+            onPointerEnter: options.onPointerEnter,
+            onPointerStay: options.onPointerStay,
+            onPointerLeave: options.onPointerLeave,
+            cursorOnHover: options.cursorOnHover,
         };
     }
 

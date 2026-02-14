@@ -1,5 +1,5 @@
 import { type WebKey } from '@repo/engine';
-import { type C_Shape } from '@repo/engine/components';
+import { type C_Rectangle } from '@repo/engine/components';
 import { Entity, type EntityOptions } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
@@ -20,7 +20,7 @@ interface E_KeyOptions extends EntityOptions {
 
 class E_Key extends Entity {
     #key: WebKey;
-    #background: C_Shape;
+    #background: C_Rectangle;
 
     constructor(options: E_KeyOptions) {
         super(options);
@@ -28,11 +28,10 @@ class E_Key extends Entity {
         this.#key = options.key;
 
         this.#background = this.setBackground({
-            type: 'shape',
-            shape: 'RECT',
+            type: 'rectangle',
             lineColor: '#666666',
             lineWidth: 2,
-        })[0] as C_Shape;
+        })[0] as C_Rectangle;
     }
 
     update() {

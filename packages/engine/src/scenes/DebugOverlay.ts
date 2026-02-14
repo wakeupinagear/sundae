@@ -117,6 +117,11 @@ export class E_StatsDebug<
         super.queueRenderCommands(stream, camera);
     }
 
+    update(): boolean | void {
+        // Force render loop while the overlay text is updated
+        return true;
+    }
+
     #buildTraceText(
         traces: ReadonlyArray<TraceFrame>,
         depth: number,
@@ -518,11 +523,6 @@ export class DebugOverlayScene<
 
     get flags(): DebugOverlayFlags {
         return this.#flags ?? DebugOverlayFlags.NONE;
-    }
-
-    update(): boolean {
-        // Force render loop while the overlay is active
-        return true;
     }
 
     setFlags(flags: DebugOverlayFlags, force?: boolean): void {

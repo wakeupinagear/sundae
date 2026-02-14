@@ -1,7 +1,8 @@
 import { Vector } from '@repo/engine';
 import {
-    E_Shape,
-    type E_ShapeOptions,
+    type E_Circle,
+    E_Rectangle,
+    type E_RectangleOptions,
     type E_Text,
     type EntityOptions,
 } from '@repo/engine/entities';
@@ -19,13 +20,12 @@ interface E_PaddleOptions extends EntityOptions {
     inputAxis: string;
 }
 
-class E_Paddle extends E_Shape {
+class E_Paddle extends E_Rectangle {
     #inputAxis: string;
 
     constructor(options: E_PaddleOptions) {
         super({
             ...options,
-            shape: 'RECT',
             color: 'white',
             collision: 'solid',
             mass: 1e6,
@@ -46,7 +46,7 @@ class E_Paddle extends E_Shape {
 }
 
 class PongScene extends Scene {
-    #ball!: E_Shape;
+    #ball!: E_Circle;
     #paddle1!: E_Paddle;
     #paddle2!: E_Paddle;
     #scoreText!: E_Text;
@@ -82,8 +82,7 @@ class PongScene extends Scene {
             },
         );
 
-        const wallOptions: E_ShapeOptions = {
-            shape: 'RECT',
+        const wallOptions: E_RectangleOptions = {
             scale: { x: 1000, y: 100 },
             color: '#BBBBBB',
             collision: 'solid',
@@ -93,13 +92,13 @@ class PongScene extends Scene {
 
         this.createEntities(
             {
-                type: 'shape',
+                type: 'rectangle',
                 name: 'Top Wall',
                 position: { x: 0, y: -300 },
                 ...wallOptions,
             },
             {
-                type: 'shape',
+                type: 'rectangle',
                 name: 'Bottom Wall',
                 position: { x: 0, y: 300 },
                 ...wallOptions,
@@ -107,14 +106,13 @@ class PongScene extends Scene {
         );
 
         this.#ball = this.createEntity({
-            type: 'shape',
+            type: 'circle',
             name: 'Ball',
-            shape: 'ELLIPSE',
             color: 'white',
             scale: { x: 20, y: 20 },
             collision: 'solid',
             bounce: 1,
-        }) as E_Shape;
+        }) as E_Circle;
         this.ballReset();
     }
 

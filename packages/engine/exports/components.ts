@@ -36,10 +36,26 @@ export {
     type C_ImageJSON,
 } from '../src/components/image';
 export {
-    C_Shape,
-    type C_ShapeOptions,
-    type C_ShapeJSON,
+    C_ShapeBase,
+    type C_ShapeBaseOptions,
 } from '../src/components/shape';
+export {
+    C_Circle,
+    type C_CircleOptions,
+    type C_CircleJSON,
+} from '../src/components/circle';
+export {
+    C_Rectangle,
+    type C_RectangleOptions,
+    type C_RectangleJSON,
+} from '../src/components/rectangle';
+export {
+    C_Line,
+    type C_LineOptions,
+    type C_LineJSON,
+    type ArrowTip,
+    type Tip,
+} from '../src/components/line';
 export {
     ComponentAppearance,
     type OneAxisAlignment,

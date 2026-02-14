@@ -1,5 +1,9 @@
 import { type Engine, type EngineOptions, Vector } from '@repo/engine';
-import { type E_Shape, type E_ShapeJSON } from '@repo/engine/entities';
+import {
+    type E_Line,
+    type E_Rectangle,
+    type E_RectangleJSON,
+} from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
 import { type EngineScenario } from '../types';
@@ -10,31 +14,35 @@ const WALL_THICKNESS = 25;
 const WALL_LENGTH = HEXAGON_RADIUS * 1.1;
 
 class VortexScene extends Scene {
-    #arrow!: E_Shape;
+    #arrow!: E_Line;
 
     #gravityAngleDegrees: number = 90;
+    #wallAngleDegrees: number = 0;
+    #wallEntities!: E_Rectangle[];
+    #wallInitialPositions!: { x: number; y: number }[];
+    #wallInitialRotations!: number[];
 
     override create(_engine: Engine<EngineOptions>): void {
         this.#arrow = this.createEntity({
-            type: 'shape',
-            shape: 'LINE',
+            type: 'line',
             endTip: { type: 'arrow', length: 100 },
             lineColor: '#222222',
             lineWidth: 16,
             zIndex: -1,
-        }) as E_Shape;
+        }) as E_Line;
         this.#syncArrow();
 
-        const wallOptions: E_ShapeJSON = {
-            type: 'shape',
-            shape: 'RECT',
+        const wallOptions: E_RectangleJSON = {
+            type: 'rectangle',
             color: '#DDDDDD',
             collision: 'solid',
             kinematic: true,
         };
 
         const sideDistance = HEXAGON_RADIUS * Math.cos(Math.PI / 6);
-        const walls: E_ShapeJSON[] = [];
+        const walls: E_RectangleJSON[] = [];
+        this.#wallInitialPositions = [];
+        this.#wallInitialRotations = [];
         for (let i = 0; i < 6; i++) {
             const angleRad = ((i + 0.5) * Math.PI) / 3;
             const x = Math.cos(angleRad) * sideDistance;
@@ -42,6 +50,8 @@ class VortexScene extends Scene {
             const angleDegrees = (angleRad * 180) / Math.PI;
             const rotationDegrees = angleDegrees;
 
+            this.#wallInitialPositions.push({ x, y });
+            this.#wallInitialRotations.push(rotationDegrees);
             walls.push({
                 ...wallOptions,
                 position: { x, y },
@@ -50,12 +60,11 @@ class VortexScene extends Scene {
             });
         }
 
-        this.createEntities(...walls);
+        this.#wallEntities = this.createEntities(...walls) as E_Rectangle[];
 
         for (let i = 0; i < 600; i++) {
             this.createEntities({
-                type: 'shape',
-                shape: 'ELLIPSE',
+                type: 'circle',
                 scale: 2.5 + _engine.random() * 20,
                 color: BALL_COLORS[
                     Math.floor(this._engine.random() * BALL_COLORS.length)
@@ -76,10 +85,25 @@ class VortexScene extends Scene {
 
     override update(_deltaTime: number): void {
         this.#gravityAngleDegrees -= 60 * _deltaTime;
+        this.#wallAngleDegrees += 30 * _deltaTime;
 
         const angleRadians = (this.#gravityAngleDegrees * Math.PI) / 180;
         const direction = Vector.fromAngle(angleRadians);
         this.engine.physicsSystem.gravityDirection = direction;
+
+        const wallAngleRad = (this.#wallAngleDegrees * Math.PI) / 180;
+        const c = Math.cos(wallAngleRad);
+        const s = Math.sin(wallAngleRad);
+        for (let i = 0; i < this.#wallEntities.length; i++) {
+            const p = this.#wallInitialPositions[i];
+            this.#wallEntities[i].setPosition({
+                x: p.x * c - p.y * s,
+                y: p.x * s + p.y * c,
+            });
+            this.#wallEntities[i].setRotation(
+                this.#wallInitialRotations[i] + this.#wallAngleDegrees,
+            );
+        }
 
         this.#syncArrow();
     }

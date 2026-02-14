@@ -1,6 +1,8 @@
-import { C_Image, type C_ImageJSON } from '../components/image';
-import { C_Shape, type C_ShapeJSON } from '../components/shape';
-import { C_Text, type C_TextJSON } from '../components/text';
+import { C_Circle, type C_CircleJSON } from './circle';
+import { C_Image, type C_ImageJSON } from './image';
+import { C_Line, type C_LineJSON } from './line';
+import { C_Rectangle, type C_RectangleJSON } from './rectangle';
+import { C_Text, type C_TextJSON } from './text';
 import type { Engine } from '../engine';
 import {
     C_CircleCollider,
@@ -62,7 +64,9 @@ export type CustomComponentJSON<TCtor extends ComponentConstructor> =
 export type StringComponentJSON =
     | C_TransformJSON
     | C_TextJSON
-    | C_ShapeJSON
+    | C_CircleJSON
+    | C_RectangleJSON
+    | C_LineJSON
     | C_PolygonJSON
     | C_ImageJSON
     | C_LerpJSON
@@ -96,8 +100,12 @@ export function createComponentFromJSON<TEngine extends Engine = Engine>(
     switch (json.type) {
         case 'text':
             return new C_Text<TEngine>(json);
-        case 'shape':
-            return new C_Shape<TEngine>(json);
+        case 'circle':
+            return new C_Circle<TEngine>(json);
+        case 'rectangle':
+            return new C_Rectangle<TEngine>(json);
+        case 'line':
+            return new C_Line<TEngine>(json);
         case 'polygon':
             return new C_Polygon<TEngine>(json);
         case 'image':

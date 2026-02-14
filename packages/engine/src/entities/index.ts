@@ -5,9 +5,11 @@ import {
     type ComponentJSON,
     type CustomComponentJSON,
 } from '../components/factory';
+import type { C_CircleJSON } from '../components/circle';
 import type { C_ImageJSON } from '../components/image';
+import type { C_LineJSON } from '../components/line';
+import type { C_RectangleJSON } from '../components/rectangle';
 import type { C_Rigidbody } from '../components/rigidbody';
-import type { C_ShapeJSON } from '../components/shape';
 import type { C_Transform } from '../components/transforms';
 import { type Engine } from '../engine';
 import {
@@ -34,7 +36,13 @@ import {
 type CullMode = 'components' | 'children' | 'all' | 'none';
 type PositionRelativeToCamera = OneAxisAlignment | 'none';
 
-type BackgroundOptions = boolean | string | C_ShapeJSON | C_ImageJSON;
+type BackgroundOptions =
+    | boolean
+    | string
+    | C_CircleJSON
+    | C_RectangleJSON
+    | C_LineJSON
+    | C_ImageJSON;
 
 type BackgroundConstructor = BackgroundOptions | BackgroundOptions[];
 
@@ -1044,8 +1052,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                     typeof bgConstructor === 'string'
                 ) {
                     json = {
-                        type: 'shape',
-                        shape: 'RECT',
+                        type: 'rectangle',
                         color:
                             typeof bgConstructor === 'boolean'
                                 ? 'black'

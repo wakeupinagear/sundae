@@ -5,7 +5,6 @@ import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
 import type { TwoAxisAlignment } from '../types';
-import { type C_Shape } from './shape';
 
 const MONOSPACE_WIDTH_RATIO = 0.6;
 const MONOSPACE_HEIGHT_RATIO = 0.8;
@@ -109,7 +108,6 @@ export class C_Text<
     #drawActions: TextDrawAction[] = [];
     #textPosition: Vector = new Vector(0);
     #textSize: Vector = new Vector(0);
-    #bgShape: C_Shape<TEngine> | null = null;
 
     constructor(options: C_TextOptions) {
         super({

@@ -1,5 +1,5 @@
 import { type Engine, type EngineOptions } from '@repo/engine';
-import { type E_ShapeJSON } from '@repo/engine/entities';
+import { type E_RectangleJSON } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
 
 import { type EngineScenario } from '../types';
@@ -8,9 +8,8 @@ const BALL_COLORS = ['red', 'blue', 'cyan', 'yellow', 'orange', 'green'];
 
 class PitScene extends Scene {
     override create(_engine: Engine<EngineOptions>): void {
-        const wallOptions: E_ShapeJSON = {
-            type: 'shape',
-            shape: 'RECT',
+        const wallOptions: E_RectangleJSON = {
+            type: 'rectangle',
             color: '#DDDDDD',
             collision: 'solid',
         };
@@ -34,8 +33,7 @@ class PitScene extends Scene {
 
         for (let i = 0; i < 600; i++) {
             this.createEntities({
-                type: 'shape',
-                shape: 'ELLIPSE',
+                type: 'circle',
                 scale: 5 + _engine.random() * 25,
                 color: BALL_COLORS[
                     Math.floor(this._engine.random() * BALL_COLORS.length)

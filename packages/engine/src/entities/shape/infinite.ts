@@ -1,4 +1,8 @@
-import { E_Shape, type E_ShapeOptions } from '.';
+import { E_ShapeBase, type E_ShapeBaseOptions } from '.';
+import { type C_CircleOptions } from '../../components/circle';
+import { type C_LineOptions } from '../../components/line';
+import { type C_RectangleOptions } from '../../components/rectangle';
+import type { C_ShapeBase } from '../../components/shape';
 import type { Engine } from '../../engine';
 import {
     type IVector,
@@ -8,7 +12,14 @@ import {
 import type { CameraSystem } from '../../systems/camera';
 import type { RenderCommandStream } from '../../systems/render/command';
 
-export interface E_InfiniteShapeOptions extends E_ShapeOptions {
+export type InfiniteShapeKind = 'circle' | 'rectangle' | 'line';
+
+export interface E_InfiniteShapeOptions
+    extends E_ShapeBaseOptions,
+        Partial<C_CircleOptions>,
+        Partial<C_RectangleOptions>,
+        Partial<C_LineOptions> {
+    shape: InfiniteShapeKind;
     tileSize: VectorConstructor;
     offset?: VectorConstructor;
     infiniteAxes?: Partial<IVector<boolean>>;
@@ -27,12 +38,13 @@ interface RepeatState {
 
 export class E_InfiniteShape<
     TEngine extends Engine = Engine,
-> extends E_Shape<TEngine> {
+> extends E_ShapeBase<TEngine> {
+    #shapeComponent: C_ShapeBase<TEngine>;
     #tileSize: Vector;
     #offset: Vector;
     #infiniteAxes: IVector<boolean>;
 
-    #position: Vector | null = null; // Overrides the transform
+    #position: Vector | null = null;
 
     #cameraRepeatStates: Record<string, RepeatState> = {};
 
@@ -41,6 +53,7 @@ export class E_InfiniteShape<
             name = 'infinite_shape',
             scale: _scale,
             tileSize: _tileSize,
+            shape,
             ...rest
         } = options;
 
@@ -48,6 +61,24 @@ export class E_InfiniteShape<
         const tileSize = _tileSize ?? scale;
 
         super({ name, cull: 'none', scale, ...rest });
+
+        const componentOptions = { ...rest, name: 'InfiniteShape' };
+        if (shape === 'circle') {
+            this.#shapeComponent = this.addComponent({
+                ...componentOptions,
+                type: 'circle',
+            });
+        } else if (shape === 'rectangle') {
+            this.#shapeComponent = this.addComponent({
+                ...componentOptions,
+                type: 'rectangle',
+            });
+        } else {
+            this.#shapeComponent = this.addComponent({
+                ...componentOptions,
+                type: 'line',
+            });
+        }
 
         this.#tileSize = new Vector(tileSize);
         this.#offset = new Vector(options.offset ?? 0);
@@ -58,6 +89,10 @@ export class E_InfiniteShape<
         if (!options.gap) {
             this.shape.setGap(new Vector(options.tileSize).div(this.scale));
         }
+    }
+
+    get shape(): C_ShapeBase<TEngine> {
+        return this.#shapeComponent;
     }
 
     get tileSize(): Vector {

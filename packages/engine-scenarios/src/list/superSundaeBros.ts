@@ -6,8 +6,8 @@ import {
     Vector,
 } from '@repo/engine';
 import {
-    E_Shape,
-    type E_ShapeOptions,
+    E_Circle,
+    type E_CircleOptions,
     type E_Text,
 } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
@@ -63,11 +63,11 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..AAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..AAAAAAAAAAAAAAA...AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 `;
 
-interface E_PlayerOptions extends E_ShapeOptions {
+interface E_PlayerOptions extends E_CircleOptions {
     levelScene: LevelScene;
 }
 
-class E_Player extends E_Shape {
+class E_Player extends E_Circle {
     #levelScene!: LevelScene;
 
     constructor(options: E_PlayerOptions) {
@@ -131,8 +131,8 @@ class E_Player extends E_Shape {
     }
 }
 
-class E_Goomba extends E_Shape {
-    constructor(options: E_ShapeOptions) {
+class E_Goomba extends E_Circle {
+    constructor(options: E_CircleOptions) {
         super({
             ...options,
             mass: 1e6,
@@ -156,7 +156,6 @@ class LevelScene extends Scene {
                     const { name, color } = TILE_METADATA[tile as Tile];
                     const properties = {
                         name,
-                        shape: 'RECT',
                         color,
                         position: {
                             x: TOP_LEFT_CORNER.x + x * TILE_SIZE,
@@ -171,7 +170,6 @@ class LevelScene extends Scene {
                             this.#player = this.createEntity({
                                 ...properties,
                                 type: E_Player,
-                                shape: 'ELLIPSE',
                                 levelScene: this,
                             }) as E_Player;
                             break;
@@ -179,14 +177,12 @@ class LevelScene extends Scene {
                             this.createEntity({
                                 ...properties,
                                 type: E_Goomba,
-                                shape: 'ELLIPSE',
                             }) as E_Goomba;
                             break;
                         default:
                             this.createEntity({
                                 ...properties,
-                                type: 'shape',
-                                shape: 'RECT',
+                                type: 'rectangle',
                                 collision: 'solid',
                             });
                             break;

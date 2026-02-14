@@ -30,18 +30,16 @@ export const textRendering: EngineScenario = async (harness) => {
         name: 'Text Rendering',
         entities: [
             {
-                type: 'shape',
+                type: 'line',
                 name: 'x-axis',
-                shape: 'LINE',
                 start: { x: -500, y: 0 },
                 end: { x: 500, y: 0 },
                 lineColor: AXIS_COLOR,
                 zIndex: -1,
             },
             {
-                type: 'shape',
+                type: 'line',
                 name: 'y-axis',
-                shape: 'LINE',
                 start: { x: 0, y: -500 },
                 end: { x: 0, y: 500 },
                 lineColor: AXIS_COLOR,
@@ -62,8 +60,7 @@ export const textRendering: EngineScenario = async (harness) => {
                 color: AXIS_COLOR,
             },
             {
-                type: 'shape',
-                shape: 'RECT',
+                type: 'rectangle',
                 lineColor: AXIS_COLOR,
                 lineWidth: 2,
                 scale: BOX_SIZE,

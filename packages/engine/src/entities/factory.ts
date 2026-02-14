@@ -4,9 +4,11 @@ import {
     type EntityOptions,
     type InternalEntityOptions,
 } from '../entities';
+import { E_Circle, type E_CircleJSON } from './circle';
 import { E_Image, type E_ImageJSON } from './image';
+import { E_Line, type E_LineJSON } from './line';
 import { E_Polygon, type E_PolygonJSON } from './polygon';
-import { E_Shape, type E_ShapeJSON } from './shape';
+import { E_Rectangle, type E_RectangleJSON } from './rectangle';
 import { E_InfiniteShape, type E_InfiniteShapeJSON } from './shape/infinite';
 import { E_Text, type E_TextJSON } from './text';
 
@@ -36,7 +38,9 @@ export type CustomEntityJSON<TCtor extends EntityConstructor> =
 // String-based entity types
 export type StringEntityJSON =
     | E_TextJSON
-    | E_ShapeJSON
+    | E_CircleJSON
+    | E_RectangleJSON
+    | E_LineJSON
     | E_InfiniteShapeJSON
     | E_PolygonJSON
     | E_ImageJSON
@@ -64,8 +68,12 @@ export function createEntityFromJSON<TEngine extends Engine = Engine>(
             return new Entity<TEngine>(json);
         case 'text':
             return new E_Text<TEngine>(json);
-        case 'shape':
-            return new E_Shape<TEngine>(json);
+        case 'circle':
+            return new E_Circle<TEngine>(json);
+        case 'rectangle':
+            return new E_Rectangle<TEngine>(json);
+        case 'line':
+            return new E_Line<TEngine>(json);
         case 'infinite_shape':
             return new E_InfiniteShape<TEngine>(json);
         case 'polygon':
