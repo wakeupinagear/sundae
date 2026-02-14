@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { Canvas } from 'skia-canvas';
+import { Canvas, Image } from 'skia-canvas';
 import { test } from 'vitest';
 
 import { Engine, type EngineOptions } from '@repo/engine';
 import type { EngineScenario, IEngineHarness } from '@repo/engine-scenarios';
+import { FilesystemAssetLoader } from '@repo/node';
 
 const WRITE_MODE = process.env.WRITE_SNAPSHOTS === 'true';
 
@@ -16,6 +17,12 @@ const SNAPSHOT_FILE_TYPE = 'png';
 const SNAPSHOT_FILE_TYPE_REGEX = new RegExp(
     `^data:image/${SNAPSHOT_FILE_TYPE};base64,`,
 );
+
+const FILESYSTEM_ASSET_LOADER = new FilesystemAssetLoader({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    imageConstructor: Image as any,
+    rootDir: path.resolve(process.cwd(), '../engine-scenarios/assets'),
+});
 
 interface SnapshotHarnessOptions {
     testName: string;
@@ -42,6 +49,8 @@ class SnapshotHarness implements IEngineHarness {
             onReadyForNextFrame: (startNextFrame) => {
                 this.#startNextFrame = startNextFrame;
             },
+            assetLoadingBehavior: 'block-update',
+            assetLoader: FILESYSTEM_ASSET_LOADER,
         });
         this.#engine.setCanvas(canvas);
         this.#canvas = canvas;
@@ -81,6 +90,8 @@ class SnapshotHarness implements IEngineHarness {
                     }, this.#frameTimeout),
                 ),
             ]);
+
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     }
 

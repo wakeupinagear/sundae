@@ -1,25 +1,25 @@
 {
-    "name": "@repo/engine-tester",
+    "name": "@repo/node",
     "type": "module",
     "scripts": {
-        "test": "vitest run",
-        "test:write": "WRITE_SNAPSHOTS=true vitest",
+        "dev": "tsc --watch",
+        "build": "tsc",
         "check-types": "tsc --noEmit",
         "lint": "eslint \"src/**/*.ts\""
     },
-    "exports": {},
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts",
+            "default": "./dist/index.js"
+        }
+    },
     "devDependencies": {
         "@repo/engine": "workspace:*",
-        "@repo/engine-scenarios": "workspace:*",
-        "@repo/node": "workspace:*",
         "@repo/eslint-config": "workspace:*",
         "@repo/typescript-config": "workspace:*",
         "@types/node": "^22.10.5",
         "eslint": "^8.57.0",
-        "typescript": "5.5.4",
-        "vitest": "latest"
-    },
-    "dependencies": {
-        "skia-canvas": "^3.0.8"
+        "typescript": "latest"
     }
 }

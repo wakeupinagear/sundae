@@ -139,6 +139,9 @@ importers:
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
+      '@repo/node':
+        specifier: workspace:*
+        version: link:../node
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
@@ -166,6 +169,27 @@ importers:
       eslint-config-prettier:
         specifier: ^9.1.0
         version: 9.1.0(eslint@8.57.1)
+
+  packages/node:
+    devDependencies:
+      '@repo/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.19.3
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      typescript:
+        specifier: latest
+        version: 5.9.3
 
   packages/react-harness:
     dependencies:

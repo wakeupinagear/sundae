@@ -27,7 +27,7 @@ import { type IVector, type VectorConstructor } from './math/vector';
 import { DebugOverlayFlags, DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import { AssetSystem } from './systems/asset';
-import type { AssetLoaderConstructor } from './systems/asset/loader';
+import type { AssetLoader } from './systems/asset/loader';
 import type { LoadedImage, LoadedJSON } from './systems/asset/types';
 import {
     type CameraOptions,
@@ -134,6 +134,12 @@ export type SceneCreateArgs<T extends Scene> = T extends {
     ? A
     : [];
 
+type AssetLoadingBehavior =
+    | 'async'
+    | 'block-update'
+    | 'block-render'
+    | 'block-all';
+
 export interface EngineOptions {
     cameras: Record<string, CameraSystemOptions>;
     cameraOptions: CameraOptions;
@@ -151,9 +157,9 @@ export interface EngineOptions {
     physicsPerSecond: number;
     spatialHashCellSize: number;
 
-    assetLoader: AssetLoaderConstructor;
+    assetLoader: AssetLoader | null;
     images: Record<string, string | HTMLImageElement>;
-    asyncImageLoading: boolean;
+    assetLoadingBehavior: AssetLoadingBehavior;
 
     inputConfigs: Record<string, InputConfig>;
     capturedKeys: CapturedKey[];
@@ -194,9 +200,9 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     gravityScale: 9.8 * 20,
     gravityDirection: { x: 0, y: 1 },
 
-    assetLoader: 'browser',
+    assetLoader: null,
     images: {},
-    asyncImageLoading: true,
+    assetLoadingBehavior: 'async',
 
     inputConfigs: {},
     capturedKeys: [],
@@ -926,10 +932,15 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                 });
             }
 
+            const loadingAssets = this._assetSystem.getLoadingAssets();
+            const assetLoadingBehavior = this.options.assetLoadingBehavior;
+
             this.trace('engineUpdate', () => {
-                const engineUpdated = this.#engineUpdate(deltaTime);
-                if (engineUpdated) {
-                    this.#forceRender = true;
+                if (assetLoadingBehavior === 'block-update') {
+                    const engineUpdated = this.#engineUpdate(deltaTime);
+                    if (engineUpdated) {
+                        this.#forceRender = true;
+                    }
                 }
             });
 
@@ -943,10 +954,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                 });
             }
 
-            const loadingAssets = this._assetSystem.getLoadingAssets();
-            this.#forceRender =
-                this.#forceRender &&
-                (this.options.asyncImageLoading || loadingAssets.length === 0);
+            this.#forceRender &&=
+                loadingAssets.length === 0 ||
+                assetLoadingBehavior === 'async' ||
+                assetLoadingBehavior === 'block-update';
         });
 
         this.trace('Render', () => {
@@ -1071,10 +1082,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         }
 
         if (newOptions.debugOverlay !== undefined) {
-            const overlayEnabled =
-                Boolean(newOptions.debugOverlay) ||
-                (newOptions.debugOverlay as DebugOverlayFlags) !==
-                    DebugOverlayFlags.NONE;
+            const overlayEnabled = Boolean(newOptions.debugOverlay);
             if (overlayEnabled) {
                 const flags =
                     typeof newOptions.debugOverlay === 'number'

@@ -1,5 +1,4 @@
 import { type Engine } from '../../engine';
-import { type BoundingBox } from '../../math/boundingBox';
 import { Vector } from '../../math/vector';
 import { C_Polygon } from '../polygon';
 import { C_Collider, type C_ColliderOptions } from './index';
@@ -66,8 +65,7 @@ export class C_PolygonCollider<
             const xj = verts[j].x;
             const yj = verts[j].y;
             if (yi > py !== yj > py) {
-                const xIntersect =
-                    xj + ((py - yj) * (xi - xj)) / (yi - yj);
+                const xIntersect = xj + ((py - yj) * (xi - xj)) / (yi - yj);
                 if (px < xIntersect) {
                     inside = !inside;
                 }
@@ -76,7 +74,7 @@ export class C_PolygonCollider<
         return inside;
     }
 
-    override checkIfBoxIntersects(_bbox: BoundingBox): boolean {
+    override checkIfBoxIntersects(): boolean {
         // Stub: not implemented
         return false;
     }

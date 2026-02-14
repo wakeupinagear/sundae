@@ -11,7 +11,7 @@ type JSONValue =
     | null
     | JSONValue[]
     | { [key: string]: JSONValue };
-type JSONObject = { [key: string]: JSONValue };
+export type JSONObject = { [key: string]: JSONValue };
 
 export interface LoadedImage extends LoadedAssetBase {
     type: 'image';
@@ -25,10 +25,3 @@ export interface LoadedJSON extends LoadedAssetBase {
 }
 
 export type LoadedAsset = LoadedImage | LoadedJSON;
-
-export type BuiltInAssetLoader = 'browser' | 'filesystem';
-
-export interface IAssetLoader {
-    loadImage(name: string, src: string | HTMLImageElement): void;
-    loadJSON(name: string, src: string | JSONObject): void;
-}

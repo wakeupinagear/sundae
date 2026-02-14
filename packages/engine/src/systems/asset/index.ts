@@ -1,6 +1,6 @@
 import { type Engine } from '../../engine';
 import { System } from '../index';
-import type { AssetLoader, AssetLoaderConstructor } from './loader';
+import type { AssetLoader } from './loader';
 import { BrowserAssetLoader } from './loader/browser';
 import type { AssetType, LoadedAsset, LoadedImage, LoadedJSON } from './types';
 
@@ -18,20 +18,10 @@ export class AssetSystem<
     #requestedAssets: Set<string> = new Set();
     #requestedAssetJustLoaded: boolean = false;
 
-    constructor(engine: TEngine, assetLoader: AssetLoaderConstructor) {
+    constructor(engine: TEngine, assetLoader: AssetLoader | null) {
         super(engine);
 
-        switch (assetLoader) {
-            case 'browser':
-                this.#assetLoader = new BrowserAssetLoader();
-                break;
-            case 'filesystem':
-                throw new Error('Not implemented');
-            default:
-                this.#assetLoader = assetLoader;
-                break;
-        }
-
+        this.#assetLoader = assetLoader || new BrowserAssetLoader();
         this.#assetLoader.setAssetSystem(this);
     }
 

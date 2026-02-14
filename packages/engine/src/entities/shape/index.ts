@@ -38,7 +38,7 @@ export class E_Shape<TEngine extends Engine = Engine> extends Entity<TEngine> {
                 });
             } else {
                 this._engine.warn(
-                    `Collision not supported for shape '${this.shape}'`,
+                    `Collision not supported for shape '${options.shape}'`,
                 );
             }
         }

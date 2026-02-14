@@ -1,9 +1,9 @@
 import type { Engine } from '../engine';
 import { System } from './index';
 
-const LOG_PREFIX = '[LOG]:';
-const WARN_PREFIX = '[WARN]:';
-const ERROR_PREFIX = '[ERROR]:';
+const LOG_PREFIX = '[LOG]';
+const WARN_PREFIX = '[WARN]';
+const ERROR_PREFIX = '[ERROR]';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LogArgs = any[];

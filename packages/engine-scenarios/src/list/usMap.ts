@@ -259,7 +259,6 @@ class USMapScene extends Scene<Engine> {
                 );
 
             const countyStateGroups = new Map<string, Entity>();
-
             for (const state of projectedStates) {
                 const name = state.properties.name ?? state.id;
                 const stateGroup = this.#statesLayer.addChild({
@@ -334,8 +333,9 @@ class USMapScene extends Scene<Engine> {
     }
 }
 
-export const usMap: EngineScenario = (harness) => {
+export const usMap: EngineScenario = async (harness) => {
     harness.engine.options = {
+        assetLoadingBehavior: 'block-update',
         cameraOptions: {
             maxZoom: 4,
             bounds: {
@@ -347,4 +347,20 @@ export const usMap: EngineScenario = (harness) => {
         },
     };
     harness.engine.openScene(USMapScene);
+
+    await waitForMapToRender(harness);
 };
+
+async function waitForMapToRender(
+    harness: { engine: Engine; step: (n?: number) => Promise<void> },
+    maxFrames = 60,
+): Promise<void> {
+    for (let i = 0; i < maxFrames; i++) {
+        const statesLayer = harness.engine.getEntityByName('states-layer');
+        if (statesLayer && statesLayer.children.length > 0) {
+            return;
+        }
+
+        await harness.step(1);
+    }
+}

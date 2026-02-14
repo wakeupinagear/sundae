@@ -2,10 +2,7 @@ export type {
     LoadedImage,
     LoadedJSON,
     LoadedAsset,
-    IAssetLoader,
     AssetType,
+    JSONObject,
 } from '../src/systems/asset/types';
-export {
-    type AssetLoader,
-    type AssetLoaderConstructor,
-} from '../src/systems/asset/loader';
+export { AssetLoader } from '../src/systems/asset/loader';
