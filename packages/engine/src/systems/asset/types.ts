@@ -4,6 +4,8 @@ interface LoadedAssetBase {
     name: string;
 }
 
+export type ImageSource = string | HTMLImageElement;
+
 type JSONValue =
     | string
     | number
@@ -11,7 +13,8 @@ type JSONValue =
     | null
     | JSONValue[]
     | { [key: string]: JSONValue };
-export type JSONObject = { [key: string]: JSONValue };
+type JSONObject = { [key: string]: JSONValue };
+export type JSONSource = string | JSONObject;
 
 export interface LoadedImage extends LoadedAssetBase {
     type: 'image';

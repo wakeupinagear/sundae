@@ -1,5 +1,6 @@
 import { DebugOverlayFlags } from '@repo/engine';
 
+import { SCENARIO_ASSETS, type ScenarioAssets } from './assets';
 import { ballPit } from './list/ballPit';
 import { ballVortex } from './list/ballVortex';
 import { cursors } from './list/cursors';
@@ -24,10 +25,11 @@ export * from './assets';
 export interface ScenarioMetadata {
     name: string;
     description: string;
-    scenario: EngineScenario;
+    run: EngineScenario;
     skipInTests?: boolean;
     maxCameras?: number;
     debugOverlayFlags?: DebugOverlayFlags;
+    assets?: ScenarioAssets;
 }
 
 export interface ScenarioCategory {
@@ -47,22 +49,23 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             primitives: {
                 name: 'Primitives',
                 description: 'Circle, rectangle, line, arrows, polygon',
-                scenario: primitives,
+                run: primitives,
             },
             images: {
                 name: 'Images',
                 description: 'Image scenarios',
-                scenario: images,
+                run: images,
+                assets: SCENARIO_ASSETS.SUNDAE_IMAGES,
             },
             textRendering: {
                 name: 'Text',
                 description: 'Text rendering scenarios',
-                scenario: textRendering,
+                run: textRendering,
             },
             raycasts: {
                 name: 'Raycasts',
                 description: 'Raycast scenarios',
-                scenario: raycasts,
+                run: raycasts,
                 debugOverlayFlags:
                     DebugOverlayFlags.VISUAL_RAYCASTS |
                     DebugOverlayFlags.VISUAL_COLLIDERS,
@@ -70,22 +73,22 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             inputs: {
                 name: 'Keyboard Inputs',
                 description: 'Interact with the engine',
-                scenario: inputs,
+                run: inputs,
             },
             cursors: {
                 name: 'Pointer Cursor',
                 description: 'Buttons that set cursor type on hover',
-                scenario: cursors,
+                run: cursors,
             },
             zIndex: {
                 name: 'Z-Index',
                 description: 'Overlapping shapes with different draw order',
-                scenario: zIndex,
+                run: zIndex,
             },
             debugging: {
                 name: 'Debugging',
                 description: 'Debugging scenarios',
-                scenario: debugging,
+                run: debugging,
                 debugOverlayFlags: DebugOverlayFlags.ALL,
             },
         },
@@ -97,12 +100,13 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             infiniteCanvas: {
                 name: 'Infinite Canvas',
                 description: 'An infinite canvas',
-                scenario: infiniteCanvas,
+                run: infiniteCanvas,
             },
             usMap: {
                 name: 'US Map',
                 description: 'A map of the United States',
-                scenario: usMap,
+                run: usMap,
+                assets: SCENARIO_ASSETS.US_MAP,
             },
         },
     },
@@ -113,13 +117,13 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             pong: {
                 name: 'Pong',
                 description: 'A simple pong game',
-                scenario: pong,
+                run: pong,
                 maxCameras: 1,
             },
             superSundaeBros: {
                 name: 'Super Sundae Bros',
                 description: 'A simple platformer game',
-                scenario: superSundaeBros,
+                run: superSundaeBros,
                 maxCameras: 1,
             },
         },
@@ -131,12 +135,12 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             ballPit: {
                 name: 'Ball Pit',
                 description: 'So many balls',
-                scenario: ballPit,
+                run: ballPit,
             },
             ballVortex: {
                 name: 'Ball Vortex',
                 description: 'A vortex of balls',
-                scenario: ballVortex,
+                run: ballVortex,
             },
         },
     },
@@ -147,7 +151,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             renderChaos: {
                 name: 'Render Chaos',
                 description: 'Funky visuals',
-                scenario: renderChaos,
+                run: renderChaos,
             },
         },
     },
@@ -160,7 +164,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Type Errors',
                 description:
                     'Type error test case to validate engine type safety. Not an actual scenario.',
-                scenario: typeErrors,
+                run: typeErrors,
                 skipInTests: true,
             },
         },

@@ -1,14 +1,9 @@
-import { type Engine, type EngineOptions } from '@repo/engine';
 import { Scene } from '@repo/engine/scene';
 
 import type { EngineScenario } from '../types';
 
-/**
- * Primitives scenario: circle, rectangle, line, line with arrow variants, polygon.
- * All arranged so important content is visible in the 800x600 center viewport.
- */
 class PrimitivesScene extends Scene {
-    override create(_engine: Engine<EngineOptions>): void {
+    override create(): void {
         const cx = 0;
         const cy = 0;
         const spacing = 120;

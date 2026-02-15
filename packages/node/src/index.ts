@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { AssetLoader, type JSONObject } from '@repo/engine/asset';
+import { AssetLoader } from '@repo/engine/asset';
 
 interface ImageLike {
     src: string | URL | Buffer;
@@ -44,7 +44,6 @@ export class FilesystemAssetLoader extends AssetLoader {
         if (scenarioAssetPath) {
             return path.resolve(rootDir, scenarioAssetPath);
         }
-
         if (path.isAbsolute(src)) {
             return src;
         }
@@ -52,27 +51,27 @@ export class FilesystemAssetLoader extends AssetLoader {
         return path.resolve(rootDir, src);
     }
 
-    _loadRemoteImage = (name: string, src: string) => {
-        if (!this.#startLoading(name)) {
+    _loadRemoteImage = (src: string, name?: string) => {
+        if (!this.#startLoading(src)) {
             return;
         }
 
-        void this.#readImage(name, src).catch((error) => {
+        void this.#readImage(src, name ?? src).catch((error) => {
             console.error(`Failed to load image asset "${src}"`, error);
         });
     };
 
-    _loadRemoteJSON = (name: string, src: string) => {
-        if (!this.#startLoading(name)) {
+    _loadRemoteJSON = (src: string, name?: string) => {
+        if (!this.#startLoading(src)) {
             return;
         }
 
-        void this.#readJSON(name, src).catch((error) => {
+        void this.#readJSON(src, name ?? src).catch((error) => {
             console.error(`Failed to load JSON asset "${src}"`, error);
         });
     };
 
-    async #readImage(name: string, src: string): Promise<void> {
+    async #readImage(src: string, name: string): Promise<void> {
         try {
             const resolvedPath = FilesystemAssetLoader.resolveAssetPath(
                 src,
@@ -85,16 +84,16 @@ export class FilesystemAssetLoader extends AssetLoader {
                     name,
                     type: 'image',
                     image,
-                    owned: true,
+                    owned: false,
                 },
                 src,
             );
         } finally {
-            this._loadingAssets.delete(name);
+            this._loadingAssets.delete(src);
         }
     }
 
-    async #readJSON(name: string, src: string): Promise<void> {
+    async #readJSON(src: string, name: string): Promise<void> {
         try {
             const resolvedPath = FilesystemAssetLoader.resolveAssetPath(
                 src,
@@ -105,22 +104,22 @@ export class FilesystemAssetLoader extends AssetLoader {
             this._loadAsset(
                 {
                     type: 'json',
-                    json: JSON.parse(fileContents) as JSONObject,
+                    json: JSON.parse(fileContents),
                     name,
                 },
                 src,
             );
         } finally {
-            this._loadingAssets.delete(name);
+            this._loadingAssets.delete(src);
         }
     }
 
-    #startLoading(name: string): boolean {
-        if (this._loadingAssets.has(name)) {
+    #startLoading(src: string): boolean {
+        if (this._loadingAssets.has(src)) {
             return false;
         }
 
-        this._loadingAssets.add(name);
+        this._loadingAssets.add(src);
 
         return true;
     }

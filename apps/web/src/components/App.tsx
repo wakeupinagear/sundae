@@ -171,7 +171,18 @@ export function App() {
         (engine: Engine) => {
             if (scenario) {
                 const harness = new WebHarness(engine);
-                scenario.scenario(harness);
+                if (scenario.assets) {
+                    engine.options = {
+                        assetPreloads: Object.values(scenario.assets).map(
+                            (asset) => ({
+                                type: asset.type,
+                                src: asset.src,
+                            }),
+                        ),
+                    };
+                }
+
+                scenario.run(harness);
             }
         },
         [scenario],

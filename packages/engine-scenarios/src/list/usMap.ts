@@ -205,10 +205,10 @@ class USMapScene extends Scene<Engine> {
     update() {
         if (!this.#loadedMap) {
             const statesJSON = this._engine.getJSON(
-                SCENARIO_ASSETS.US_MAP.STATES,
+                SCENARIO_ASSETS.US_MAP.STATES.src,
             );
             const countiesJSON = this._engine.getJSON(
-                SCENARIO_ASSETS.US_MAP.COUNTIES,
+                SCENARIO_ASSETS.US_MAP.COUNTIES.src,
             );
             if (statesJSON && countiesJSON) {
                 this.#loadedMap = true;

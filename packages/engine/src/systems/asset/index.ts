@@ -48,11 +48,6 @@ export class AssetSystem<
         this.#requestedAssets.clear();
     }
 
-    loadImage(name: string, src: string | HTMLImageElement): void {
-        this.#loadingAssets.add(name);
-        this.#assetLoader.loadImage(name, src);
-    }
-
     onAssetLoaded(asset: LoadedAsset, src?: string | null): void {
         const { name } = asset;
         this.#loadedAssets[name] = { ...asset };
@@ -72,15 +67,51 @@ export class AssetSystem<
         }
     }
 
-    getImage(name: string): LoadedImage | null {
-        return this.#getAsset(name, 'image') as LoadedImage | null;
+    requestAsset(src: string, type: AssetType, name?: string): void {
+        if (type === 'image') {
+            this.requestImage(src, name);
+        } else if (type === 'json') {
+            this.requestJSON(src, name);
+        }
     }
 
-    getJSON(name: string): LoadedJSON | null {
-        return this.#getAsset(name, 'json') as LoadedJSON | null;
+    getImage(src: string, name?: string): LoadedImage | null {
+        const existingAsset = this.#getAsset<LoadedImage>(name ?? src, 'image');
+        if (existingAsset) {
+            return existingAsset;
+        }
+
+        this.requestImage(src, name);
+
+        return null;
     }
 
-    #getAsset(name: string, type: AssetType): LoadedAsset | null {
+    requestImage(src: string, name?: string): void {
+        if (!this.#requestedAssets.has(src)) {
+            this.#requestedAssets.add(src);
+            this.#assetLoader.loadImage(src, name);
+        }
+    }
+
+    getJSON(src: string, name?: string): LoadedJSON | null {
+        const existingAsset = this.#getAsset<LoadedJSON>(name ?? src, 'json');
+        if (existingAsset) {
+            return existingAsset;
+        }
+
+        this.requestJSON(src, name);
+
+        return null;
+    }
+
+    requestJSON(src: string, name?: string): void {
+        if (!this.#requestedAssets.has(src)) {
+            this.#requestedAssets.add(src);
+            this.#assetLoader.loadJSON(src, name);
+        }
+    }
+
+    #getAsset<T extends LoadedAsset>(name: string, type: T['type']): T | null {
         let asset: LoadedAsset | null = null;
         const imageByName = this.#loadedAssets[name];
         if (imageByName) {
@@ -101,19 +132,7 @@ export class AssetSystem<
                 return null;
             }
 
-            return asset;
-        }
-
-        if (!this.#requestedAssets.has(name)) {
-            this.#requestedAssets.add(name);
-            switch (type) {
-                case 'image':
-                    this.#assetLoader.loadImage(name, name);
-                    break;
-                case 'json':
-                    this.#assetLoader.loadJSON(name, name);
-                    break;
-            }
+            return asset as T;
         }
 
         return null;

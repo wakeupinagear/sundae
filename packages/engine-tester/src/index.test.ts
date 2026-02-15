@@ -1,9 +1,9 @@
 import { Canvas } from 'skia-canvas';
-import { beforeAll } from 'vitest';
+import { beforeAll, test } from 'vitest';
 
 import { ENGINE_SCENARIOS } from '@repo/engine-scenarios';
 
-import { defineSnapshotTest } from './snapshot';
+import { SnapshotHarness } from './harness';
 
 let canvas!: Canvas;
 beforeAll(() => {
@@ -12,13 +12,33 @@ beforeAll(() => {
 
 for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
     for (const {
-        skipInTests,
         name,
-        scenario,
+        run,
         debugOverlayFlags,
+        assets = {},
+        skipInTests,
     } of Object.values(scenarioMetadata.scenarios)) {
         if (skipInTests) continue;
 
-        defineSnapshotTest(name, scenario, { canvas, debugOverlayFlags });
+        test(name, async () => {
+            const harness = new SnapshotHarness(
+                canvas,
+                {
+                    debugOverlay: debugOverlayFlags,
+                    assetPreloads: Object.values(assets).map((asset) => ({
+                        type: asset.type,
+                        src: asset.src,
+                    })),
+                },
+                { testName: name },
+            );
+
+            await run(harness);
+
+            if (harness.snapshotCount === 0) {
+                await harness.step(12);
+                harness.snapshot();
+            }
+        });
     }
 }

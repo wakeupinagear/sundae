@@ -1,12 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { Canvas, Image } from 'skia-canvas';
-import { test } from 'vitest';
+import { type Canvas, Image } from 'skia-canvas';
 
 import { Engine, type EngineOptions } from '@repo/engine';
-import { type DebugOverlayFlags } from '@repo/engine';
-import type { EngineScenario, IEngineHarness } from '@repo/engine-scenarios';
 import { FilesystemAssetLoader } from '@repo/node';
+import type { IEngineHarness } from '@repo/engine-scenarios';
 
 const WRITE_MODE = process.env.WRITE_SNAPSHOTS === 'true';
 
@@ -15,6 +13,7 @@ const SNAPSHOTS_BASELINE_DIR = path.join(SNAPSHOTS_DIR, 'baseline');
 const SNAPSHOTS_CURRENT_DIR = path.join(SNAPSHOTS_DIR, 'current');
 
 const SNAPSHOT_FILE_TYPE = 'png';
+
 const SNAPSHOT_FILE_TYPE_REGEX = new RegExp(
     `^data:image/${SNAPSHOT_FILE_TYPE};base64,`,
 );
@@ -30,7 +29,7 @@ interface SnapshotHarnessOptions {
     frameTimeout?: number;
 }
 
-class SnapshotHarness implements IEngineHarness {
+export class SnapshotHarness implements IEngineHarness {
     #engine: Engine;
     #canvas: Canvas;
     #testName: string;
@@ -122,30 +121,4 @@ class SnapshotHarness implements IEngineHarness {
     #formatTestFolderName(testName: string) {
         return testName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
     }
-}
-
-interface SnapshotTestOptions {
-    canvas?: Canvas;
-    debugOverlayFlags?: DebugOverlayFlags;
-}
-
-export function defineSnapshotTest(
-    name: string,
-    fn: EngineScenario,
-    options: SnapshotTestOptions,
-) {
-    const canvas: Canvas = options.canvas ?? new Canvas(800, 600);
-
-    test(name, async () => {
-        const harness = new SnapshotHarness(
-            canvas,
-            { debugOverlay: options.debugOverlayFlags },
-            { testName: name },
-        );
-        await fn(harness);
-        if (harness.snapshotCount === 0) {
-            await harness.step(12);
-            harness.snapshot();
-        }
-    });
 }

@@ -4,8 +4,8 @@ import type { AssetSystem } from '..';
 export class BrowserAssetLoader extends AssetLoader {
     #assetSystem: AssetSystem | null = null;
 
-    _loadRemoteImage = (name: string, src: string) => {
-        if (!this.#startLoading(name)) {
+    _loadRemoteImage = (src: string, name?: string) => {
+        if (!this.#startLoading(src)) {
             return;
         }
         if (!globalThis.Image) {
@@ -19,21 +19,21 @@ export class BrowserAssetLoader extends AssetLoader {
         image.src = src;
         image.onload = () => {
             this._loadAsset({
-                name,
+                name: name ?? src,
                 type: 'image',
                 image: image,
                 owned: true,
             });
-            this._loadingAssets.delete(name);
+            this._loadingAssets.delete(src);
         };
         image.onerror = () => {
             this.#assetSystem?.engine.error('Failed to load image', name);
-            this._loadingAssets.delete(name);
+            this._loadingAssets.delete(src);
         };
     };
 
-    _loadRemoteJSON = (name: string, src: string) => {
-        if (!this.#startLoading(name)) {
+    _loadRemoteJSON = (src: string, name?: string) => {
+        if (!this.#startLoading(src)) {
             return;
         }
         if (!globalThis.fetch) {
@@ -55,7 +55,7 @@ export class BrowserAssetLoader extends AssetLoader {
                         this._loadAsset({
                             type: 'json',
                             json,
-                            name,
+                            name: name ?? src,
                         });
                     })
                     .catch(() => {
@@ -63,12 +63,12 @@ export class BrowserAssetLoader extends AssetLoader {
                             `Failed to decode json:`,
                             res,
                         );
-                        this._loadingAssets.delete(name);
+                        this._loadingAssets.delete(src);
                     }),
             )
             .catch(() => {
-                this.#assetSystem?.engine.error('Failed to load json', name);
-                this._loadingAssets.delete(name);
+                this.#assetSystem?.engine.error('Failed to load json', src);
+                this._loadingAssets.delete(src);
             });
     };
 

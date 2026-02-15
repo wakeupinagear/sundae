@@ -28,7 +28,7 @@ import { DebugOverlayFlags, DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import { AssetSystem } from './systems/asset';
 import type { AssetLoader } from './systems/asset/loader';
-import type { LoadedImage, LoadedJSON } from './systems/asset/types';
+import type { AssetType, LoadedImage, LoadedJSON } from './systems/asset/types';
 import {
     type CameraOptions,
     CameraSystem,
@@ -140,6 +140,12 @@ type AssetLoadingBehavior =
     | 'block-render'
     | 'block-all';
 
+interface AssetPreload {
+    src: string;
+    type: AssetType;
+    name?: string;
+}
+
 export interface EngineOptions {
     cameras: Record<string, CameraSystemOptions>;
     cameraOptions: CameraOptions;
@@ -158,8 +164,8 @@ export interface EngineOptions {
     spatialHashCellSize: number;
 
     assetLoader: AssetLoader | null;
-    images: Record<string, string | HTMLImageElement>;
     assetLoadingBehavior: AssetLoadingBehavior;
+    assetPreloads: AssetPreload[];
 
     inputConfigs: Record<string, InputConfig>;
     capturedKeys: CapturedKey[];
@@ -201,8 +207,8 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     gravityDirection: { x: 0, y: 1 },
 
     assetLoader: null,
-    images: {},
     assetLoadingBehavior: 'async',
+    assetPreloads: [],
 
     inputConfigs: {},
     capturedKeys: [],
@@ -1074,11 +1080,13 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
         this._options = { ...this._options, ...nextOptions };
 
-        for (const name in this._options.images) {
-            const src = this._options.images[name];
-            this._assetSystem.loadImage(name, src);
+        if (this._options.assetPreloads.length > 0) {
+            for (const { src, type, name } of this._options.assetPreloads) {
+                this._assetSystem.requestAsset(src, type, name);
+            }
+
+            this._options.assetPreloads = [];
         }
-        this._options.images = {};
 
         if (newOptions.capturedKeys) {
             this._inputSystem.setCapturedKeys(newOptions.capturedKeys);

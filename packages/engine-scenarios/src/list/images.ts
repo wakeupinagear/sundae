@@ -17,7 +17,7 @@ const TEXT_OPTIONS: E_TextOptions = {
     textAlign: 'right',
 };
 
-export const images: EngineScenario = (harness) => {
+export const images: EngineScenario = async (harness) => {
     harness.engine.options = {
         cameraOptions: {
             maxZoom: 3,
@@ -29,7 +29,7 @@ export const images: EngineScenario = (harness) => {
             {
                 type: 'image',
                 name: 'sundae',
-                image: SCENARIO_ASSETS.SUNDAE_IMAGES.PNG,
+                image: SCENARIO_ASSETS.SUNDAE_IMAGES.PNG.src,
                 scale: IMAGE_SCALE,
                 position: { x: -IMAGE_OFFSET, y: -IMAGE_OFFSET + Y_OFFSET },
                 children: [
@@ -43,7 +43,7 @@ export const images: EngineScenario = (harness) => {
             {
                 type: 'image',
                 name: 'sundae',
-                image: SCENARIO_ASSETS.SUNDAE_IMAGES.JPG,
+                image: SCENARIO_ASSETS.SUNDAE_IMAGES.JPG.src,
                 scale: IMAGE_SCALE,
                 position: { x: IMAGE_OFFSET, y: -IMAGE_OFFSET + Y_OFFSET },
                 children: [
@@ -57,7 +57,7 @@ export const images: EngineScenario = (harness) => {
             {
                 type: 'image',
                 name: 'sundae',
-                image: SCENARIO_ASSETS.SUNDAE_IMAGES.SVG,
+                image: SCENARIO_ASSETS.SUNDAE_IMAGES.SVG.src,
                 scale: IMAGE_SCALE,
                 position: { x: -IMAGE_OFFSET, y: IMAGE_OFFSET + Y_OFFSET },
                 children: [
@@ -71,7 +71,7 @@ export const images: EngineScenario = (harness) => {
             {
                 type: 'image',
                 name: 'sundae',
-                image: SCENARIO_ASSETS.SUNDAE_IMAGES.WEBP,
+                image: SCENARIO_ASSETS.SUNDAE_IMAGES.WEBP.src,
                 scale: IMAGE_SCALE,
                 position: { x: IMAGE_OFFSET, y: IMAGE_OFFSET + Y_OFFSET },
                 children: [

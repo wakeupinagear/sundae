@@ -15,11 +15,11 @@ runEngineInWorker<Engine, ExtendedToEngineMsg>({
                 if (!harness) {
                     harness = new WebHarness(engine);
                 }
+
                 const scenario =
                     ENGINE_SCENARIOS[categoryID]?.scenarios[scenarioID];
-                if (scenario) {
-                    scenario.scenario(harness);
-                }
+                scenario?.run(harness);
+
                 break;
             }
             default:

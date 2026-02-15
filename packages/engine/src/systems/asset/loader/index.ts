@@ -1,5 +1,11 @@
 import type { AssetSystem } from '..';
-import type { JSONObject, LoadedAsset } from '../types';
+import type {
+    ImageSource,
+    JSONSource,
+    LoadedAsset,
+    LoadedImage,
+    LoadedJSON,
+} from '../types';
 
 interface LocalLoadedAsset {
     asset: LoadedAsset;
@@ -16,30 +22,45 @@ export abstract class AssetLoader {
         this.#assetSystem = assetSystem;
     }
 
-    loadImage(name: string, src: string | HTMLImageElement): void {
+    loadImage(src: ImageSource, name?: string): LoadedImage | null {
         if (typeof src === 'string') {
-            this._loadRemoteImage(name, src);
+            this._loadRemoteImage(src, name);
+
+            return null;
         } else {
-            this._loadAsset({ name, type: 'image', image: src, owned: false });
+            return this._loadAsset({
+                name: name ?? src.src,
+                type: 'image',
+                image: src,
+                owned: false,
+            });
         }
     }
 
-    loadJSON(name: string, src: string | JSONObject): void {
+    loadJSON(src: JSONSource, name?: string): LoadedJSON | null {
         if (typeof src === 'string') {
-            this._loadRemoteJSON(name, src);
+            this._loadRemoteJSON(src, name);
+
+            return null;
         } else {
-            this._loadAsset({ name, type: 'json', json: src });
+            return this._loadAsset({
+                name: name ?? '',
+                type: 'json',
+                json: src,
+            });
         }
     }
 
-    abstract _loadRemoteImage: (name: string, src: string) => void;
-    abstract _loadRemoteJSON: (name: string, src: string) => void;
+    abstract _loadRemoteImage: (src: string, name?: string) => void;
+    abstract _loadRemoteJSON: (src: string, name?: string) => void;
 
-    _loadAsset(asset: LoadedAsset, src?: string | null): void {
+    _loadAsset<T extends LoadedAsset>(asset: T, src?: string | null): T {
         if (this.#assetSystem) {
             this.#assetSystem.onAssetLoaded(asset, src);
         } else {
             this.#loadedAssets.push({ asset, src });
         }
+
+        return asset;
     }
 }
