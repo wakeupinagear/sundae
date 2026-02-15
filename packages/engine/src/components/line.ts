@@ -171,7 +171,7 @@ export class C_Line<
             }
         }
 
-        this._boundingBox.set({
+        this._setBoundingBox({
             x1: minX,
             x2: maxX,
             y1: minY,

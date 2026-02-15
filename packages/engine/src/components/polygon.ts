@@ -58,12 +58,12 @@ export class C_Polygon<
 
     protected override _computeBoundingBox(): void {
         if (this.#points.length === 0) {
-            this._boundingBox.set(0);
+            this._setBoundingBox(0);
             return;
         }
 
         const bbox = BoundingBox.fromPositions(this.#points);
-        this._boundingBox.set(bbox);
+        this._setBoundingBox(bbox);
     }
 
     override queueRenderCommands(

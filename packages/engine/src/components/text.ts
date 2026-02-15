@@ -313,7 +313,7 @@ export class C_Text<
             this.#textSize.x + this.#padding.x1 + this.#padding.x2;
         const totalHeight =
             this.#textSize.y + this.#padding.y1 + this.#padding.y2;
-        this._boundingBox.set({
+        this._setBoundingBox({
             x1: -this._origin.x * totalWidth,
             y1: -this._origin.y * totalHeight,
             x2: (1 - this._origin.x) * totalWidth,

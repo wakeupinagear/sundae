@@ -1,4 +1,5 @@
 import { type Engine } from '../engine';
+import type { BoundingBox, BoundingBoxConstructor } from '../math/boundingBox';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import { type RenderCommandStream } from '../systems/render/command';
@@ -116,7 +117,11 @@ export abstract class C_Drawable<
     }
 
     setStyle(style: RenderStyle): this {
+        const prevLineWidth = this._style.lineWidth ?? 0;
         this._style = { ...this._style, ...style };
+        if ((this._style.lineWidth ?? 0) !== prevLineWidth) {
+            this._markBoundsDirty();
+        }
         this.#computeStyle();
 
         return this;
@@ -184,12 +189,38 @@ export abstract class C_Drawable<
     }
 
     protected override _computeBoundingBox(): void {
-        this._boundingBox.set(
-            -this._origin.x * this._size.x,
-            -this._origin.y * this._size.y,
-            (1 - this._origin.x) * this._size.x,
-            (1 - this._origin.y) * this._size.y,
-        );
+        this._setBoundingBox({
+            x1: -this._origin.x * this._size.x,
+            y1: -this._origin.y * this._size.y,
+            x2: (1 - this._origin.x) * this._size.x,
+            y2: (1 - this._origin.y) * this._size.y,
+        });
+    }
+
+    protected override _setBoundingBox(
+        newBBox: BoundingBoxConstructor,
+    ): BoundingBox {
+        const bbox = super._setBoundingBox(newBBox);
+
+        const strokeWidth = this._style.lineWidth ?? 0;
+        if (strokeWidth <= 0) {
+            return bbox;
+        }
+
+        let localPadding = strokeWidth / 2;
+        const transform = this._entity?.transform;
+        if (transform) {
+            const worldScale = transform.worldScale;
+            const maxScale = Math.max(worldScale.x, worldScale.y);
+            localPadding /= maxScale;
+        }
+
+        bbox.x1 -= localPadding;
+        bbox.x2 += localPadding;
+        bbox.y1 -= localPadding;
+        bbox.y2 += localPadding;
+
+        return bbox;
     }
 
     #computeStyle(

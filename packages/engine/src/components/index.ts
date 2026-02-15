@@ -1,6 +1,6 @@
 import type { Engine } from '../engine';
 import { type Entity } from '../entities';
-import { BoundingBox } from '../math/boundingBox';
+import { BoundingBox, type BoundingBoxConstructor } from '../math/boundingBox';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
 import {
@@ -36,8 +36,8 @@ export abstract class Component<TEngine extends Engine = Engine>
 
     protected _entity: Entity<TEngine>;
 
-    protected _boundingBox: BoundingBox = new BoundingBox(0);
     protected _boundingBoxDirty: boolean = true;
+    #boundingBox: BoundingBox = new BoundingBox(0);
 
     constructor(options: ComponentOptions) {
         const {
@@ -87,7 +87,7 @@ export abstract class Component<TEngine extends Engine = Engine>
             this._boundingBoxDirty = false;
         }
 
-        return this._boundingBox;
+        return this.#boundingBox;
     }
 
     get appearance(): ComponentAppearance {
@@ -150,6 +150,12 @@ export abstract class Component<TEngine extends Engine = Engine>
     }
 
     protected _computeBoundingBox(): void {
-        this._boundingBox.set(0);
+        this.#boundingBox.set(0);
+    }
+
+    protected _setBoundingBox(bbox: BoundingBoxConstructor): BoundingBox {
+        this.#boundingBox.set(bbox);
+
+        return this.#boundingBox;
     }
 }
