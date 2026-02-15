@@ -5,6 +5,7 @@ import {
     type ComponentConstructor,
     type ComponentJSON,
     type CustomComponentJSON,
+    type StringComponentJSON,
 } from '../components/factory';
 import type { C_ImageJSON } from '../components/image';
 import type { C_LineJSON } from '../components/line';
@@ -32,6 +33,7 @@ import {
     type CustomEntityJSON,
     type EntityConstructor,
     type EntityJSON,
+    type StringEntityJSON,
 } from './factory';
 
 type CullMode = 'components' | 'children' | 'all' | 'none';
@@ -364,8 +366,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     addChild<TCtor extends EntityConstructor>(
         child: CustomEntityJSON<TCtor>,
     ): InstanceType<TCtor>;
-    addChild<IEntity extends Entity<TEngine>>(child: EntityJSON): IEntity;
-    addChild<IEntity extends Entity<TEngine>>(child: EntityJSON): IEntity {
+    addChild<IEntity extends Entity<TEngine>>(child: StringEntityJSON): IEntity;
+    addChild<IEntity extends Entity<TEngine>>(
+        child: StringEntityJSON,
+    ): IEntity {
         const createdEntity = this._engine.createEntityFromJSON({
             engine: this._engine,
             parent: this,
@@ -386,6 +390,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     ): IEntities {
         const createdEntities = [];
         for (const childJSON of children) {
+            if (!childJSON || typeof childJSON === 'boolean') continue;
+
             const entity = this._engine.createEntityFromJSON({
                 engine: this._engine,
                 parent: this,
@@ -401,10 +407,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         component: CustomComponentJSON<TCtor>,
     ): InstanceType<TCtor>;
     addComponent<IComponent extends Component<TEngine>>(
-        component: ComponentJSON,
+        component: StringComponentJSON,
     ): IComponent;
     addComponent<IComponent extends Component<TEngine>>(
-        component: ComponentJSON,
+        component: StringComponentJSON,
     ): IComponent {
         const createdComponent = this._engine.createComponentFromJSON({
             engine: this._engine,
@@ -428,6 +434,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     ): IComponents {
         const createdComponents = [];
         for (const componentJSON of components) {
+            if (!componentJSON || typeof componentJSON === 'boolean') continue;
+
             const type = componentJSON.type;
             if (type === 'circleCollider' || type === 'rectangleCollider') {
                 this.setCollider(componentJSON);
@@ -448,7 +456,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     }
 
     setCollider<TCollider extends C_Collider<TEngine>>(
-        colliderOptions: ComponentJSON | null,
+        colliderOptions: ComponentJSON,
     ): TCollider | null {
         const hasCollider = !!this._collider;
         if (this._collider) {
@@ -456,7 +464,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             this._collider = null;
         }
 
-        if (colliderOptions) {
+        if (colliderOptions && typeof colliderOptions !== 'boolean') {
             const collider = this.addComponent<TCollider>(colliderOptions);
             this._collider = collider;
             collider.rigidbody = this._rigidbody;
@@ -479,7 +487,7 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             this._rigidbody = null;
         }
 
-        if (rigidbodyOptions) {
+        if (rigidbodyOptions && typeof rigidbodyOptions !== 'boolean') {
             const rigidbody =
                 this.addComponent<C_Rigidbody<TEngine>>(rigidbodyOptions);
             this._rigidbody = rigidbody;

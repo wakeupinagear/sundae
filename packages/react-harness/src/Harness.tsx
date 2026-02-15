@@ -131,11 +131,10 @@ export function Harness<
                 workerConstructor,
             );
         } else {
-            const engineInstance = createEngine(
-                engine,
-                options,
-                platformRef.current,
-            );
+            const engineInstance = createEngine(engine, {
+                engineOptions: options,
+                platform: platformRef.current,
+            });
             wrapperRef.current = new MainThreadWrapper<TEngine, TToEngineMsg>(
                 engineInstance,
             );

@@ -1,4 +1,5 @@
 import { type Engine } from '../../engine';
+import type { ToEngineMsg } from '../../worker';
 import { System } from '../index';
 import type { AssetLoader } from './loader';
 import { BrowserAssetLoader } from './loader/browser';
@@ -31,6 +32,10 @@ export class AssetSystem<
 
     getLoadingAssets(): string[] {
         return Array.from(this.#loadingAssets);
+    }
+
+    onWorkerMessage(event: MessageEvent<ToEngineMsg>): void {
+        this.#assetLoader.onWorkerMessage(event);
     }
 
     override lateUpdate(): boolean {

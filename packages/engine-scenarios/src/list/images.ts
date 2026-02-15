@@ -66,6 +66,15 @@ export const images: EngineScenario = async (harness) => {
                         text: 'SVG',
                         ...TEXT_OPTIONS,
                     },
+                    harness.engine.isWorker && {
+                        type: 'text',
+                        text: 'Note: SVGs are rendered to a bitmap in worker mode',
+                        ...TEXT_OPTIONS,
+                        position: { x: -0.5, y: 0.55 },
+                        textAlign: 'bottom-right',
+                        fontSize: 16 / IMAGE_SCALE,
+                        maxWidth: 1,
+                    },
                 ],
             },
             {

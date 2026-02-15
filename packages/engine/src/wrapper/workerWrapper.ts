@@ -32,7 +32,8 @@ export class WorkerWrapper<
                 : new workerConstructor();
 
         this.#worker.onmessage = (event: MessageEvent<FromEngineMsg>) => {
-            switch (event.data.type) {
+            const data = event.data;
+            switch (data.type) {
                 case FromEngineMsgType.INIT:
                     this.#engineInitialized = true;
                     for (const [message, transfer] of this.#queuedMessages) {
@@ -46,10 +47,15 @@ export class WorkerWrapper<
                     this.#sendNextTick();
                     break;
                 case FromEngineMsgType.SET_CANVAS_CURSOR: {
-                    const canvas = this.#canvases[event.data.canvasID];
+                    const { canvasID, cursor } = data;
+                    const canvas = this.#canvases[canvasID];
                     if (canvas?.style) {
-                        canvas.style.cursor = event.data.cursor;
+                        canvas.style.cursor = cursor;
                     }
+                    break;
+                }
+                case FromEngineMsgType.WORKER_LOAD_SVG_REQUEST: {
+                    this.#handleLoadSvgRequest(data);
                     break;
                 }
             }
@@ -171,6 +177,59 @@ export class WorkerWrapper<
         } else {
             this.#queuedMessages.push([message, transfer]);
         }
+    }
+
+    async #handleLoadSvgRequest(
+        data: Extract<
+            FromEngineMsg,
+            { type: typeof FromEngineMsgType.WORKER_LOAD_SVG_REQUEST }
+        >,
+    ) {
+        const { src, requestId } = data;
+        try {
+            const url = new URL(src, window.location.origin + '/');
+            const imageBitmap = await this.#loadSvgAsImageBitmap(url.href);
+            this.#worker.postMessage(
+                {
+                    type: ToEngineMsgType.WORKER_LOAD_SVG_RESPONSE,
+                    requestId,
+                    imageBitmap,
+                },
+                [imageBitmap],
+            );
+        } catch {
+            this.#worker.postMessage({
+                type: ToEngineMsgType.WORKER_LOAD_SVG_RESPONSE,
+                requestId,
+                imageBitmap: null,
+            });
+        }
+    }
+
+    #loadSvgAsImageBitmap(src: string): Promise<ImageBitmap> {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                try {
+                    const canvas = new OffscreenCanvas(
+                        img.naturalWidth,
+                        img.naturalHeight,
+                    );
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error('Could not get 2D context'));
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0);
+                    createImageBitmap(canvas).then(resolve).catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            img.onerror = () => reject(new Error(`Failed to load SVG: ${src}`));
+            img.src = src;
+        });
     }
 
     #sendNextTick() {

@@ -48,11 +48,11 @@ export type StringEntityJSON =
 
 // Combined entity JSON type supporting both strings and class constructors
 // Note: When using class constructors, use the function overloads directly
-export type EntityJSON = StringEntityJSON | BaseEntityJSON;
+export type EntityJSON = StringEntityJSON | boolean | null | undefined;
 
 export function createEntityFromJSON<TEngine extends Engine = Engine>(
     json:
-        | (EntityJSON & InternalEntityOptions<TEngine>)
+        | (StringEntityJSON & InternalEntityOptions<TEngine>)
         | (CustomEntityJSON<EntityConstructor> &
               InternalEntityOptions<TEngine>),
 ): Entity<TEngine> {

@@ -2,8 +2,8 @@ import type { Component } from './components';
 import type { InternalComponentOptions } from './components';
 import {
     type ComponentConstructor,
-    type ComponentJSON,
     type CustomComponentJSON,
+    type StringComponentJSON,
     createComponentFromJSON,
 } from './components/factory';
 import {
@@ -28,7 +28,11 @@ import { DebugOverlayFlags, DebugOverlayScene } from './scenes/DebugOverlay';
 import type { System } from './systems';
 import { AssetSystem } from './systems/asset';
 import type { AssetLoader } from './systems/asset/loader';
-import type { AssetType, LoadedImage, LoadedJSON } from './systems/asset/types';
+import type {
+    AssetPreload,
+    LoadedImage,
+    LoadedJSON,
+} from './systems/asset/types';
 import {
     type CameraOptions,
     CameraSystem,
@@ -66,6 +70,7 @@ import {
 } from './systems/scene/index';
 import { type Stats, StatsSystem } from './systems/stats';
 import { type ICanvas, type Platform, type WebKey } from './types';
+import type { ToEngineMsg } from './worker';
 
 const DEBUG_OVERLAY_SCENE_NAME = '__ENGINE_DEBUG_SCENE__';
 const DEBUG_OVERLAY_SCENE_Z_INDEX = 100;
@@ -139,12 +144,6 @@ type AssetLoadingBehavior =
     | 'block-update'
     | 'block-render'
     | 'block-all';
-
-interface AssetPreload {
-    src: string;
-    type: AssetType;
-    name?: string;
-}
 
 export interface EngineOptions {
     cameras: Record<string, CameraSystemOptions>;
@@ -239,6 +238,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     protected _options: TOptions = { ...DEFAULT_ENGINE_OPTIONS } as TOptions;
     protected _devicePixelRatio: number = 1;
     protected _platform: Platform = 'unknown';
+    protected _isWorker: boolean = false;
 
     protected _rootEntity: Entity<this>;
 
@@ -361,7 +361,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     createEntityFromJSON(
         json:
-            | (EntityJSON & InternalEntityOptions<this>)
+            | (StringEntityJSON & InternalEntityOptions<this>)
             | (CustomEntityJSON<EntityConstructor> &
                   InternalEntityOptions<this>),
     ): Entity<this> {
@@ -370,7 +370,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     createComponentFromJSON(
         json:
-            | (ComponentJSON & InternalComponentOptions<this>)
+            | (StringComponentJSON & InternalComponentOptions<this>)
             | (CustomComponentJSON<ComponentConstructor> &
                   InternalComponentOptions<this>),
     ): Component<this> {
@@ -421,6 +421,14 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._devicePixelRatio;
     }
 
+    get platform(): Platform {
+        return this._platform;
+    }
+
+    get isWorker(): boolean {
+        return this._isWorker;
+    }
+
     forceRender(): void {
         this.#forceRender = true;
     }
@@ -437,12 +445,12 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._systems = this._systems.filter((s) => s !== system);
     }
 
-    getPlatform(): Platform {
-        return this._platform;
-    }
-
     setPlatform(platform: Platform): void {
         this._platform = platform;
+    }
+
+    setIsWorker(isWorker: boolean): void {
+        this._isWorker = isWorker;
     }
 
     createEntities(...entities: BaseEntityInput[]): Entity<this>[];
@@ -466,6 +474,8 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     ): Entity<this>[] {
         const createdEntities: Entity<this>[] = [];
         for (const entityJSON of entities) {
+            if (!entityJSON || typeof entityJSON === 'boolean') continue;
+
             const fullJSON: (EntityJSON | CustomEntityJSON<EntityConstructor>) &
                 InternalEntityOptions<this> = {
                 engine: this,
@@ -859,6 +869,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         this._systems = [];
     }
 
+    onWorkerMessage(event: MessageEvent<ToEngineMsg>): void {
+        this._assetSystem.onWorkerMessage(event);
+    }
+
     trace<T>(name: string, callback: () => T): T {
         if (!this._options.engineTraces) {
             return callback();
@@ -1080,7 +1094,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
         this._options = { ...this._options, ...nextOptions };
 
-        if (this._options.assetPreloads.length > 0) {
+        if (this._options.assetPreloads?.length > 0) {
             for (const { src, type, name } of this._options.assetPreloads) {
                 this._assetSystem.requestAsset(src, type, name);
             }

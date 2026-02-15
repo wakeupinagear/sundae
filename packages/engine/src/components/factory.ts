@@ -1,9 +1,5 @@
-import { C_Circle, type C_CircleJSON } from './circle';
-import { C_Image, type C_ImageJSON } from './image';
-import { C_Line, type C_LineJSON } from './line';
-import { C_Rectangle, type C_RectangleJSON } from './rectangle';
-import { C_Text, type C_TextJSON } from './text';
 import type { Engine } from '../engine';
+import { C_Circle, type C_CircleJSON } from './circle';
 import {
     C_CircleCollider,
     type C_CircleColliderJSON,
@@ -16,6 +12,7 @@ import {
     C_RectangleCollider,
     type C_RectangleColliderJSON,
 } from './colliders/RectangleCollider';
+import { C_Image, type C_ImageJSON } from './image';
 import {
     Component,
     type ComponentOptions,
@@ -31,8 +28,11 @@ import {
     C_LerpRotation,
     type C_LerpRotationJSON,
 } from './lerp';
+import { C_Line, type C_LineJSON } from './line';
 import { C_Polygon, type C_PolygonJSON } from './polygon';
+import { C_Rectangle, type C_RectangleJSON } from './rectangle';
 import { C_Rigidbody, type C_RigidbodyJSON } from './rigidbody';
+import { C_Text, type C_TextJSON } from './text';
 import { C_Transform, type C_TransformJSON } from './transforms';
 
 export { Component };
@@ -80,11 +80,11 @@ export type StringComponentJSON =
 
 // Combined component JSON type supporting both strings and class constructors
 // Note: When using class constructors, use the function overloads directly
-export type ComponentJSON = StringComponentJSON;
+export type ComponentJSON = StringComponentJSON | boolean | null | undefined;
 
 export function createComponentFromJSON<TEngine extends Engine = Engine>(
     json:
-        | (ComponentJSON & InternalComponentOptions<TEngine>)
+        | (StringComponentJSON & InternalComponentOptions<TEngine>)
         | (CustomComponentJSON<ComponentConstructor> &
               InternalComponentOptions<TEngine>),
 ): Component<TEngine> {

@@ -6,6 +6,8 @@ import { Engine, type EngineOptions } from '@repo/engine';
 import type { IEngineHarness } from '@repo/engine-scenarios';
 import { FilesystemAssetLoader } from '@repo/node';
 
+import { createEngine } from '../../engine/src/utils';
+
 const WRITE_MODE = process.env.WRITE_SNAPSHOTS === 'true';
 
 const SNAPSHOTS_DIR = path.join(process.cwd(), 'snapshots');
@@ -46,13 +48,15 @@ export class SnapshotHarness implements IEngineHarness {
         engineOptions: Partial<EngineOptions>,
         options: SnapshotHarnessOptions,
     ) {
-        this.#engine = new Engine({
-            ...engineOptions,
-            onReadyForNextFrame: (startNextFrame) => {
-                this.#startNextFrame = startNextFrame;
+        this.#engine = createEngine(Engine, {
+            engineOptions: {
+                ...engineOptions,
+                onReadyForNextFrame: (startNextFrame) => {
+                    this.#startNextFrame = startNextFrame;
+                },
+                assetLoadingBehavior: 'block-update',
+                assetLoader: FILESYSTEM_ASSET_LOADER,
             },
-            assetLoadingBehavior: 'block-update',
-            assetLoader: FILESYSTEM_ASSET_LOADER,
         });
         this.#engine.setCanvas(canvas);
         this.#canvas = canvas;
@@ -104,8 +108,7 @@ export class SnapshotHarness implements IEngineHarness {
         const imageBuffer = Buffer.from(base64Data, 'base64');
 
         const folderName =
-            this.#snapshotFolder ??
-            this.#formatTestFolderName(this.#testName);
+            this.#snapshotFolder ?? this.#formatTestFolderName(this.#testName);
         const baseDir = WRITE_MODE
             ? SNAPSHOTS_BASELINE_DIR
             : SNAPSHOTS_CURRENT_DIR;

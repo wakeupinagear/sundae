@@ -11,13 +11,10 @@ beforeAll(() => {
 });
 
 for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
-    for (const [scenarioID, {
-        name,
-        run,
-        debugOverlayFlags,
-        assets = {},
-        skipInTests,
-    }] of Object.entries(scenarioMetadata.scenarios)) {
+    for (const [
+        scenarioID,
+        { name, run, debugOverlayFlags, assets = [], skipInTests },
+    ] of Object.entries(scenarioMetadata.scenarios)) {
         if (skipInTests) continue;
 
         test(name, async () => {
@@ -25,10 +22,7 @@ for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
                 canvas,
                 {
                     debugOverlay: debugOverlayFlags,
-                    assetPreloads: Object.values(assets).map((asset) => ({
-                        type: asset.type,
-                        src: asset.src,
-                    })),
+                    assetPreloads: assets,
                 },
                 { testName: name, snapshotFolder: scenarioID },
             );

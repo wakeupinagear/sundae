@@ -1,10 +1,17 @@
 export type AssetType = 'image' | 'json';
 
+export interface AssetPreload {
+    src: string;
+    type: AssetType;
+    name?: string;
+}
+
 interface LoadedAssetBase {
     name: string;
 }
 
-export type ImageSource = string | HTMLImageElement;
+type Image = HTMLImageElement | ImageBitmap;
+export type ImageSource = string | Image;
 
 type JSONValue =
     | string
@@ -18,7 +25,7 @@ export type JSONSource = string | JSONObject;
 
 export interface LoadedImage extends LoadedAssetBase {
     type: 'image';
-    image: HTMLImageElement;
+    image: Image;
     owned: boolean;
 }
 

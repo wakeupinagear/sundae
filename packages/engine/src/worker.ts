@@ -1,5 +1,7 @@
 import type { BrowserKeyEvent, Engine, EngineOptions } from './engine';
 import type { IVector } from './math/vector';
+import type { AssetLoader } from './systems/asset/loader';
+import { WorkerAssetLoader } from './systems/asset/loader/worker';
 import type { CursorType, PointerButton } from './systems/pointer';
 import { type EngineConstructor, createEngine } from './utils';
 
@@ -7,6 +9,7 @@ export const FromEngineMsgType = {
     INIT: 'init',
     SET_CANVAS_CURSOR: 'set_canvas_cursor',
     FRAME_COMPLETE: 'frame_complete',
+    WORKER_LOAD_SVG_REQUEST: 'worker_load_svg_request',
 } as const;
 export type FromEngineMsgType =
     (typeof FromEngineMsgType)[keyof typeof FromEngineMsgType];
@@ -26,10 +29,18 @@ interface FromEngineMsg_FrameComplete {
     type: typeof FromEngineMsgType.FRAME_COMPLETE;
 }
 
+interface FromEngineMsg_WorkerLoadSvgRequest {
+    type: typeof FromEngineMsgType.WORKER_LOAD_SVG_REQUEST;
+    src: string;
+    name?: string;
+    requestId: string;
+}
+
 export type FromEngineMsg =
     | FromEngineMsg_Init
     | FromEngineMsg_SetCanvasCursor
-    | FromEngineMsg_FrameComplete;
+    | FromEngineMsg_FrameComplete
+    | FromEngineMsg_WorkerLoadSvgRequest;
 
 export const ToEngineMsgType = {
     TICK: 'tick',
@@ -45,6 +56,7 @@ export const ToEngineMsgType = {
     ON_POINTER_UP: 'on_pointer_up',
     ON_POINTER_ENTER: 'on_pointer_enter',
     ON_POINTER_LEAVE: 'on_pointer_leave',
+    WORKER_LOAD_SVG_RESPONSE: 'worker_load_svg_response',
 } as const;
 export type ToEngineMsgType =
     (typeof ToEngineMsgType)[keyof typeof ToEngineMsgType];
@@ -121,6 +133,12 @@ interface ToEngineMsg_OnPointerLeave {
     position: IVector<number>;
 }
 
+interface ToEngineMsg_WorkerLoadSvgResponse {
+    type: typeof ToEngineMsgType.WORKER_LOAD_SVG_RESPONSE;
+    requestId: string;
+    imageBitmap: ImageBitmap | null;
+}
+
 export type ToEngineMsg =
     | ToEngineMsg_Tick
     | ToEngineMsg_SetCanvas
@@ -134,13 +152,15 @@ export type ToEngineMsg =
     | ToEngineMsg_OnPointerDown
     | ToEngineMsg_OnPointerUp
     | ToEngineMsg_OnPointerEnter
-    | ToEngineMsg_OnPointerLeave;
+    | ToEngineMsg_OnPointerLeave
+    | ToEngineMsg_WorkerLoadSvgResponse;
 
 interface RunEngineInWorkerOptions<
     TEngine extends Engine = Engine,
     TToEngineMsg = ToEngineMsg,
 > {
     engine?: EngineConstructor<TEngine>;
+    assetLoader?: AssetLoader;
     onEngineReady?: (engine: TEngine) => void;
     onMessage?: (event: MessageEvent<TToEngineMsg>, engine: TEngine) => void;
 }
@@ -164,7 +184,12 @@ export const runEngineInWorker = <
 >(
     options?: RunEngineInWorkerOptionsWhenMsgSupertype<TEngine, TToEngineMsg>,
 ) => {
-    const engineInstance = createEngine<TEngine>(options?.engine);
+    const engineInstance = createEngine<TEngine>(options?.engine, {
+        engineOptions: {
+            assetLoader: options?.assetLoader ?? new WorkerAssetLoader(),
+        },
+        isWorker: true,
+    });
     engineInstance.options = {
         onCursorChange: (cursor, canvasID) => {
             self.postMessage({
@@ -251,6 +276,7 @@ export const runEngineInWorker = <
                 break;
         }
 
+        engineInstance.onWorkerMessage(event as MessageEvent<ToEngineMsg>);
         onMessage?.(event, engineInstance);
     };
 };

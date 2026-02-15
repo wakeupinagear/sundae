@@ -1,4 +1,5 @@
 import type { AssetSystem } from '..';
+import type { ToEngineMsg } from '../../../worker';
 import type {
     ImageSource,
     JSONSource,
@@ -22,6 +23,10 @@ export abstract class AssetLoader {
         this.#assetSystem = assetSystem;
     }
 
+    protected get assetSystem(): AssetSystem | null {
+        return this.#assetSystem;
+    }
+
     loadImage(src: ImageSource, name?: string): LoadedImage | null {
         if (typeof src === 'string') {
             this._loadRemoteImage(src, name);
@@ -29,7 +34,7 @@ export abstract class AssetLoader {
             return null;
         } else {
             return this._loadAsset({
-                name: name ?? src.src,
+                name: name ?? ('src' in src ? src.src : ''),
                 type: 'image',
                 image: src,
                 owned: false,
@@ -53,6 +58,9 @@ export abstract class AssetLoader {
 
     abstract _loadRemoteImage: (src: string, name?: string) => void;
     abstract _loadRemoteJSON: (src: string, name?: string) => void;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onWorkerMessage(event: MessageEvent<ToEngineMsg>): void {}
 
     _loadAsset<T extends LoadedAsset>(asset: T, src?: string | null): T {
         if (this.#assetSystem) {

@@ -18,10 +18,15 @@ export type EngineConstructor<TEngine extends Engine = Engine> =
     | (new (options?: Partial<TEngine['options']>) => TEngine)
     | undefined;
 
+interface CreateEngineOptions<TEngine extends Engine = Engine> {
+    engineOptions?: Partial<TEngine['options']>;
+    platform?: Platform;
+    isWorker?: boolean;
+}
+
 export const createEngine = <TEngine extends Engine = Engine>(
     engine: EngineConstructor<TEngine>,
-    options?: Partial<TEngine['options']>,
-    platform?: Platform,
+    options: CreateEngineOptions<TEngine> = {},
 ): TEngine => {
     let engineInstance;
     const engineCtor = engine || Engine;
@@ -33,16 +38,19 @@ export const createEngine = <TEngine extends Engine = Engine>(
         const EngineCtor = engineCtor as new (
             options?: Partial<TEngine['options']>,
         ) => TEngine;
-        engineInstance = new EngineCtor(options);
+        engineInstance = new EngineCtor(options.engineOptions);
     } else {
         engineInstance = engine as TEngine;
-        if (options) {
-            engineInstance.options = options;
+        if (options.engineOptions) {
+            engineInstance.options = options.engineOptions;
         }
     }
 
-    if (platform) {
-        engineInstance.setPlatform(platform);
+    if (options.platform) {
+        engineInstance.setPlatform(options.platform);
+    }
+    if (options.isWorker) {
+        engineInstance.setIsWorker(options.isWorker);
     }
 
     return engineInstance;

@@ -1,4 +1,5 @@
 import { DebugOverlayFlags } from '@repo/engine';
+import type { AssetPreload } from '@repo/engine/asset';
 
 import { SCENARIO_ASSETS, type ScenarioAssets } from './assets';
 import { ballPit } from './list/ballPit';
@@ -30,7 +31,7 @@ export interface ScenarioMetadata {
     skipInTests?: boolean;
     maxCameras?: number;
     debugOverlayFlags?: DebugOverlayFlags;
-    assets?: ScenarioAssets;
+    assets?: AssetPreload[];
 }
 
 export interface ScenarioCategory {
@@ -41,6 +42,13 @@ export interface ScenarioCategory {
 }
 
 export type ScenarioList = Record<string, ScenarioCategory>;
+
+const assetsToPreloads = (assets: ScenarioAssets): AssetPreload[] => {
+    return Object.values(assets).map((asset) => ({
+        type: asset.type,
+        src: asset.src,
+    }));
+};
 
 export const ENGINE_SCENARIOS: ScenarioList = {
     features: {
@@ -56,7 +64,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Images',
                 description: 'Image scenarios',
                 run: images,
-                assets: SCENARIO_ASSETS.SUNDAE_IMAGES,
+                assets: assetsToPreloads(SCENARIO_ASSETS.SUNDAE_IMAGES),
             },
             text: {
                 name: 'Text',
@@ -112,7 +120,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'US Map',
                 description: 'A map of the United States',
                 run: usMap,
-                assets: SCENARIO_ASSETS.US_MAP,
+                assets: assetsToPreloads(SCENARIO_ASSETS.US_MAP),
             },
         },
     },

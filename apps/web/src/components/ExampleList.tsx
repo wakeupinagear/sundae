@@ -137,14 +137,12 @@ export function ExampleList({
                                                         src={`${NORMALIZED_BASE_URL}/snapshots/${scenarioID}/000.png`}
                                                         observer={imageObserver}
                                                         className={clsx(
-                                                            'rounded-md',
+                                                            'rounded-md w-full aspect-4/3',
                                                             {
                                                                 'border-ring border-solid border-2':
                                                                     selected,
                                                             },
                                                         )}
-                                                        width={216}
-                                                        height={162}
                                                     />
                                                     {scenario.name}
                                                 </a>
