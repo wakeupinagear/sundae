@@ -5,7 +5,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import { ENGINE_SCENARIOS, type ScenarioList } from '@repo/engine-scenarios';
 import { Input } from '@repo/ui/components/ui/input';
 
+import { useImageObserver } from '../hooks/useImageObserver';
 import { scenarioToID } from '../utils/scenarios';
+import { LazyImg } from './LazyImage';
 
 const VITE_BASE_URL = import.meta.env.BASE_URL || '/';
 const NORMALIZED_BASE_URL = VITE_BASE_URL.replace(/\/+$/, '');
@@ -59,6 +61,17 @@ export function ExampleList({
     selectedCategoryID,
     selectedScenarioID,
 }: ExampleListProps) {
+    const imageObserver = useImageObserver();
+    useEffect(() => {
+        const id = scenarioToID(selectedCategoryID, selectedScenarioID);
+        const el = document.getElementById(id);
+        if (el) {
+            requestAnimationFrame(() => {
+                el.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+            });
+        }
+    }, [selectedCategoryID, selectedScenarioID]);
+
     const filteredScenarios = useMemo<ScenarioList>(() => {
         const searchLower = search.trim().toLowerCase();
         if (!searchLower) return ENGINE_SCENARIOS;
@@ -120,8 +133,9 @@ export function ExampleList({
                                                         },
                                                     )}
                                                 >
-                                                    <img
+                                                    <LazyImg
                                                         src={`${NORMALIZED_BASE_URL}/snapshots/${scenarioID}/000.png`}
+                                                        observer={imageObserver}
                                                         className={clsx(
                                                             'rounded-md',
                                                             {
@@ -129,6 +143,8 @@ export function ExampleList({
                                                                     selected,
                                                             },
                                                         )}
+                                                        width={216}
+                                                        height={162}
                                                     />
                                                     {scenario.name}
                                                 </a>
