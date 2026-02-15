@@ -7,6 +7,9 @@ import { Input } from '@repo/ui/components/ui/input';
 
 import { scenarioToID } from '../utils/scenarios';
 
+const VITE_BASE_URL = import.meta.env.BASE_URL || '/';
+const NORMALIZED_BASE_URL = VITE_BASE_URL.replace(/\/+$/, '');
+
 interface ExampleSearchBarProps {
     value: string;
     onChange: (value: string) => void;
@@ -118,7 +121,7 @@ export function ExampleList({
                                                     )}
                                                 >
                                                     <img
-                                                        src={`/snapshots/${scenarioID}/000.png`}
+                                                        src={`${NORMALIZED_BASE_URL}/snapshots/${scenarioID}/000.png`}
                                                         className={clsx(
                                                             'rounded-md',
                                                             {
