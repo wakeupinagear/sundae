@@ -286,57 +286,49 @@ export class C_Transform<
         let maxX = -Infinity;
         let minY = Infinity;
         let maxY = -Infinity;
+        let localMinX = Infinity;
+        let localMaxX = -Infinity;
+        let localMinY = Infinity;
+        let localMaxY = -Infinity;
+
+        const includeLocalBounds = (
+            x1: number,
+            y1: number,
+            x2: number,
+            y2: number,
+        ) => {
+            localMinX = Math.min(localMinX, x1);
+            localMaxX = Math.max(localMaxX, x2);
+            localMinY = Math.min(localMinY, y1);
+            localMaxY = Math.max(localMaxY, y2);
+
+            const corners = [
+                { x: x1, y: y1 },
+                { x: x2, y: y1 },
+                { x: x2, y: y2 },
+                { x: x1, y: y2 },
+            ];
+            for (const localCorner of corners) {
+                const worldCorner = this.worldMatrix.transformPoint(localCorner);
+                minX = Math.min(minX, worldCorner.x);
+                maxX = Math.max(maxX, worldCorner.x);
+                minY = Math.min(minY, worldCorner.y);
+                maxY = Math.max(maxY, worldCorner.y);
+            }
+        };
 
         if (this.entity.backgroundComponents.length > 0) {
-            this.#corners[0].set({ x: -0.5, y: -0.5 });
-            this.#corners[1].set({ x: 0.5, y: -0.5 });
-            this.#corners[2].set({ x: 0.5, y: 0.5 });
-            this.#corners[3].set({ x: -0.5, y: 0.5 });
-
-            for (let i = 0; i < 4; i++) {
-                const corner = this.#corners[i];
-                corner.set(this.worldMatrix.transformPoint(corner));
-                minX = Math.min(minX, corner.x);
-                maxX = Math.max(maxX, corner.x);
-                minY = Math.min(minY, corner.y);
-                maxY = Math.max(maxY, corner.y);
-            }
+            includeLocalBounds(-0.5, -0.5, 0.5, 0.5);
         }
 
         for (const comp of this.entity.backgroundComponents) {
             const compBB = comp.boundingBox;
-
-            this.#corners[0].set({ x: compBB.x1, y: compBB.y1 });
-            this.#corners[1].set({ x: compBB.x2, y: compBB.y1 });
-            this.#corners[2].set({ x: compBB.x2, y: compBB.y2 });
-            this.#corners[3].set({ x: compBB.x1, y: compBB.y2 });
-
-            for (let i = 0; i < 4; i++) {
-                const corner = this.#corners[i];
-                corner.set(this.worldMatrix.transformPoint(corner));
-                minX = Math.min(minX, corner.x);
-                maxX = Math.max(maxX, corner.x);
-                minY = Math.min(minY, corner.y);
-                maxY = Math.max(maxY, corner.y);
-            }
+            includeLocalBounds(compBB.x1, compBB.y1, compBB.x2, compBB.y2);
         }
 
         for (const comp of this.entity.foregroundComponents) {
             const compBB = comp.boundingBox;
-
-            this.#corners[0].set({ x: compBB.x1, y: compBB.y1 });
-            this.#corners[1].set({ x: compBB.x2, y: compBB.y1 });
-            this.#corners[2].set({ x: compBB.x2, y: compBB.y2 });
-            this.#corners[3].set({ x: compBB.x1, y: compBB.y2 });
-
-            for (let i = 0; i < 4; i++) {
-                const corner = this.#corners[i];
-                corner.set(this.worldMatrix.transformPoint(corner));
-                minX = Math.min(minX, corner.x);
-                maxX = Math.max(maxX, corner.x);
-                minY = Math.min(minY, corner.y);
-                maxY = Math.max(maxY, corner.y);
-            }
+            includeLocalBounds(compBB.x1, compBB.y1, compBB.x2, compBB.y2);
         }
 
         for (const child of this.entity.children) {
@@ -352,10 +344,25 @@ export class C_Transform<
         this.#boundingBox.x2 = maxX;
         this.#boundingBox.y2 = maxY;
 
-        this.#corners[0].set({ x: minX, y: minY });
-        this.#corners[1].set({ x: maxX, y: minY });
-        this.#corners[2].set({ x: maxX, y: maxY });
-        this.#corners[3].set({ x: minX, y: maxY });
+        if (Number.isFinite(localMinX)) {
+            this.#corners[0].set(
+                this.worldMatrix.transformPoint({ x: localMinX, y: localMinY }),
+            );
+            this.#corners[1].set(
+                this.worldMatrix.transformPoint({ x: localMaxX, y: localMinY }),
+            );
+            this.#corners[2].set(
+                this.worldMatrix.transformPoint({ x: localMaxX, y: localMaxY }),
+            );
+            this.#corners[3].set(
+                this.worldMatrix.transformPoint({ x: localMinX, y: localMaxY }),
+            );
+        } else {
+            this.#corners[0].set({ x: minX, y: minY });
+            this.#corners[1].set({ x: maxX, y: minY });
+            this.#corners[2].set({ x: maxX, y: maxY });
+            this.#corners[3].set({ x: minX, y: maxY });
+        }
     }
 
     #markLocalDirty() {

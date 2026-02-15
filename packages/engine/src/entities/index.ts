@@ -169,7 +169,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                       y: rest.scaleRelativeToCamera,
                   }
                 : rest.scaleRelativeToCamera
-            : { x: false, y: false };
+            : {
+                  x: this._positionRelativeToCamera.x !== 'none',
+                  y: this._positionRelativeToCamera.y !== 'none',
+              };
         this._rotateRelativeToCamera =
             rest?.rotateRelativeToCamera !== undefined
                 ? Boolean(rest.rotateRelativeToCamera)
@@ -1142,6 +1145,9 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             ),
             ...child.foregroundComponents,
         ];
+        const shouldIncludeEntityBounds = child.backgroundComponents.some(
+            (component) => this.#isFillDrawable(component),
+        );
 
         if (layoutComponents.length > 0) {
             for (const component of layoutComponents) {
@@ -1161,7 +1167,9 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                     maxY = Math.max(maxY, point.y);
                 }
             }
-        } else {
+        }
+
+        if (layoutComponents.length === 0 || shouldIncludeEntityBounds) {
             for (const corner of child.transform.corners) {
                 const point = parentInverseWorld.transformPoint(corner);
                 minX = Math.min(minX, point.x);
