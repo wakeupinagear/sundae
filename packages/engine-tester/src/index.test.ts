@@ -11,13 +11,13 @@ beforeAll(() => {
 });
 
 for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
-    for (const {
+    for (const [scenarioID, {
         name,
         run,
         debugOverlayFlags,
         assets = {},
         skipInTests,
-    } of Object.values(scenarioMetadata.scenarios)) {
+    }] of Object.entries(scenarioMetadata.scenarios)) {
         if (skipInTests) continue;
 
         test(name, async () => {
@@ -30,7 +30,7 @@ for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
                         src: asset.src,
                     })),
                 },
-                { testName: name },
+                { testName: name, snapshotFolder: scenarioID },
             );
 
             await run(harness);

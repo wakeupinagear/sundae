@@ -1,26 +1,63 @@
 import clsx from 'clsx';
 import { Search } from 'lucide-react';
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { ENGINE_SCENARIOS, type ScenarioList } from '@repo/engine-scenarios';
 import { Input } from '@repo/ui/components/ui/input';
 
 import { scenarioToID } from '../utils/scenarios';
 
+interface ExampleSearchBarProps {
+    value: string;
+    onChange: (value: string) => void;
+}
+
+export function ExampleSearchBar({ value, onChange }: ExampleSearchBarProps) {
+    const inputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === '/') {
+                event.preventDefault();
+                inputRef.current?.focus();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, []);
+
+    return (
+        <div className="relative shrink-0">
+            <Search
+                className="absolute top-3 left-2 text-muted-foreground"
+                size={12}
+            />
+            <Input
+                ref={inputRef}
+                className="pl-6 pr-2 text-sm"
+                type="text"
+                name="Search"
+                placeholder="Search Examples"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+            />
+        </div>
+    );
+}
+
 interface ExampleListProps {
+    search: string;
     selectedCategoryID: string;
     selectedScenarioID: string;
 }
 
 export function ExampleList({
+    search,
     selectedCategoryID,
     selectedScenarioID,
 }: ExampleListProps) {
-    const [search, setSearch] = useState('');
-    const deferredSearch = useDeferredValue(search);
-
     const filteredScenarios = useMemo<ScenarioList>(() => {
-        const searchLower = deferredSearch.trim().toLowerCase();
+        const searchLower = search.trim().toLowerCase();
         if (!searchLower) return ENGINE_SCENARIOS;
 
         return Object.entries(ENGINE_SCENARIOS).reduce(
@@ -45,72 +82,55 @@ export function ExampleList({
             },
             {},
         );
-    }, [deferredSearch]);
-
-    const inputRef = useRef<HTMLInputElement>(null);
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === '/') {
-                event.preventDefault();
-                inputRef.current?.focus();
-            }
-        };
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, []);
+    }, [search]);
 
     return (
-        <div className="w-full min-w-0 flex flex-col gap-2 p-2">
-            <div className="relative">
-                <Search
-                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    size={12}
-                />
-                <Input
-                    ref={inputRef}
-                    className="pl-6 pr-2 text-sm"
-                    type="text"
-                    name="Search"
-                    placeholder="Search Examples"
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-            </div>
-            <div className="flex flex-col p-2 gap-4">
+        <div className="w-full min-w-0 flex flex-col gap-2">
+            <div className="flex flex-col gap-4">
                 {Object.entries(filteredScenarios).map(
                     ([categoryID, category]) =>
                         category.hideInDemos ? null : (
-                            <div
-                                key={categoryID}
-                                className="flex flex-col gap-2"
-                            >
-                                <h2 className="text-foreground">
+                            <div key={categoryID} className="flex flex-col">
+                                <h2 className="text-foreground sticky top-0 bg-background pb-1">
                                     {category.name}
                                 </h2>
-                                <div className="flex flex-col gap-2 pl-2">
+                                <div className="flex flex-col gap-6">
                                     {Object.entries(category.scenarios).map(
-                                        ([scenarioID, scenario]) => (
-                                            <a
-                                                key={scenarioID}
-                                                id={scenarioToID(
-                                                    categoryID,
-                                                    scenarioID,
-                                                )}
-                                                href={`#${scenarioToID(categoryID, scenarioID)}`}
-                                                className={clsx(
-                                                    'font-medium text-primary hover:underline',
-                                                    {
-                                                        underline:
-                                                            categoryID ===
-                                                                selectedCategoryID &&
-                                                            scenarioID ===
-                                                                selectedScenarioID,
-                                                    },
-                                                )}
-                                            >
-                                                {scenario.name}
-                                            </a>
-                                        ),
+                                        ([scenarioID, scenario]) => {
+                                            const selected =
+                                                categoryID ===
+                                                    selectedCategoryID &&
+                                                scenarioID ===
+                                                    selectedScenarioID;
+                                            return (
+                                                <a
+                                                    key={scenarioID}
+                                                    id={scenarioToID(
+                                                        categoryID,
+                                                        scenarioID,
+                                                    )}
+                                                    href={`#${scenarioToID(categoryID, scenarioID)}`}
+                                                    className={clsx(
+                                                        'scroll-mt-8 font-medium text-primary hover:underline flex flex-col gap-1 text-sm',
+                                                        {
+                                                            underline: selected,
+                                                        },
+                                                    )}
+                                                >
+                                                    <img
+                                                        src={`/snapshots/${scenarioID}/000.png`}
+                                                        className={clsx(
+                                                            'rounded-md',
+                                                            {
+                                                                'border-ring border-solid border-2':
+                                                                    selected,
+                                                            },
+                                                        )}
+                                                    />
+                                                    {scenario.name}
+                                                </a>
+                                            );
+                                        },
                                     )}
                                 </div>
                             </div>

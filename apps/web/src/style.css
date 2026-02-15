@@ -8,3 +8,26 @@
 body {
     margin: 0;
 }
+
+.scrollbar-styled {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) var(--background);
+}
+
+.scrollbar-styled::-webkit-scrollbar {
+    width: 8px;
+}
+
+.scrollbar-styled::-webkit-scrollbar-track {
+    background: var(--muted);
+}
+
+.scrollbar-styled::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius);
+}
+
+.scrollbar-styled::-webkit-scrollbar-thumb:hover,
+.scrollbar-styled::-webkit-scrollbar-thumb:active {
+    background: var(--primary);
+}

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    useCallback,
+    useDeferredValue,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 
 import {
     DebugOverlayFlags,
@@ -16,7 +23,7 @@ import { WebHarness } from '../utils/harness';
 import { idToScenario, scenarioToID } from '../utils/scenarios';
 import type { ExtendedToEngineMsg } from '../utils/types';
 import EngineWorker from '../utils/worker?worker';
-import { ExampleList } from './ExampleList';
+import { ExampleList, ExampleSearchBar } from './ExampleList';
 import HarnessOptions from './HarnessOptions';
 
 const DEFAULT_SCENARIO = 'stressTests-renderChaos';
@@ -88,6 +95,9 @@ export function App() {
     const debugOverlay = useAppStore((state) => state.debugOverlay);
     const trueRandom = useAppStore((state) => state.trueRandom);
     const runInWorker = useAppStore((state) => state.runInWorker);
+
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
 
     const [[categoryID, scenarioID], setScenario] =
         useState<[string, string]>(readScenarioFromHash);
@@ -202,10 +212,12 @@ export function App() {
     return (
         <ThemeProvider>
             <div className="flex items-stretch h-screen overflow-hidden">
-                <aside className="flex flex-col h-screen min-h-0 w-44 shrink-0 bg-background">
-                    <h1 className="p-2 text-primary">🍨 Sundae</h1>
-                    <div className="min-h-0 flex-1 overflow-y-auto w-full">
+                <aside className="flex flex-col gap-2 h-screen min-h-0 w-64 shrink-0 bg-background p-4">
+                    <h1 className="text-primary">🍨 Sundae</h1>
+                    <ExampleSearchBar value={search} onChange={setSearch} />
+                    <div className="min-h-0 flex-1 overflow-y-auto w-full scrollbar-styled">
                         <ExampleList
+                            search={deferredSearch}
                             selectedCategoryID={categoryID}
                             selectedScenarioID={scenarioID}
                         />

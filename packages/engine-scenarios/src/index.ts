@@ -14,7 +14,7 @@ import { primitives } from './list/primitives';
 import { raycasts } from './list/raycasts';
 import { renderChaos } from './list/renderChaos';
 import { superSundaeBros } from './list/superSundaeBros';
-import { textRendering } from './list/textRendering';
+import { text } from './list/text';
 import { typeErrors } from './list/type-errors';
 import { usMap } from './list/usMap';
 import { zIndex } from './list/zIndex';
@@ -58,10 +58,10 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 run: images,
                 assets: SCENARIO_ASSETS.SUNDAE_IMAGES,
             },
-            textRendering: {
+            text: {
                 name: 'Text',
                 description: 'Text rendering scenarios',
-                run: textRendering,
+                run: text,
             },
             raycasts: {
                 name: 'Raycasts',

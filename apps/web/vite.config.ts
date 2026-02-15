@@ -10,6 +10,11 @@ const ASSETS_DIR = path.resolve(
     '../../packages/engine-scenarios/assets',
 );
 
+const SNAPSHOTS_DIR = path.resolve(
+    __dirname,
+    '../../packages/engine-tester/snapshots/baseline',
+);
+
 export default defineConfig({
     server: {
         fs: {
@@ -110,6 +115,41 @@ export default defineConfig({
                 fs.rmSync(targetDir, { recursive: true, force: true });
                 fs.mkdirSync(path.dirname(targetDir), { recursive: true });
                 fs.cpSync(ASSETS_DIR, targetDir, { recursive: true });
+            },
+        },
+        {
+            name: 'serve-dev-snapshots',
+            configureServer(server) {
+                server.middlewares.use('/snapshots', (req, res, next) => {
+                    const urlPath = (req.url ?? '').replace(/^\/+/, '');
+                    if (!urlPath) {
+                        next();
+                        return;
+                    }
+                    const filePath = path.join(SNAPSHOTS_DIR, urlPath);
+                    if (
+                        !fs.existsSync(filePath) ||
+                        !fs.statSync(filePath).isFile()
+                    ) {
+                        next();
+                        return;
+                    }
+                    res.setHeader('Content-Type', 'image/png');
+                    fs.createReadStream(filePath).pipe(res);
+                });
+            },
+        },
+        {
+            name: 'copy-snapshots-to-public',
+            apply: 'build',
+            buildStart() {
+                const targetDir = path.resolve(
+                    __dirname,
+                    './public/snapshots',
+                );
+                fs.rmSync(targetDir, { recursive: true, force: true });
+                fs.mkdirSync(targetDir, { recursive: true });
+                fs.cpSync(SNAPSHOTS_DIR, targetDir, { recursive: true });
             },
         },
     ],

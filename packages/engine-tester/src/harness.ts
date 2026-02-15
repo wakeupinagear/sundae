@@ -3,8 +3,8 @@ import path from 'path';
 import { type Canvas, Image } from 'skia-canvas';
 
 import { Engine, type EngineOptions } from '@repo/engine';
-import { FilesystemAssetLoader } from '@repo/node';
 import type { IEngineHarness } from '@repo/engine-scenarios';
+import { FilesystemAssetLoader } from '@repo/node';
 
 const WRITE_MODE = process.env.WRITE_SNAPSHOTS === 'true';
 
@@ -26,6 +26,7 @@ const FILESYSTEM_ASSET_LOADER = new FilesystemAssetLoader({
 
 interface SnapshotHarnessOptions {
     testName: string;
+    snapshotFolder?: string;
     frameTimeout?: number;
 }
 
@@ -33,6 +34,7 @@ export class SnapshotHarness implements IEngineHarness {
     #engine: Engine;
     #canvas: Canvas;
     #testName: string;
+    #snapshotFolder: string | undefined;
     #frameTimeout: number;
 
     #startNextFrame: (() => void) | null = null;
@@ -56,6 +58,7 @@ export class SnapshotHarness implements IEngineHarness {
         this.#canvas = canvas;
 
         this.#testName = options?.testName;
+        this.#snapshotFolder = options?.snapshotFolder;
         this.#frameTimeout = options?.frameTimeout ?? 5000;
     }
 
@@ -100,7 +103,9 @@ export class SnapshotHarness implements IEngineHarness {
         const base64Data = dataURL.replace(SNAPSHOT_FILE_TYPE_REGEX, '');
         const imageBuffer = Buffer.from(base64Data, 'base64');
 
-        const folderName = this.#formatTestFolderName(this.#testName);
+        const folderName =
+            this.#snapshotFolder ??
+            this.#formatTestFolderName(this.#testName);
         const baseDir = WRITE_MODE
             ? SNAPSHOTS_BASELINE_DIR
             : SNAPSHOTS_CURRENT_DIR;
@@ -119,6 +124,22 @@ export class SnapshotHarness implements IEngineHarness {
     }
 
     #formatTestFolderName(testName: string) {
-        return testName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+        const words = testName
+            .replace(/[^a-zA-Z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '')
+            .split('_')
+            .filter(Boolean);
+
+        if (words.length === 0) return '';
+
+        return (
+            words[0].toLowerCase() +
+            words
+                .slice(1)
+                .map(
+                    (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+                )
+                .join('')
+        );
     }
 }

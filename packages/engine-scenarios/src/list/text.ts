@@ -25,9 +25,9 @@ const ALIGN_BG_COLORS = {
     'bottom-right': '#e76f51',
 } as const;
 
-export const textRendering: EngineScenario = async (harness) => {
+export const text: EngineScenario = async (harness) => {
     harness.engine.openScene({
-        name: 'Text Rendering',
+        name: 'Text',
         entities: [
             {
                 type: 'line',

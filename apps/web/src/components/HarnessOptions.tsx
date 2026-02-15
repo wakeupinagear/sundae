@@ -56,7 +56,7 @@ export default function HarnessOptions({
     }, [debugOverlay, scenarioLockedFlags]);
 
     return (
-        <div className="flex flex-col gap-2 p-2 text-sm">
+        <div className="flex flex-col gap-2 text-sm">
             <div
                 className={clsx('flex gap-2 items-center transition-opacity', {
                     'opacity-50': !canChangeCameraCount,
