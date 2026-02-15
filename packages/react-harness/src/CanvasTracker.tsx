@@ -42,8 +42,8 @@ export function CanvasTracker({
         }
 
         const onPointerMove = (event: PointerEvent) => {
-            const x = event.clientX - localCanvas.offsetLeft,
-                y = event.clientY - localCanvas.offsetTop;
+            const x = event.offsetX,
+                y = event.offsetY;
             wrapper.current?.onPointerMove(canvasID, {
                 x,
                 y,

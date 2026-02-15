@@ -68,6 +68,12 @@ import {
     type SceneOptions,
     SceneSystem,
 } from './systems/scene/index';
+import { type ISignalSubscriber, SignalSystem } from './systems/signal';
+import {
+    SIGNAL_FRAME_COUNT,
+    SIGNAL_UPDATE_COUNT,
+} from './systems/signal/constants';
+import { SignalVariable } from './systems/signal/variable';
 import { type Stats, StatsSystem } from './systems/stats';
 import { type ICanvas, type Platform, type WebKey } from './types';
 import type { ToEngineMsg } from './worker';
@@ -228,7 +234,7 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
 };
 
 export class Engine<TOptions extends EngineOptions = EngineOptions>
-    implements I_LogSystem, I_PointerSystem
+    implements I_LogSystem, I_PointerSystem, ISignalSubscriber
 {
     protected static _nextId: number = 1;
     protected readonly _id: string = (Engine._nextId++).toString();
@@ -248,6 +254,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     protected _pointerSystem: PointerSystem<this>;
     protected _assetSystem: AssetSystem<this>;
     protected _physicsSystem: PhysicsSystem<this>;
+    protected _signalSystem: SignalSystem<this>;
     protected _statsSystem: StatsSystem<this>;
     protected _logSystem: LogSystem<this>;
     protected _cameraSystems: Record<string, CameraSystem<this>> = {};
@@ -275,7 +282,8 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         >
     > = {};
 
-    #frameCount: number = 0;
+    #updateCount: SignalVariable<number>;
+    #frameCount: SignalVariable<number>;
 
     #primaryCameraID: string | null = null;
     #primaryCanvasID: string | null = null;
@@ -300,11 +308,16 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             options.assetLoader ?? DEFAULT_ENGINE_OPTIONS.assetLoader,
         );
         this._physicsSystem = new PhysicsSystem(this);
+        this._signalSystem = new SignalSystem(this);
 
         // Order isn't important since systems are manually updated
         this._statsSystem = new StatsSystem(this);
         this._renderSystem = new RenderSystem(this);
         this._logSystem = new LogSystem(this);
+
+        // Initialize signals
+        this.#updateCount = new SignalVariable(SIGNAL_UPDATE_COUNT, 0, this);
+        this.#frameCount = new SignalVariable(SIGNAL_FRAME_COUNT, 0, this);
 
         this.#setRandomSeed(DEFAULT_ENGINE_OPTIONS.randomSeed);
         this.#applyOptions(DEFAULT_ENGINE_OPTIONS as Partial<TOptions>);
@@ -413,8 +426,12 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._physicsSystem;
     }
 
+    get signalSystem(): SignalSystem<this> {
+        return this._signalSystem;
+    }
+
     get frameCount(): number {
-        return this.#frameCount;
+        return this.#frameCount.get();
     }
 
     get devicePixelRatio(): number {
@@ -530,6 +547,34 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     destroyScene(scene: SceneIdentifier<this>): void {
         this._sceneSystem.closeScene(scene);
     }
+
+    getSignalValue: ISignalSubscriber['getSignalValue'] = (
+        signalName,
+        fallback,
+        format,
+    ) => {
+        return this._signalSystem.getSignalValue(signalName, fallback, format);
+    };
+
+    subscribeToSignal: ISignalSubscriber['subscribeToSignal'] = (
+        id,
+        signalName,
+        cb,
+    ) => {
+        this._signalSystem.subscribeToSignal(id, signalName, cb);
+    };
+
+    unsubscribeFromSignal: ISignalSubscriber['unsubscribeFromSignal'] = (
+        id,
+        signalName,
+    ) => {
+        this._signalSystem.unsubscribeFromSignal(id, signalName);
+    };
+
+    unsubscribeFromAllSignals: ISignalSubscriber['unsubscribeFromAllSignals'] =
+        (id) => {
+            this._signalSystem.unsubscribeFromAllSignals(id);
+        };
 
     setCanvas(
         canvas: ICanvas | null,
@@ -935,7 +980,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     #engineLoop() {
         const currentTime = performance.now();
         const deltaTime =
-            this.#frameCount < this.options.delayDeltaTimeByNFrames
+            this.frameCount < this.options.delayDeltaTimeByNFrames
                 ? 0
                 : (currentTime - this._lastTime) * 0.001;
         this._lastTime = currentTime;
@@ -1010,6 +1055,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                     }
                 }
 
+                this.#frameCount.set(this.#frameCount.get() + 1);
                 this.#forceRender = false;
                 this.#forceRenderCameras.clear();
             }
@@ -1019,7 +1065,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             this.#forceRender = true;
         }
 
-        this.#frameCount++;
+        this.#updateCount.set(this.#updateCount.get() + 1);
         this._options.onReadyForNextFrame?.(this.#boundEngineLoop);
     }
 

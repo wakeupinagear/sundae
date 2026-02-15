@@ -35,10 +35,7 @@ export {
     type C_ImageOptions,
     type C_ImageJSON,
 } from '../src/components/image';
-export {
-    C_ShapeBase,
-    type C_ShapeBaseOptions,
-} from '../src/components/shape';
+export { C_ShapeBase, type C_ShapeBaseOptions } from '../src/components/shape';
 export {
     C_Circle,
     type C_CircleOptions,
@@ -59,5 +56,5 @@ export {
 export {
     ComponentAppearance,
     type OneAxisAlignment,
-    type Renderable,
+    type IRenderable as Renderable,
 } from '../src/types';

@@ -3,10 +3,11 @@ import { type Entity } from '../entities';
 import { BoundingBox, type BoundingBoxConstructor } from '../math/boundingBox';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
+import type { ISignalSubscriber, OnSignalUpdatedCB } from '../systems/signal';
 import {
     type CollisionContact,
     ComponentAppearance,
-    type Renderable,
+    type IRenderable,
 } from '../types';
 
 export interface ComponentOptions {
@@ -22,7 +23,7 @@ export interface InternalComponentOptions<TEngine extends Engine = Engine>
 }
 
 export abstract class Component<TEngine extends Engine = Engine>
-    implements Renderable
+    implements IRenderable
 {
     public static typeString: string = 'Component';
     protected static _nextId: number = 1;
@@ -106,6 +107,26 @@ export abstract class Component<TEngine extends Engine = Engine>
             this._entity.componentsZIndexDirty = true;
             this._entity.onChildComponentsOfTypeChanged(this.typeString);
         }
+    }
+
+    getSignalValue: ISignalSubscriber['getSignalValue'] = (
+        signalName,
+        fallback,
+        format,
+    ) => {
+        return this._engine.getSignalValue(signalName, fallback, format);
+    };
+
+    subscribeToSignal(signalName: string, cb: OnSignalUpdatedCB) {
+        this._engine.subscribeToSignal(this._id, signalName, cb);
+    }
+
+    unsubscribeFromSignal(signalName: string) {
+        this._engine.unsubscribeFromSignal(this._id, signalName);
+    }
+
+    unsubscribeFromAllSignals() {
+        this._engine.unsubscribeFromAllSignals(this._id);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

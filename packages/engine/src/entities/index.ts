@@ -22,11 +22,12 @@ import {
 } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
+import type { ISignalSubscriber, OnSignalUpdatedCB } from '../systems/signal';
 import {
     type CollisionContact,
     ComponentAppearance,
+    type IRenderable,
     type OneAxisAlignment,
-    type Renderable,
 } from '../types';
 import { OPACITY_THRESHOLD } from '../utils';
 import {
@@ -92,7 +93,7 @@ export interface InternalEntityOptions<TEngine extends Engine = Engine>
     parent: Entity<TEngine> | null;
 }
 
-export class Entity<TEngine extends Engine = Engine> implements Renderable {
+export class Entity<TEngine extends Engine = Engine> implements IRenderable {
     protected static _nextId: number = 1;
     protected readonly _id: string = (Entity._nextId++).toString();
 
@@ -447,6 +448,26 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
 
         return createdComponents as IComponents;
+    }
+
+    getSignalValue: ISignalSubscriber['getSignalValue'] = (
+        signalName,
+        fallback,
+        format,
+    ) => {
+        return this._engine.getSignalValue(signalName, fallback, format);
+    };
+
+    subscribeToSignal(signalName: string, cb: OnSignalUpdatedCB) {
+        this._engine.subscribeToSignal(this._id, signalName, cb);
+    }
+
+    unsubscribeFromSignal(signalName: string) {
+        this._engine.unsubscribeFromSignal(this._id, signalName);
+    }
+
+    unsubscribeFromAllSignals() {
+        this._engine.unsubscribeFromAllSignals(this._id);
     }
 
     setBackground(

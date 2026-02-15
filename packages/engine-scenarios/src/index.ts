@@ -14,6 +14,7 @@ import { pong } from './list/pong';
 import { primitives } from './list/primitives';
 import { raycasts } from './list/raycasts';
 import { renderChaos } from './list/renderChaos';
+import { signals } from './list/signals';
 import { superSundaeBros } from './list/superSundaeBros';
 import { text } from './list/text';
 import { typeErrors } from './list/type-errors';
@@ -70,6 +71,11 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Text',
                 description: 'Text rendering scenarios',
                 run: text,
+            },
+            signals: {
+                name: 'Signals',
+                description: 'Signals',
+                run: signals,
             },
             raycasts: {
                 name: 'Raycasts',

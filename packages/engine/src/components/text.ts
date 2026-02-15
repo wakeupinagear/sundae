@@ -9,6 +9,8 @@ import type { TwoAxisAlignment } from '../types';
 const MONOSPACE_WIDTH_RATIO = 0.6;
 const MONOSPACE_HEIGHT_RATIO = 0.8;
 
+const TEMPLATE_REGEX = /\{\{\s*([a-zA-Z0-9_.$]+)\s*\}\}/g;
+
 const TagKeys = {
     COLOR: 'color',
     SIZE: 'size',
@@ -81,6 +83,8 @@ export interface C_TextOptions extends C_DrawableOptions {
     opacity?: number;
     startTagDelim?: string;
     endTagDelim?: string;
+    startTemplateDelim?: string;
+    endTemplateDelim?: string;
     padding?: Padding;
     maxWidth?: number;
 }
@@ -132,6 +136,8 @@ export class C_Text<
         this.#maxWidth = options.maxWidth;
 
         this.#padding.set(options.padding ?? 0);
+
+        this.#subscribeToTemplateSignals();
     }
 
     override get typeString(): string {
@@ -146,6 +152,7 @@ export class C_Text<
         if (text != this.#text) {
             this.#text = text;
             this.#markTextDirty();
+            this.#subscribeToTemplateSignals();
         }
     }
 
@@ -321,12 +328,38 @@ export class C_Text<
         });
     }
 
+    #subscribeToTemplateSignals() {
+        this.unsubscribeFromAllSignals();
+
+        const variables = new Set<string>();
+        let match: RegExpExecArray | null;
+        while ((match = TEMPLATE_REGEX.exec(this.#text)) !== null) {
+            variables.add(match[1]);
+        }
+
+        if (variables.size > 0) {
+            const cb = (() => {
+                this.#markTextDirty();
+
+                return this._enabled;
+            }).bind(this);
+            for (const signalName of variables) {
+                this.subscribeToSignal(signalName, cb);
+            }
+        }
+    }
+
     #computeTextLines() {
         this.#drawActions = [];
         this.#textSize.set(0);
         this.#textPosition.set(0);
 
-        const nodes = this.#parseTextLines(this.#text);
+        const substitutedText = this.#text.replace(
+            TEMPLATE_REGEX,
+            (_, signalName) => this.getSignalValue(signalName, '', 'string'),
+        );
+
+        const nodes = this.#parseTextLines(substitutedText);
 
         // First pass: organize nodes into lines and calculate dimensions
         interface Line {

@@ -108,7 +108,7 @@ export interface CollisionContact<TEngine extends Engine = Engine> {
     other: C_Collider<TEngine>;
 }
 
-export interface Renderable {
+export interface IRenderable {
     queueRenderCommands(
         stream: RenderCommandStream,
         camera: CameraSystem,
