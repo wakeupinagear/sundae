@@ -49,18 +49,29 @@ class E_Key extends Entity {
 
 class EngineScene extends Scene {
     create(): void {
-        for (let y = 0; y < KEYS.length; y++) {
-            const ROW = KEYS[y];
-            for (let x = 0; x < ROW.length; x++) {
-                const key = ROW[x];
-                this.createEntity({
+        const [keyboard] = this.createEntities({
+            type: 'entity',
+            layoutMode: 'column',
+            gap: KEY_GAP,
+        });
+
+        for (const row of KEYS) {
+            const [rowEntity] = this._engine.createEntitiesWithParent(
+                [
+                    {
+                        type: 'entity',
+                        layoutMode: 'row',
+                        gap: KEY_GAP,
+                    },
+                ],
+                keyboard,
+            );
+
+            this._engine.createEntitiesWithParent(
+                row.map((key) => ({
                     type: E_Key,
                     name: `Key ${key}`,
                     key,
-                    position: {
-                        x: (-ROW.length / 2 + x + 0.5) * (KEY_SIZE + KEY_GAP),
-                        y: (-KEYS.length / 2 + y + 0.5) * (KEY_SIZE + KEY_GAP),
-                    },
                     scale: KEY_SIZE,
                     components: [
                         {
@@ -70,8 +81,9 @@ class EngineScene extends Scene {
                             textAlign: 'center',
                         },
                     ],
-                });
-            }
+                })),
+                rowEntity,
+            );
         }
     }
 }

@@ -40,6 +40,7 @@ export class C_Rectangle<TEngine extends Engine = Engine> extends C_ShapeBase<TE
         );
 
         this._onFinishQueueRenderCommands(stream);
+        
         return true;
     }
 }

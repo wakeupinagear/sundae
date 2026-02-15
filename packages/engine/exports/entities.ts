@@ -1,4 +1,4 @@
-export { Entity, type EntityOptions } from '../src/entities';
+export { Entity, type EntityOptions, type LayoutMode } from '../src/entities';
 export {
     type CustomEntityJSON,
     type EntityConstructor,

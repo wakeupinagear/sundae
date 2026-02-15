@@ -275,8 +275,6 @@ class USMapScene extends Scene<Engine> {
                         lineColor: '#EEEEEE',
                         lineWidth: 2,
                         opacity: 1,
-                        lineJoin: 'round',
-                        lineCap: 'round',
                     });
                 }
             }
@@ -303,8 +301,6 @@ class USMapScene extends Scene<Engine> {
                         points: ring,
                         lineColor: '#999999',
                         lineWidth: 0.65,
-                        lineJoin: 'round',
-                        lineCap: 'round',
                         pointerTarget: true,
                         hoverStyle: {
                             lineColor: '#0000FF',

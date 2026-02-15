@@ -12,6 +12,7 @@ import type { C_RectangleJSON } from '../components/rectangle';
 import type { C_Rigidbody } from '../components/rigidbody';
 import type { C_Transform } from '../components/transforms';
 import { type Engine } from '../engine';
+import type { Matrix2D } from '../math/matrix';
 import {
     type IVector,
     type ImmutableVector,
@@ -35,6 +36,7 @@ import {
 
 type CullMode = 'components' | 'children' | 'all' | 'none';
 type PositionRelativeToCamera = OneAxisAlignment | 'none';
+export type LayoutMode = 'row' | 'column';
 
 type BackgroundOptions =
     | boolean
@@ -68,6 +70,8 @@ export interface EntityOptions {
     scene?: string;
     components?: ComponentJSON[];
     children?: EntityJSON[];
+    layoutMode?: LayoutMode;
+    gap?: VectorConstructor;
     background?: BackgroundConstructor;
     lod?: LODOptions;
 
@@ -109,6 +113,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
     protected _scaleRelativeToCamera: IVector<boolean>;
     protected _rotateRelativeToCamera: boolean;
     protected _cull: CullMode;
+    protected _layoutMode: LayoutMode | null;
+    protected _gap: number;
 
     protected _updated: boolean = false;
     protected _parent: Entity<TEngine> | null = null;
@@ -173,6 +179,8 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                   );
 
         this._cull = rest?.cull ?? 'all';
+        this._layoutMode = rest?.layoutMode ?? null;
+        this._gap = this.#normalizeLayoutGap(rest?.gap);
 
         this._transform = this.addComponent<C_Transform<TEngine>>({
             type: 'transform',
@@ -284,6 +292,14 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     get cull(): CullMode {
         return this._cull;
+    }
+
+    get layoutMode(): LayoutMode | null {
+        return this._layoutMode;
+    }
+
+    get gap(): number {
+        return this._gap;
     }
 
     set componentsZIndexDirty(dirty: boolean) {
@@ -566,6 +582,10 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         let updated = this._updated;
         this._updated = false;
 
+        if (this._layoutMode) {
+            updated = this.#applyLayout() || updated;
+        }
+
         for (const child of this._children) {
             if (child.enabled) {
                 updated = child.engineUpdate(deltaTime) || updated;
@@ -579,6 +599,9 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
         }
 
         updated = this.update(deltaTime) || updated;
+        if (this._layoutMode) {
+            updated = this.#applyLayout() || updated;
+        }
 
         return updated;
     }
@@ -701,6 +724,16 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
 
     setCull(cull: CullMode): this {
         this._cull = cull;
+        return this;
+    }
+
+    setLayoutMode(layoutMode: LayoutMode | null): this {
+        this._layoutMode = layoutMode;
+        return this;
+    }
+
+    setGap(gap: VectorConstructor): this {
+        this._gap = this.#normalizeLayoutGap(gap);
         return this;
     }
 
@@ -902,7 +935,13 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
             return zDiff;
         }
 
-        return a.id > b.id ? 1 : -1;
+        const aId = Number(a.id);
+        const bId = Number(b.id);
+        if (!Number.isNaN(aId) && !Number.isNaN(bId)) {
+            return aId - bId;
+        }
+
+        return a.id.localeCompare(b.id);
     }
 
     #sortChildren(): void {
@@ -1026,6 +1065,131 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                         : 0,
             });
         }
+    }
+
+    #applyLayout(): boolean {
+        const layoutMode = this._layoutMode;
+        if (!layoutMode || this._children.length === 0) {
+            return false;
+        }
+
+        const parentInverseWorld = this.transform.worldMatrix.inverse();
+        const items = this._children.map((child) => ({
+            child,
+            ...this.#getChildLayoutMetrics(child, parentInverseWorld),
+        }));
+
+        const mainSizeKey = layoutMode === 'row' ? 'width' : 'height';
+        const totalMainSize =
+            items.reduce((acc, item) => acc + item[mainSizeKey], 0) +
+            this._gap * Math.max(0, items.length - 1);
+
+        let cursor = -totalMainSize / 2;
+        let changed = false;
+        for (const item of items) {
+            const mainSize = item[mainSizeKey];
+            const mainCenter = cursor + mainSize / 2;
+            cursor += mainSize + this._gap;
+
+            const nextPosition =
+                layoutMode === 'row'
+                    ? {
+                          x: mainCenter - item.centerOffsetX,
+                          y: -item.centerOffsetY,
+                      }
+                    : {
+                          x: -item.centerOffsetX,
+                          y: mainCenter - item.centerOffsetY,
+                      };
+            if (
+                item.child.position.x !== nextPosition.x ||
+                item.child.position.y !== nextPosition.y
+            ) {
+                item.child.setPosition(nextPosition);
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    #isFillDrawable(component: Component<TEngine>): boolean {
+        return (
+            'fill' in component &&
+            (component as { fill?: boolean }).fill === true
+        );
+    }
+
+    #getChildLayoutMetrics(
+        child: Entity<TEngine>,
+        parentInverseWorld: Readonly<Matrix2D>,
+    ): {
+        width: number;
+        height: number;
+        centerOffsetX: number;
+        centerOffsetY: number;
+    } {
+        const childWorld = child.transform.worldMatrix;
+
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+
+        const layoutComponents = [
+            ...child.backgroundComponents.filter(
+                (component) => !this.#isFillDrawable(component),
+            ),
+            ...child.foregroundComponents,
+        ];
+
+        if (layoutComponents.length > 0) {
+            for (const component of layoutComponents) {
+                const bb = component.boundingBox;
+                const componentCorners = [
+                    { x: bb.x1, y: bb.y1 },
+                    { x: bb.x2, y: bb.y1 },
+                    { x: bb.x2, y: bb.y2 },
+                    { x: bb.x1, y: bb.y2 },
+                ];
+                for (const corner of componentCorners) {
+                    const worldPoint = childWorld.transformPoint(corner);
+                    const point = parentInverseWorld.transformPoint(worldPoint);
+                    minX = Math.min(minX, point.x);
+                    maxX = Math.max(maxX, point.x);
+                    minY = Math.min(minY, point.y);
+                    maxY = Math.max(maxY, point.y);
+                }
+            }
+        } else {
+            for (const corner of child.transform.corners) {
+                const point = parentInverseWorld.transformPoint(corner);
+                minX = Math.min(minX, point.x);
+                maxX = Math.max(maxX, point.x);
+                minY = Math.min(minY, point.y);
+                maxY = Math.max(maxY, point.y);
+            }
+        }
+
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        return {
+            width: maxX - minX,
+            height: maxY - minY,
+            centerOffsetX: centerX - child.position.x,
+            centerOffsetY: centerY - child.position.y,
+        };
+    }
+
+    #normalizeLayoutGap(gap: VectorConstructor | undefined): number {
+        if (typeof gap === 'number') {
+            return Number.isFinite(gap) ? gap : 0;
+        }
+        if (gap) {
+            return Number.isFinite(gap.x) ? gap.x : 0;
+        }
+
+        return 0;
     }
 
     #setBackground(

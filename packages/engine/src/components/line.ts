@@ -26,7 +26,9 @@ export interface C_LineJSON extends C_LineOptions {
     type: 'line';
 }
 
-export class C_Line<TEngine extends Engine = Engine> extends C_ShapeBase<TEngine> {
+export class C_Line<
+    TEngine extends Engine = Engine,
+> extends C_ShapeBase<TEngine> {
     public static typeString: string = 'C_Line';
 
     #start: Vector | null = null;
@@ -169,12 +171,11 @@ export class C_Line<TEngine extends Engine = Engine> extends C_ShapeBase<TEngine
             }
         }
 
-        const lineWidth = (this._style.lineWidth ?? 1) / 2;
         this._boundingBox.set({
-            x1: minX - lineWidth,
-            x2: maxX + lineWidth,
-            y1: minY - lineWidth,
-            y2: maxY + lineWidth,
+            x1: minX,
+            x2: maxX,
+            y1: minY,
+            y2: maxY,
         });
     }
 

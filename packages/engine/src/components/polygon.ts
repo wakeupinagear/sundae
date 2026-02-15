@@ -21,9 +21,15 @@ export class C_Polygon<
     #points: Vector[];
 
     constructor(options: C_PolygonOptions) {
-        super({ name: 'polygon', ...options });
+        const {
+            points,
+            lineCap = 'round',
+            lineJoin = 'round',
+            ...rest
+        } = options;
+        super({ name: 'polygon', lineCap, lineJoin, ...rest });
 
-        this.#points = options.points.map((point) => new Vector(point));
+        this.#points = points.map((point) => new Vector(point));
     }
 
     override get typeString(): string {

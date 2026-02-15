@@ -8,6 +8,7 @@ import { debugging } from './list/debugging';
 import { images } from './list/images';
 import { infiniteCanvas } from './list/infiniteCanvas';
 import { inputs } from './list/inputs';
+import { layoutMode } from './list/layoutMode';
 import { pong } from './list/pong';
 import { primitives } from './list/primitives';
 import { raycasts } from './list/raycasts';
@@ -79,6 +80,11 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Pointer Cursor',
                 description: 'Buttons that set cursor type on hover',
                 run: cursors,
+            },
+            layoutMode: {
+                name: 'Layout Mode',
+                description: 'Row and column layout with text boxes',
+                run: layoutMode,
             },
             zIndex: {
                 name: 'Z-Index',

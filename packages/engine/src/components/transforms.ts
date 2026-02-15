@@ -33,6 +33,7 @@ export class C_Transform<
     #worldMatrix: Matrix2D = new Matrix2D();
     #worldMatrixDirty: boolean = true;
     #worldPosition: Vector = new Vector(0);
+    #worldScale: Vector = new Vector(1);
 
     #boundingBox: BoundingBox = new BoundingBox(0);
     #corners: [Vector, Vector, Vector, Vector] = [
@@ -96,12 +97,27 @@ export class C_Transform<
     }
 
     get worldMatrix(): Readonly<Matrix2D> {
+        if (this.#localMatrixDirty) {
+            this.#computeLocalMatrix();
+        }
         if (this.#worldMatrixDirty) {
             this.#computeWorldMatrix();
             this.#boundsDirty = true;
         }
 
         return this.#worldMatrix;
+    }
+
+    get worldScale(): Readonly<Vector> {
+        if (this.#localMatrixDirty) {
+            this.#computeLocalMatrix();
+        }
+        if (this.#worldMatrixDirty) {
+            this.#computeWorldMatrix();
+            this.#boundsDirty = true;
+        }
+
+        return this.#worldScale;
     }
 
     get boundingBox(): Readonly<BoundingBox> {
@@ -243,12 +259,26 @@ export class C_Transform<
             this.#worldMatrix = this.localMatrix.clone();
         }
 
+        this.#worldScale.x = Math.hypot(
+            this.#worldMatrix.a,
+            this.#worldMatrix.b,
+        );
+        this.#worldScale.y = Math.hypot(
+            this.#worldMatrix.c,
+            this.#worldMatrix.d,
+        );
+
+        this.#worldMatrixDirty = false;
         this.#boundsDirty = true;
     }
 
     #computeBoundingBox() {
         if (!this.entity.isVisual() && this.entity.children.length === 0) {
             this.#boundingBox.set(0);
+            this.#corners[0].set(0);
+            this.#corners[1].set(0);
+            this.#corners[2].set(0);
+            this.#corners[3].set(0);
             return;
         }
 
@@ -330,6 +360,7 @@ export class C_Transform<
 
     #markLocalDirty() {
         this.#localMatrixDirty = true;
+        this.#worldMatrixDirty = true;
         this.markBoundsDirty();
 
         const entity = this.entity;

@@ -1,5 +1,5 @@
+import type { EntityJSON } from '@repo/engine/entities';
 import type { CursorType } from '@repo/engine/pointer';
-import { Scene } from '@repo/engine/scene';
 
 import type { EngineScenario } from '../types';
 
@@ -12,42 +12,37 @@ const CURSORS: { cursor: CursorType; label: string; color: string }[] = [
 ];
 
 const BUTTON_SIZE = 120;
-const GAP = 20;
-const TOTAL_WIDTH = CURSORS.length * BUTTON_SIZE + (CURSORS.length - 1) * GAP;
-const START_X = -TOTAL_WIDTH / 2 + BUTTON_SIZE / 2;
 const TEXT_SIZE_MULT = 0.175;
 
-class CursorsScene extends Scene {
-    override create(): void {
-        const cy = 0;
-
-        for (let i = 0; i < CURSORS.length; i++) {
-            const { cursor, label, color } = CURSORS[i];
-            const x = START_X + i * (BUTTON_SIZE + GAP);
-
-            this.createEntity({
-                name: `cursor_${cursor}`,
-                type: 'rectangle',
-                position: { x, y: cy },
-                scale: BUTTON_SIZE,
-                color,
-                lineWidth: 2,
-                pointerTarget: true,
-                cursorOnHover: cursor,
-                components: [
-                    {
-                        type: 'text',
-                        text: label,
-                        fontSize: TEXT_SIZE_MULT,
-                        color: 'white',
-                        maxWidth: 1,
-                    },
-                ],
-            });
-        }
-    }
-}
-
 export const cursors: EngineScenario = (harness) => {
-    harness.engine.openScene(CursorsScene);
+    harness.engine.openScene({
+        name: 'cursors',
+        entities: [
+            {
+                type: 'entity',
+                layoutMode: 'row',
+                gap: 32,
+                children: CURSORS.map(
+                    ({ cursor, label, color }) =>
+                        ({
+                            type: 'rectangle',
+                            scale: BUTTON_SIZE,
+                            color,
+                            lineWidth: 2,
+                            pointerTarget: true,
+                            cursorOnHover: cursor,
+                            components: [
+                                {
+                                    type: 'text',
+                                    text: label,
+                                    fontSize: TEXT_SIZE_MULT,
+                                    color: 'white',
+                                    maxWidth: 1,
+                                },
+                            ],
+                        }) as EntityJSON,
+                ),
+            },
+        ],
+    });
 };
