@@ -162,24 +162,25 @@ export class Entity<TEngine extends Engine = Engine> implements Renderable {
                   }
                 : rest.positionRelativeToCamera
             : { x: 'none', y: 'none' };
-        this._scaleRelativeToCamera = rest?.scaleRelativeToCamera
-            ? typeof rest.scaleRelativeToCamera === 'boolean'
-                ? {
-                      x: rest.scaleRelativeToCamera,
-                      y: rest.scaleRelativeToCamera,
-                  }
-                : rest.scaleRelativeToCamera
-            : {
-                  x: this._positionRelativeToCamera.x !== 'none',
-                  y: this._positionRelativeToCamera.y !== 'none',
-              };
+        const isPositionScaled =
+            this._positionRelativeToCamera.x !== 'none' ||
+            this._positionRelativeToCamera.y !== 'none';
+        this._scaleRelativeToCamera =
+            rest?.scaleRelativeToCamera !== undefined
+                ? typeof rest.scaleRelativeToCamera === 'boolean'
+                    ? {
+                          x: rest.scaleRelativeToCamera,
+                          y: rest.scaleRelativeToCamera,
+                      }
+                    : rest.scaleRelativeToCamera
+                : {
+                      x: isPositionScaled,
+                      y: isPositionScaled,
+                  };
         this._rotateRelativeToCamera =
             rest?.rotateRelativeToCamera !== undefined
                 ? Boolean(rest.rotateRelativeToCamera)
-                : Boolean(
-                      this._scaleRelativeToCamera.x ||
-                          this._scaleRelativeToCamera.y,
-                  );
+                : isPositionScaled;
 
         this._cull = rest?.cull ?? 'all';
         this._layoutMode = rest?.layoutMode ?? null;

@@ -1,3 +1,4 @@
+import { Maximize2, Minimize2 } from 'lucide-react';
 import {
     useCallback,
     useDeferredValue,
@@ -17,6 +18,7 @@ import { PointerButton } from '@repo/engine/pointer';
 import type { EngineWrapper } from '@repo/engine/wrapper';
 import { Harness } from '@repo/react';
 import { ThemeProvider } from '@repo/ui/components/ThemeProvider';
+import { Button } from '@repo/ui/components/ui/button';
 
 import { useAppStore } from '../store';
 import { WebHarness } from '../utils/harness';
@@ -176,6 +178,34 @@ export function App() {
         ExtendedToEngineMsg
     > | null>(null);
 
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    useEffect(() => {
+        const onFullscreenChange = () => {
+            setIsFullscreen(
+                document.fullscreenElement === canvasContainerRef.current,
+            );
+            window.dispatchEvent(new Event('resize'));
+        };
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+
+        return () =>
+            document.removeEventListener(
+                'fullscreenchange',
+                onFullscreenChange,
+            );
+    }, []);
+
+    const toggleFullscreen = useCallback(() => {
+        const el = canvasContainerRef.current;
+        if (!el) return;
+
+        if (document.fullscreenElement === el) {
+            document.exitFullscreen();
+        } else {
+            el.requestFullscreen();
+        }
+    }, []);
+
     // Non-worker version
     const onEngineReady = useCallback(
         (engine: Engine) => {
@@ -234,9 +264,23 @@ export function App() {
                     </div>
                 </aside>
                 <main
-                    className="size-full overflow-hidden bg-black"
+                    className="relative size-full overflow-hidden bg-black"
                     ref={canvasContainerRef}
                 >
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-2 z-10 size-9 rounded-md bg-black/50 text-white hover:bg-black/70"
+                        onClick={toggleFullscreen}
+                        title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                        type="button"
+                    >
+                        {isFullscreen ? (
+                            <Minimize2 className="size-[18px]" />
+                        ) : (
+                            <Maximize2 className="size-[18px]" />
+                        )}
+                    </Button>
                     <Harness
                         key={`${scenarioKey}-${runInWorker}`}
                         containerRef={canvasContainerRef}
