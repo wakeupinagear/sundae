@@ -477,6 +477,29 @@ export class C_Text<
                 const runWidth = runLength * charWidth;
 
                 if (currentLineWidth + runWidth <= maxWidth) {
+                    if (isSpaceRun) {
+                        // Peek at the next run: if the next word doesn't fit,
+                        // don't add the space—it becomes the wrap point.
+                        let nextRunEnd = runEnd;
+                        while (
+                            nextRunEnd < len &&
+                            text[nextRunEnd] !== ' '
+                        ) {
+                            nextRunEnd++;
+                        }
+                        const nextRunWidth =
+                            (nextRunEnd - runEnd) * charWidth;
+                        if (
+                            nextRunEnd > runEnd &&
+                            currentLineWidth + runWidth + nextRunWidth > maxWidth
+                        ) {
+                            if (currentLineWidth > 0) {
+                                pushLine();
+                            }
+                            i = runEnd;
+                            continue;
+                        }
+                    }
                     pushTextNode(text.slice(i, runEnd));
                     i = runEnd;
                     continue;
