@@ -16,10 +16,6 @@ const SNAPSHOTS_CURRENT_DIR = path.join(SNAPSHOTS_DIR, 'current');
 
 const SNAPSHOT_FILE_TYPE = 'png';
 
-const SNAPSHOT_FILE_TYPE_REGEX = new RegExp(
-    `^data:image/${SNAPSHOT_FILE_TYPE};base64,`,
-);
-
 const FILESYSTEM_ASSET_LOADER = new FilesystemAssetLoader({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     imageConstructor: Image as any,
@@ -102,10 +98,8 @@ export class SnapshotHarness implements IEngineHarness {
         }
     }
 
-    snapshot() {
-        const dataURL = this.#canvas.toDataURL(SNAPSHOT_FILE_TYPE, 1);
-        const base64Data = dataURL.replace(SNAPSHOT_FILE_TYPE_REGEX, '');
-        const imageBuffer = Buffer.from(base64Data, 'base64');
+    async snapshot() {
+        const imageBuffer = await this.#canvas.toBuffer(SNAPSHOT_FILE_TYPE);
 
         const folderName =
             this.#snapshotFolder ?? this.#formatTestFolderName(this.#testName);

@@ -4,7 +4,7 @@ export interface IEngineHarness {
     engine: Engine;
 
     step(n?: number): Promise<void>;
-    snapshot(): void;
+    snapshot(): Promise<void>;
 }
 
 export type EngineScenario = (harness: IEngineHarness) => void | Promise<void>;

@@ -1,5 +1,4 @@
 import { type Engine } from '@repo/engine';
-
 import { type IEngineHarness } from '@repo/engine-scenarios';
 
 export class WebHarness implements IEngineHarness {
@@ -14,7 +13,7 @@ export class WebHarness implements IEngineHarness {
         }
     }
 
-    snapshot(): void {
+    async snapshot(): Promise<void> {
         // Snapshot requested in web harness - ignoring for now
     }
 }

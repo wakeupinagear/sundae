@@ -17,6 +17,7 @@ import { renderChaos } from './list/renderChaos';
 import { signals } from './list/signals';
 import { superSundaeBros } from './list/superSundaeBros';
 import { text } from './list/text';
+import { textStressTest } from './list/textStressTest';
 import { typeErrors } from './list/type-errors';
 import { usMap } from './list/usMap';
 import { zIndex } from './list/zIndex';
@@ -172,6 +173,11 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Render Chaos',
                 description: 'Funky visuals',
                 run: renderChaos,
+            },
+            textStressTest: {
+                name: 'Text Stress Test',
+                description: 'Procedural text with random style changes',
+                run: textStressTest,
             },
         },
     },

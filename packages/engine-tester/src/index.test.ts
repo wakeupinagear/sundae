@@ -31,7 +31,7 @@ for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
 
             if (harness.snapshotCount === 0) {
                 await harness.step(12);
-                harness.snapshot();
+                await harness.snapshot();
             }
         });
     }

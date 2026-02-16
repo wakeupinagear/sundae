@@ -46,4 +46,8 @@ export class E_Text<TEngine extends Engine = Engine> extends Entity<TEngine> {
     set text(text: string) {
         this.#text.text = text;
     }
+
+    get textComponent(): C_Text<TEngine> {
+        return this.#text;
+    }
 }

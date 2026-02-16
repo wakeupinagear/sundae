@@ -169,7 +169,7 @@ export const pong: EngineScenario = async (harness) => {
     harness.engine.openScene(PongScene);
 
     await harness.step(100);
-    harness.snapshot();
+    await harness.snapshot();
     await harness.step(2);
-    harness.snapshot();
+    await harness.snapshot();
 };
