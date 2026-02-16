@@ -1,14 +1,16 @@
 import type { SignalSystem } from '.';
 import type { Engine } from '../../engine';
 
-export type SignalValueFormat = 'default' | 'string' | 'number';
+export type SignalValueFormat = 'default' | 'string' | 'number' | 'boolean';
 
 export type ToStringFunction<T> = (value: T) => string;
 export type ToNumberFunction<T> = (value: T) => number;
+export type ToBooleanFunction<T> = (value: T) => boolean;
 
 interface SignalOptions<T> {
     stringFormatter?: ToStringFunction<T>;
     numberFormatter?: ToNumberFunction<T>;
+    booleanFormatter?: ToBooleanFunction<T>;
 }
 
 export const defaultNumberStringFormatter: ToStringFunction<number> = (
@@ -48,8 +50,9 @@ export class SignalVariable<T = any> {
 
     get(format: 'string'): string;
     get(format: 'number'): number;
+    get(format: 'boolean'): boolean;
     get(format?: 'default'): T;
-    get(format?: SignalValueFormat): string | number | T {
+    get(format?: SignalValueFormat): string | number | boolean | T {
         switch (format) {
             case 'string':
                 return (
@@ -60,6 +63,11 @@ export class SignalVariable<T = any> {
                 return (
                     this.#options.numberFormatter?.(this.#value) ??
                     Number(this.#value)
+                );
+            case 'boolean':
+                return (
+                    this.#options.booleanFormatter?.(this.#value) ??
+                    Boolean(this.#value)
                 );
             default:
                 return this.#value;

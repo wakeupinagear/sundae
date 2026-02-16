@@ -1,6 +1,11 @@
 import type { Engine } from '@repo/engine';
 import type { E_Text } from '@repo/engine/entities';
 import { Scene } from '@repo/engine/scene';
+import {
+    SIGNAL_FRAME_COUNT,
+    SIGNAL_POINTER_SCREEN_X,
+    SIGNAL_POINTER_SCREEN_Y,
+} from '@repo/engine/signal';
 
 import type { EngineScenario } from '../types';
 
@@ -53,6 +58,8 @@ const WORDS = [
     'brown',
     'fox',
     'jumps',
+    `frame={{${SIGNAL_FRAME_COUNT}}}`,
+    `pointer=({{${SIGNAL_POINTER_SCREEN_X}}}, {{${SIGNAL_POINTER_SCREEN_Y}}})`,
 ];
 
 const COLORS = [
@@ -77,7 +84,6 @@ const COLORS = [
 const SIZES = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
 const BROWSER_WORD_COUNT = 12000;
-const HEADLESS_WORD_COUNT = 3000;
 
 function generateStressText(engine: Engine, wordCount: number): string {
     const parts: string[] = [];

@@ -1,5 +1,6 @@
 import type { Engine } from '../engine';
 import { System } from './index';
+import { SignalSystem } from './signal';
 
 const LOG_PREFIX = '[LOG]';
 const WARN_PREFIX = '[WARN]';
@@ -40,32 +41,45 @@ export class LogSystem<TEngine extends Engine = Engine>
     }
 
     log: I_LogSystem['log'] = (...args) => {
-        this.#logOutput?.log?.(LOG_PREFIX, ...args);
+        this.#logOutput?.log?.(LOG_PREFIX, ...this.#processArgs(args));
     };
 
     warn: I_LogSystem['warn'] = (...args) => {
-        this.#logOutput?.warn?.(WARN_PREFIX, ...args);
+        this.#logOutput?.warn?.(WARN_PREFIX, ...this.#processArgs(args));
     };
 
     error: I_LogSystem['error'] = (...args) => {
-        this.#logOutput?.error?.(ERROR_PREFIX, ...args);
+        this.#logOutput?.error?.(ERROR_PREFIX, ...this.#processArgs(args));
     };
 
     logBeforeFrame: I_LogSystem['logBeforeFrame'] = (n, ...args) => {
         if (this._engine.frameCount < n) {
-            this.#logOutput?.log(LOG_PREFIX, ...args);
+            this.#logOutput?.log(LOG_PREFIX, ...this.#processArgs(args));
         }
     };
 
     warnBeforeFrame: I_LogSystem['warnBeforeFrame'] = (n, ...args) => {
         if (this._engine.frameCount < n) {
-            this.#logOutput?.warn(WARN_PREFIX, ...args);
+            this.#logOutput?.warn(WARN_PREFIX, ...this.#processArgs(args));
         }
     };
 
     errorBeforeFrame: I_LogSystem['errorBeforeFrame'] = (n, ...args) => {
         if (this._engine.frameCount < n) {
-            this.#logOutput?.error(ERROR_PREFIX, ...args);
+            this.#logOutput?.error(ERROR_PREFIX, ...this.#processArgs(args));
         }
     };
+
+    #processArgs(args: LogArgs): LogArgs {
+        return args.map((arg) => {
+            if (typeof arg === 'string') {
+                return SignalSystem.formatSignalTemplates(
+                    arg,
+                    this._engine.getSignalValue,
+                );
+            }
+
+            return arg;
+        });
+    }
 }

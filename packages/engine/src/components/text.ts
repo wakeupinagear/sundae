@@ -4,12 +4,11 @@ import { BoundingBox, type BoundingBoxConstructor } from '../math/boundingBox';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
+import { SignalSystem } from '../systems/signal';
 import type { OneAxisAlignment, TwoAxisAlignment } from '../types';
 
 const MONOSPACE_WIDTH_RATIO = 0.6;
 const MONOSPACE_HEIGHT_RATIO = 0.8;
-
-const TEMPLATE_REGEX = /\{\{\s*([a-zA-Z0-9_.$]+)\s*\}\}/g;
 
 const POSITIONING_TO_HORIZONTAL_ALIGNMENT: Record<
     TwoAxisAlignment,
@@ -362,19 +361,15 @@ export class C_Text<
     #subscribeToTemplateSignals() {
         this.unsubscribeFromAllSignals();
 
-        const variables = new Set<string>();
-        let match: RegExpExecArray | null;
-        while ((match = TEMPLATE_REGEX.exec(this.#text)) !== null) {
-            variables.add(match[1]);
-        }
-
+        const variables = SignalSystem.getSignalsInText(this.#text);
         if (variables.size > 0) {
             const cb = (() => {
                 this.#markTextDirty();
 
                 return this._enabled;
             }).bind(this);
-            for (const signalName of variables) {
+            for (const signal of variables) {
+                const signalName = signal.split(':')[0];
                 this.subscribeToSignal(signalName, cb);
             }
         }
@@ -385,11 +380,10 @@ export class C_Text<
         this.#textSize.set(0);
         this.#textPosition.set(0);
 
-        const substitutedText = this.#text.replace(
-            TEMPLATE_REGEX,
-            (_, signalName) => this.getSignalValue(signalName, '', 'string'),
+        const substitutedText = SignalSystem.formatSignalTemplates(
+            this.#text,
+            this.getSignalValue,
         );
-
         const nodes = this.#parseTextLines(substitutedText);
 
         // First pass: organize nodes into lines and calculate dimensions
@@ -481,17 +475,14 @@ export class C_Text<
                         // Peek at the next run: if the next word doesn't fit,
                         // don't add the space—it becomes the wrap point.
                         let nextRunEnd = runEnd;
-                        while (
-                            nextRunEnd < len &&
-                            text[nextRunEnd] !== ' '
-                        ) {
+                        while (nextRunEnd < len && text[nextRunEnd] !== ' ') {
                             nextRunEnd++;
                         }
-                        const nextRunWidth =
-                            (nextRunEnd - runEnd) * charWidth;
+                        const nextRunWidth = (nextRunEnd - runEnd) * charWidth;
                         if (
                             nextRunEnd > runEnd &&
-                            currentLineWidth + runWidth + nextRunWidth > maxWidth
+                            currentLineWidth + runWidth + nextRunWidth >
+                                maxWidth
                         ) {
                             if (currentLineWidth > 0) {
                                 pushLine();

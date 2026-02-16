@@ -49,6 +49,7 @@ export class SnapshotHarness implements IEngineHarness {
         this.#engine = createEngine(Engine, {
             engineOptions: {
                 ...engineOptions,
+                now: () => 1433671641000,
                 onReadyForNextFrame: (startNextFrame) => {
                     this.#startNextFrame = startNextFrame;
                 },

@@ -197,6 +197,7 @@ export interface EngineOptions {
     logOutput: LogOutput | null | undefined;
 
     randomSeed: number;
+    now: () => number;
 }
 
 const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
@@ -240,6 +241,7 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     logOutput: console,
 
     randomSeed: 1234567890,
+    now: Date.now,
 };
 
 export class Engine<TOptions extends EngineOptions = EngineOptions>
@@ -1019,6 +1021,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     random(): number {
         return this.#prng();
+    }
+
+    now(): number {
+        return this._options.now();
     }
 
     #engineUpdate(deltaTime: number): boolean {

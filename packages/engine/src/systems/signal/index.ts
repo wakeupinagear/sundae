@@ -2,6 +2,8 @@ import { System } from '..';
 import type { Engine } from '../../engine';
 import type { SignalValueFormat, SignalVariable } from './variable';
 
+const TEMPLATE_REGEX = /\{\{\s*([a-zA-Z0-9_.$:]+)\s*\}\}/g;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type OnSignalUpdatedCB<T = any> = (newValue: T) => boolean | void;
 
@@ -38,6 +40,29 @@ export class SignalSystem<
     #updatedVariables: Set<string> = new Set();
     #signalSubscribers: Map<string, Set<string>> = new Map();
 
+    static getSignalsInText(text: string): Set<string> {
+        const signals = new Set<string>();
+        let match: RegExpExecArray | null;
+        while ((match = TEMPLATE_REGEX.exec(text)) !== null) {
+            signals.add(match[1]);
+        }
+
+        return signals;
+    }
+
+    static formatSignalTemplates(
+        text: string,
+        getSignalValue: ISignalSubscriber['getSignalValue'],
+    ): string {
+        return text.replace(TEMPLATE_REGEX, (_, signal) => {
+            const splitByColon = signal.split(':');
+            const signalName = splitByColon[0];
+            const format = splitByColon[1] ?? 'string';
+
+            return String(getSignalValue(signalName, '', format));
+        });
+    }
+
     override earlyUpdate(): boolean {
         return this.#broadcastSignalUpdates();
     }
@@ -62,6 +87,8 @@ export class SignalSystem<
             return signal.variable.get('string') as GetSignalValueReturn<T, F>;
         if (fmt === 'number')
             return signal.variable.get('number') as GetSignalValueReturn<T, F>;
+        if (fmt === 'boolean')
+            return signal.variable.get('boolean') as GetSignalValueReturn<T, F>;
         return signal.variable.get() as GetSignalValueReturn<T, F>;
     }) as ISignalSubscriber['getSignalValue'];
 
