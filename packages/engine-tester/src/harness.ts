@@ -8,6 +8,8 @@ import { FilesystemAssetLoader } from '@repo/node';
 
 import { createEngine } from '../../engine/src/utils';
 
+const FIXED_DELTA_TIME = 1 / 60;
+
 const WRITE_MODE = process.env.WRITE_SNAPSHOTS === 'true';
 
 const SNAPSHOTS_DIR = path.join(process.cwd(), 'snapshots');
@@ -35,7 +37,7 @@ export class SnapshotHarness implements IEngineHarness {
     #snapshotFolder: string | undefined;
     #frameTimeout: number;
 
-    #startNextFrame: (() => void) | null = null;
+    #startNextFrame: ((deltaTime: number) => void) | null = null;
     #currentFrame: number = 0;
     #snapshotCount: number = 0;
 
@@ -83,7 +85,7 @@ export class SnapshotHarness implements IEngineHarness {
                         };
                     this.#engine.options = { onReadyForNextFrame };
 
-                    this.#startNextFrame?.();
+                    this.#startNextFrame?.(FIXED_DELTA_TIME);
                 }),
                 new Promise(() =>
                     setTimeout(() => {

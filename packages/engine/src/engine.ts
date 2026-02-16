@@ -183,7 +183,9 @@ export interface EngineOptions {
     capturedKeys: CapturedKey[];
     onCursorChange: ((cursor: CursorType, canvasID: string) => void) | null;
 
-    onReadyForNextFrame: ((startNextFrame: () => void) => void) | null;
+    onReadyForNextFrame:
+        | ((startNextFrame: (deltaTime?: number) => void) => void)
+        | null;
     onDestroy: (() => void) | null;
 
     devicePixelRatio: number;
@@ -1030,12 +1032,13 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return updated;
     }
 
-    #engineLoop() {
+    #engineLoop(externalDeltaTime?: number) {
         const currentTime = performance.now();
         const deltaTime =
-            this.updateCount < this.options.delayDeltaTimeByNFrames
+            externalDeltaTime ??
+            (this.updateCount < this.options.delayDeltaTimeByNFrames
                 ? 0
-                : (currentTime - this._lastTime) * 0.001;
+                : (currentTime - this._lastTime) * 0.001);
         this._lastTime = currentTime;
         this._statsSystem.update(deltaTime);
         let systemLateUpdated = false;
