@@ -47,6 +47,11 @@ export const PointerButton = {
     RIGHT: 2,
 } as const;
 export type PointerButton = (typeof PointerButton)[keyof typeof PointerButton];
+const POINTER_BUTTONS: PointerButton[] = [
+    PointerButton.LEFT,
+    PointerButton.MIDDLE,
+    PointerButton.RIGHT,
+];
 
 export interface CanvasPointerState
     extends Record<PointerButton, PointerButtonState> {
@@ -224,12 +229,10 @@ export class PointerSystem<TEngine extends Engine = Engine>
         canvasID = DEFAULT_CANVAS_ID,
     ) => {
         const pointer = this.#getCanvasPointer(canvasID);
-        pointer.currentState[button] = {
-            ...pointer.currentState[button],
-            down,
-            downAsNum: down ? 1 : 0,
-            downTime: 0,
-        };
+        const buttonState = pointer.currentState[button];
+        buttonState.down = down;
+        buttonState.downAsNum = down ? 1 : 0;
+        buttonState.downTime = 0;
         const position = pointer.currentState.position;
         if (down) {
             pointer.currentState.clickStartPosition = position.clone();
@@ -292,13 +295,14 @@ export class PointerSystem<TEngine extends Engine = Engine>
 
     override earlyUpdate(deltaTime: number) {
         const engineOptions = this._engine.options;
-        for (const pointer of Object.values(this.#canvasPointers)) {
+        for (const canvasID in this.#canvasPointers) {
+            const pointer = this.#canvasPointers[canvasID]!;
             pointer.currentState.justMoved =
                 pointer.currentState.position.x !==
                     pointer.prevState.position.x ||
                 pointer.currentState.position.y !==
                     pointer.prevState.position.y;
-            Object.values(PointerButton).forEach((button: PointerButton) => {
+            for (const button of POINTER_BUTTONS) {
                 const currentState = pointer.currentState[button];
                 currentState.pressed =
                     currentState.down && !pointer.prevState[button].down;
@@ -334,22 +338,37 @@ export class PointerSystem<TEngine extends Engine = Engine>
                 } else if (currentState.down) {
                     currentState.downTime += deltaTime;
                 }
-            });
+            }
 
-            const { position, ...restState } = pointer.currentState;
-            pointer.prevState = {
-                ...pointer.prevState,
-                ...restState,
-                [PointerButton.LEFT]: {
-                    ...pointer.currentState[PointerButton.LEFT],
-                },
-                [PointerButton.MIDDLE]: {
-                    ...pointer.currentState[PointerButton.MIDDLE],
-                },
-                [PointerButton.RIGHT]: {
-                    ...pointer.currentState[PointerButton.RIGHT],
-                },
-            };
+            const position = pointer.currentState.position;
+            pointer.prevState.scrollDelta = pointer.currentState.scrollDelta;
+            pointer.prevState.justMoved = pointer.currentState.justMoved;
+            pointer.prevState.onScreen = pointer.currentState.onScreen;
+            pointer.prevState.justMovedOnScreen =
+                pointer.currentState.justMovedOnScreen;
+            pointer.prevState.justMovedOffScreen =
+                pointer.currentState.justMovedOffScreen;
+            pointer.prevState.clickStartPosition =
+                pointer.currentState.clickStartPosition;
+            pointer.prevState.clickEndPosition =
+                pointer.currentState.clickEndPosition;
+            pointer.prevState.screenPosition.set(
+                pointer.currentState.screenPosition,
+            );
+            for (const button of POINTER_BUTTONS) {
+                const prevButtonState = pointer.prevState[button];
+                const currButtonState = pointer.currentState[button];
+                prevButtonState.down = currButtonState.down;
+                prevButtonState.downAsNum = currButtonState.downAsNum;
+                prevButtonState.pressed = currButtonState.pressed;
+                prevButtonState.released = currButtonState.released;
+                prevButtonState.downTime = currButtonState.downTime;
+                prevButtonState.numHeldPresses = currButtonState.numHeldPresses;
+                prevButtonState.clicked = currButtonState.clicked;
+                prevButtonState.clickCount = currButtonState.clickCount;
+                prevButtonState.timeSinceLastClick =
+                    currButtonState.timeSinceLastClick;
+            }
             pointer.prevState.position.set(position);
 
             if (pointer.currentState.justMoved) {
@@ -360,7 +379,8 @@ export class PointerSystem<TEngine extends Engine = Engine>
     }
 
     override lateUpdate(): boolean | void {
-        for (const pointer of Object.values(this.#canvasPointers)) {
+        for (const canvasID in this.#canvasPointers) {
+            const pointer = this.#canvasPointers[canvasID]!;
             this.#applyCanvasCursor(pointer, 'default');
         }
     }
@@ -370,12 +390,10 @@ export class PointerSystem<TEngine extends Engine = Engine>
         canvasID = DEFAULT_CANVAS_ID,
     ): void => {
         const pointer = this.#getCanvasPointer(canvasID);
-        pointer.currentState[button] = {
-            ...pointer.currentState[button],
-            clicked: false,
-            released: false,
-            pressed: false,
-        };
+        const buttonState = pointer.currentState[button];
+        buttonState.clicked = false;
+        buttonState.released = false;
+        buttonState.pressed = false;
     };
 
     #getCanvasPointer(canvasID: string): CanvasPointer {

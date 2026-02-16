@@ -327,7 +327,7 @@ export class Entity<TEngine extends Engine = Engine> implements IRenderable {
     }
 
     get foregroundComponents(): ReadonlyArray<Component<TEngine>> {
-        if (!this.#componentAppearancesDirty) {
+        if (this.#componentAppearancesDirty) {
             this.#processComponentAppearanceChanges();
             this.#componentAppearancesDirty = false;
         }
@@ -336,7 +336,7 @@ export class Entity<TEngine extends Engine = Engine> implements IRenderable {
     }
 
     get backgroundComponents(): ReadonlyArray<Component<TEngine>> {
-        if (!this.#componentAppearancesDirty) {
+        if (this.#componentAppearancesDirty) {
             this.#processComponentAppearanceChanges();
             this.#componentAppearancesDirty = false;
         }

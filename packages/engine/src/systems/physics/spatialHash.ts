@@ -17,6 +17,10 @@ export class SpatialHashGrid<
     #cellSize: number;
     #grid: Map<string, Set<TEntity>> = new Map();
     #entityCells: Map<string, string[]> = new Map();
+    #pairResults: [TEntity, TEntity][] = [];
+    #checkedPairs: Map<string, Set<string>> = new Map();
+    #checkedPairSetPool: Set<string>[] = [];
+    #cellEntityBuffer: TEntity[] = [];
 
     constructor(cellSize: number) {
         this.#cellSize = cellSize;
@@ -70,13 +74,24 @@ export class SpatialHashGrid<
     }
 
     queryPairs(): [TEntity, TEntity][] {
-        const pairs: [TEntity, TEntity][] = [];
-        const checkedPairs = new Map<string, Set<string>>();
+        const pairs = this.#pairResults;
+        pairs.length = 0;
+
+        for (const checked of this.#checkedPairs.values()) {
+            checked.clear();
+            this.#checkedPairSetPool.push(checked);
+        }
+        this.#checkedPairs.clear();
 
         for (const cell of this.#grid.values()) {
             if (cell.size < 2) continue;
 
-            const entities = Array.from(cell);
+            const entities = this.#cellEntityBuffer;
+            entities.length = 0;
+            for (const entity of cell) {
+                entities.push(entity);
+            }
+
             for (let i = 0; i < entities.length; i++) {
                 const entityA = entities[i];
                 const bboxA = entityA.transform.boundingBox;
@@ -90,10 +105,13 @@ export class SpatialHashGrid<
                         secondID = entityA.id;
                     }
 
-                    let checkedAgainst = checkedPairs.get(firstID);
+                    let checkedAgainst = this.#checkedPairs.get(firstID);
                     if (!checkedAgainst) {
-                        checkedAgainst = new Set();
-                        checkedPairs.set(firstID, checkedAgainst);
+                        checkedAgainst = this.#checkedPairSetPool.pop();
+                        if (!checkedAgainst) {
+                            checkedAgainst = new Set();
+                        }
+                        this.#checkedPairs.set(firstID, checkedAgainst);
                     } else if (checkedAgainst.has(secondID)) {
                         continue;
                     }

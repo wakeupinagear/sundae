@@ -141,14 +141,21 @@ export class PhysicsSystem<
     }
 
     raycast(request: RaycastRequest<TEngine>): Raycast<TEngine>['result'] {
-        const {
-            origin: _origin,
-            direction,
-            maxDistance,
-            ignoreEntity,
-        } = request;
-        const origin = new Vector(_origin);
-        const dir = new Vector(direction).normalize();
+        const { origin, direction, maxDistance, ignoreEntity } = request;
+        const originX = origin.x;
+        const originY = origin.y;
+        const dirLength = Math.hypot(direction.x, direction.y);
+        if (dirLength === 0) {
+            this.#raycasts.push({
+                request,
+                result: null,
+            });
+            return null;
+        }
+
+        const invDirLength = 1 / dirLength;
+        const dirX = direction.x * invDirLength;
+        const dirY = direction.y * invDirLength;
         let closest: RaycastResult<TEngine> | null = null;
         let closestDist = maxDistance;
 
@@ -160,14 +167,18 @@ export class PhysicsSystem<
                     entity.collider.type === 'circle'
                         ? this.#raycastCircle(
                               entity.collider as C_CircleCollider<TEngine>,
-                              origin,
-                              dir,
+                              originX,
+                              originY,
+                              dirX,
+                              dirY,
                               closestDist,
                           )
                         : this.#raycastRectangle(
                               entity.collider as C_RectangleCollider<TEngine>,
-                              origin,
-                              dir,
+                              originX,
+                              originY,
+                              dirX,
+                              dirY,
                               closestDist,
                           );
 
@@ -195,63 +206,87 @@ export class PhysicsSystem<
 
     #raycastCircle(
         collider: C_CircleCollider<TEngine>,
-        origin: ImmutableVector,
-        direction: ImmutableVector,
+        originX: number,
+        originY: number,
+        dirX: number,
+        dirY: number,
         maxDistance: number,
     ): RaycastResult<TEngine> | null {
         const center = collider.entity.position;
         const radius = collider.radius;
-        const toCenter = center.sub(origin);
-        const projection = toCenter.dot(direction);
+        const toCenterX = center.x - originX;
+        const toCenterY = center.y - originY;
+        const projection = toCenterX * dirX + toCenterY * dirY;
         if (projection < 0) return null;
 
-        const distSq = toCenter.lengthSquared() - projection * projection;
+        const distSq =
+            toCenterX * toCenterX +
+            toCenterY * toCenterY -
+            projection * projection;
         const radiusSq = radius * radius;
         if (distSq > radiusSq) return null;
 
         const distance = projection - Math.sqrt(radiusSq - distSq);
         if (distance < 0 || distance > maxDistance) return null;
 
-        const point = origin.add(direction.scaleBy(distance));
-
         return {
             collider,
-            point,
+            point: new Vector(
+                originX + dirX * distance,
+                originY + dirY * distance,
+            ),
             distance,
         };
     }
 
     #raycastRectangle(
         collider: C_RectangleCollider<TEngine>,
-        origin: ImmutableVector,
-        direction: ImmutableVector,
+        originX: number,
+        originY: number,
+        dirX: number,
+        dirY: number,
         maxDistance: number,
     ): RaycastResult<TEngine> | null {
         const corners = collider.entity.transform.corners;
         let closestT = Infinity;
-        let closestNormal: Vector | null = null;
+        let hasHit = false;
 
         for (let i = 0; i < 4; i++) {
             const start = corners[i];
-            const edge = corners[(i + 1) % 4].sub(start);
-            const normal = new Vector(-edge.y, edge.x).normalize();
-            const denom = direction.dot(normal);
+            const end = corners[(i + 1) % 4];
+            const edgeX = end.x - start.x;
+            const edgeY = end.y - start.y;
+            const edgeLengthSq = edgeX * edgeX + edgeY * edgeY;
+            if (edgeLengthSq === 0) continue;
+
+            const edgeLength = Math.sqrt(edgeLengthSq);
+            const invEdgeLength = 1 / edgeLength;
+            const normalX = -edgeY * invEdgeLength;
+            const normalY = edgeX * invEdgeLength;
+            const denom = dirX * normalX + dirY * normalY;
             if (Math.abs(denom) < 1e-10) continue;
 
-            const t = start.sub(origin).dot(normal) / denom;
+            const toStartX = start.x - originX;
+            const toStartY = start.y - originY;
+            const t = (toStartX * normalX + toStartY * normalY) / denom;
             if (t < 0 || t > maxDistance || t >= closestT) continue;
 
-            const proj = origin.add(direction.scaleBy(t)).sub(start).dot(edge);
-            if (proj >= 0 && proj <= edge.lengthSquared()) {
+            const hitX = originX + dirX * t;
+            const hitY = originY + dirY * t;
+            const proj = (hitX - start.x) * edgeX + (hitY - start.y) * edgeY;
+            if (proj >= 0 && proj <= edgeLengthSq) {
                 closestT = t;
-                closestNormal = denom < 0 ? normal : normal.negate();
+                hasHit = true;
             }
         }
 
-        return closestNormal
+        return hasHit
             ? {
                   collider,
-                  point: origin.add(direction.scaleBy(closestT)),
+                  point: new Vector(
+                      originX + dirX * closestT,
+                      originY + dirY * closestT,
+                  ),
                   distance: closestT,
               }
             : null;

@@ -34,6 +34,10 @@ export class AssetSystem<
         return Array.from(this.#loadingAssets);
     }
 
+    hasLoadingAssets(): boolean {
+        return this.#loadingAssets.size > 0;
+    }
+
     onWorkerMessage(event: MessageEvent<ToEngineMsg>): void {
         this.#assetLoader.onWorkerMessage(event);
     }

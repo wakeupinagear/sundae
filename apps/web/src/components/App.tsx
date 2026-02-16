@@ -157,7 +157,9 @@ export function App() {
                 cameraHash.current,
             ),
             debugOverlay: activeDebugOverlay,
-            engineTraces: activeDebugOverlay !== DebugOverlayFlags.NONE,
+            engineTraces: Boolean(
+                activeDebugOverlay & DebugOverlayFlags.STATS_TRACES,
+            ),
             randomSeed: trueRandom
                 ? (Math.random() * 2 ** 32) >>> 0
                 : undefined,

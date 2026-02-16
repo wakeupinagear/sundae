@@ -1055,10 +1055,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                 });
             }
 
-            const loadingAssets = this._assetSystem.getLoadingAssets();
+            const hasLoadingAssets = this._assetSystem.hasLoadingAssets();
             const assetLoadingBehavior = this.options.assetLoadingBehavior;
             const shouldUpdate =
-                loadingAssets.length === 0 ||
+                !hasLoadingAssets ||
                 assetLoadingBehavior === 'async' ||
                 assetLoadingBehavior === 'block-render';
 
@@ -1082,7 +1082,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             }
 
             this.#forceRender &&=
-                loadingAssets.length === 0 ||
+                !hasLoadingAssets ||
                 assetLoadingBehavior === 'async' ||
                 assetLoadingBehavior === 'block-update';
         });
@@ -1092,7 +1092,8 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             if (forceRender || this.#forceRenderCameras.size > 0) {
                 // Only clear the canvas if we are forcing a full render
                 if (forceRender) {
-                    for (const canvas of Object.values(this._canvases)) {
+                    for (const canvasID in this._canvases) {
+                        const canvas = this._canvases[canvasID];
                         const ctx = canvas?.getContext('2d');
                         if (canvas && ctx) {
                             ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1102,7 +1103,8 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                     }
                 }
 
-                for (const cameraSystem of Object.values(this._cameraSystems)) {
+                for (const cameraID in this._cameraSystems) {
+                    const cameraSystem = this._cameraSystems[cameraID];
                     if (
                         forceRender ||
                         this.#forceRenderCameras.has(cameraSystem.id)
