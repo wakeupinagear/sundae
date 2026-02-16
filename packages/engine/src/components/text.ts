@@ -128,7 +128,7 @@ export class C_Text<
         this.#fontFamily = options.fontFamily ?? 'monospace';
         this.#lineGap = options.lineGap ?? this.#fontSize * 0.5;
         this.#textAlign = options.textAlign ?? 'top-left';
-        this.#trim = options.trim ?? 'all';
+        this.#trim = options.trim ?? 'ends';
         this.#startTagDelim = options.startTagDelim ?? '<|';
         this.#endTagDelim = options.endTagDelim ?? '|>';
         this.#italic = options.italic ?? false;
@@ -495,6 +495,11 @@ export class C_Text<
 
         // Apply trimming
         const trimmedLines: Line[] = [];
+        const lineHasVisibleText = (line: Line) =>
+            line.nodes.some(
+                (node) =>
+                    node.type === 'text' && node.text.trim().length > 0,
+            );
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const shouldTrim =
@@ -505,17 +510,31 @@ export class C_Text<
                 // Trim whitespace from text nodes
                 const trimmedNodes: TextNode[] = [];
                 let hasContent = false;
+                let firstTextNodeIndex = -1;
+                let lastTextNodeIndex = -1;
 
-                for (const node of line.nodes) {
+                for (let j = 0; j < line.nodes.length; j++) {
+                    if (line.nodes[j].type !== 'text') continue;
+                    if (firstTextNodeIndex === -1) {
+                        firstTextNodeIndex = j;
+                    }
+                    lastTextNodeIndex = j;
+                }
+
+                const shouldTrimStart = this.#trim === 'all' || i === 0;
+                const shouldTrimEnd =
+                    this.#trim === 'all' || i === lines.length - 1;
+
+                for (let j = 0; j < line.nodes.length; j++) {
+                    const node = line.nodes[j];
                     if (node.type === 'text') {
-                        const trimmed =
-                            i === 0 && i === lines.length - 1
-                                ? node.text.trim()
-                                : i === 0
-                                  ? node.text.trimStart()
-                                  : i === lines.length - 1
-                                    ? node.text.trimEnd()
-                                    : node.text;
+                        let trimmed = node.text;
+                        if (j === firstTextNodeIndex && shouldTrimStart) {
+                            trimmed = trimmed.trimStart();
+                        }
+                        if (j === lastTextNodeIndex && shouldTrimEnd) {
+                            trimmed = trimmed.trimEnd();
+                        }
                         if (trimmed) {
                             trimmedNodes.push({ type: 'text', text: trimmed });
                             hasContent = true;
@@ -551,6 +570,22 @@ export class C_Text<
                 }
             } else {
                 trimmedLines.push(line);
+            }
+        }
+
+        if (this.#trim === 'ends' || this.#trim === 'all') {
+            while (
+                trimmedLines.length > 0 &&
+                !lineHasVisibleText(trimmedLines[0])
+            ) {
+                trimmedLines.shift();
+            }
+
+            while (
+                trimmedLines.length > 0 &&
+                !lineHasVisibleText(trimmedLines[trimmedLines.length - 1])
+            ) {
+                trimmedLines.pop();
             }
         }
 

@@ -14,6 +14,16 @@ import {
     type CursorType,
     PointerButton,
 } from './pointer';
+import {
+    PRIMARY_CAMERA_POINTER_WORLD_X,
+    PRIMARY_CAMERA_POINTER_WORLD_Y,
+    PRIMARY_CAMERA_WORLD_X,
+    PRIMARY_CAMERA_WORLD_Y,
+} from './signal/constants';
+import {
+    SignalVariable,
+    defaultNumberStringFormatter,
+} from './signal/variable';
 
 const SCROLL_DELTA_PER_STEP = 120;
 const DRAG_CURSOR_PRIORITY = 100;
@@ -116,6 +126,11 @@ export class CameraSystem<
     #prevCanvasSize: Vector | null = null;
     #size: Vector | null = null;
 
+    #worldX: SignalVariable<number>;
+    #worldY: SignalVariable<number>;
+    #pointerWorldX: SignalVariable<number>;
+    #pointerWorldY: SignalVariable<number>;
+
     #isPointerOverCamera: boolean = false;
     #isCameraClicked: boolean = false;
 
@@ -147,6 +162,31 @@ export class CameraSystem<
                 y2: Infinity,
             },
         };
+
+        this.#worldX = new SignalVariable<number>(
+            `${PRIMARY_CAMERA_WORLD_X}_${id}`,
+            0,
+            engine,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
+        this.#worldY = new SignalVariable<number>(
+            `${PRIMARY_CAMERA_WORLD_Y}_${id}`,
+            0,
+            engine,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
+        this.#pointerWorldX = new SignalVariable<number>(
+            `${PRIMARY_CAMERA_POINTER_WORLD_X}_${id}`,
+            0,
+            engine,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
+        this.#pointerWorldY = new SignalVariable<number>(
+            `${PRIMARY_CAMERA_POINTER_WORLD_Y}_${id}`,
+            0,
+            engine,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
     }
 
     override get typeString(): string {
@@ -408,7 +448,11 @@ export class CameraSystem<
             }
         }
 
+        const previousIsPrimary = this.#isPrimary;
         this.#isPrimary = primary ?? false;
+        if (this.#isPrimary && !previousIsPrimary) {
+            this.#syncPrimaryCameraSignals();
+        }
 
         this.#markDirty();
     }
@@ -478,6 +522,14 @@ export class CameraSystem<
         } else {
             this.#canvasSize = null;
             this.#size = null;
+        }
+
+        this.#worldX.set(this.#position.x);
+        this.#worldY.set(this.#position.y);
+        this.#pointerWorldX.set(this.#worldPosition.x);
+        this.#pointerWorldY.set(this.#worldPosition.y);
+        if (this.#isPrimary) {
+            this.#syncPrimaryCameraSignals();
         }
 
         return updated;
@@ -873,5 +925,12 @@ export class CameraSystem<
             zoom: target.zoom,
             rotation: target.rotation,
         };
+    }
+
+    #syncPrimaryCameraSignals(): void {
+        this._engine.setPrimaryCameraWorldX(this.#worldX.get());
+        this._engine.setPrimaryCameraWorldY(this.#worldY.get());
+        this._engine.setPrimaryCameraPointerWorldX(this.#pointerWorldX.get());
+        this._engine.setPrimaryCameraPointerWorldY(this.#pointerWorldY.get());
     }
 }

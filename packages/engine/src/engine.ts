@@ -70,10 +70,17 @@ import {
 } from './systems/scene/index';
 import { type ISignalSubscriber, SignalSystem } from './systems/signal';
 import {
+    PRIMARY_CAMERA_POINTER_WORLD_X,
+    PRIMARY_CAMERA_POINTER_WORLD_Y,
+    PRIMARY_CAMERA_WORLD_X,
+    PRIMARY_CAMERA_WORLD_Y,
     SIGNAL_FRAME_COUNT,
     SIGNAL_UPDATE_COUNT,
 } from './systems/signal/constants';
-import { SignalVariable } from './systems/signal/variable';
+import {
+    SignalVariable,
+    defaultNumberStringFormatter,
+} from './systems/signal/variable';
 import { type Stats, StatsSystem } from './systems/stats';
 import { type ICanvas, type Platform, type WebKey } from './types';
 import type { ToEngineMsg } from './worker';
@@ -288,6 +295,11 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     #primaryCameraID: string | null = null;
     #primaryCanvasID: string | null = null;
 
+    #primaryCameraWorldX: SignalVariable<number>;
+    #primaryCameraWorldY: SignalVariable<number>;
+    #primaryCameraPointerWorldX: SignalVariable<number>;
+    #primaryCameraPointerWorldY: SignalVariable<number>;
+
     #prng!: () => number;
 
     constructor(options: Partial<TOptions> = {}) {
@@ -300,6 +312,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         });
 
         // Order of system creation is important
+        this._signalSystem = new SignalSystem(this);
         this._inputSystem = new InputSystem(this);
         this._pointerSystem = new PointerSystem(this);
         this._sceneSystem = new SceneSystem(this);
@@ -308,7 +321,6 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
             options.assetLoader ?? DEFAULT_ENGINE_OPTIONS.assetLoader,
         );
         this._physicsSystem = new PhysicsSystem(this);
-        this._signalSystem = new SignalSystem(this);
 
         // Order isn't important since systems are manually updated
         this._statsSystem = new StatsSystem(this);
@@ -318,6 +330,30 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         // Initialize signals
         this.#updateCount = new SignalVariable(SIGNAL_UPDATE_COUNT, 0, this);
         this.#frameCount = new SignalVariable(SIGNAL_FRAME_COUNT, 0, this);
+        this.#primaryCameraWorldX = new SignalVariable<number>(
+            PRIMARY_CAMERA_WORLD_X,
+            0,
+            this,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
+        this.#primaryCameraWorldY = new SignalVariable<number>(
+            PRIMARY_CAMERA_WORLD_Y,
+            0,
+            this,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
+        this.#primaryCameraPointerWorldX = new SignalVariable<number>(
+            PRIMARY_CAMERA_POINTER_WORLD_X,
+            0,
+            this,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
+        this.#primaryCameraPointerWorldY = new SignalVariable<number>(
+            PRIMARY_CAMERA_POINTER_WORLD_Y,
+            0,
+            this,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
 
         this.#setRandomSeed(DEFAULT_ENGINE_OPTIONS.randomSeed);
         this.#applyOptions(DEFAULT_ENGINE_OPTIONS as Partial<TOptions>);
@@ -428,6 +464,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     get signalSystem(): SignalSystem<this> {
         return this._signalSystem;
+    }
+
+    get updateCount(): number {
+        return this.#updateCount.get();
     }
 
     get frameCount(): number {
@@ -638,6 +678,19 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         cameraID = this.#getPrimaryCameraID(),
     ): void {
         this._cameraSystems[cameraID]?.setResetTarget(target);
+    }
+
+    setPrimaryCameraWorldX(x: number): void {
+        this.#primaryCameraWorldX.set(x);
+    }
+    setPrimaryCameraWorldY(y: number): void {
+        this.#primaryCameraWorldY.set(y);
+    }
+    setPrimaryCameraPointerWorldX(x: number): void {
+        this.#primaryCameraPointerWorldX.set(x);
+    }
+    setPrimaryCameraPointerWorldY(y: number): void {
+        this.#primaryCameraPointerWorldY.set(y);
     }
 
     getKey(keyCode: WebKey): Readonly<KeyboardKeyState> {
@@ -980,7 +1033,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     #engineLoop() {
         const currentTime = performance.now();
         const deltaTime =
-            this.frameCount < this.options.delayDeltaTimeByNFrames
+            this.updateCount < this.options.delayDeltaTimeByNFrames
                 ? 0
                 : (currentTime - this._lastTime) * 0.001;
         this._lastTime = currentTime;

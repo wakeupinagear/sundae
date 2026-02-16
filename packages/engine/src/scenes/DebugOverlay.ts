@@ -514,7 +514,6 @@ export class DebugOverlayScene<
             positionRelativeToCamera: 'end',
             scaleRelativeToCamera: true,
             textAlign: 'top-left',
-            trim: 'ends',
             background: true,
             padding: 12,
         }) as E_StatsDebug<TEngine>;

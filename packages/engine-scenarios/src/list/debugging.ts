@@ -42,7 +42,6 @@ export const debugging: EngineScenario = (harness) => {
                 name: 'Debugging',
                 text: DEBUG_TEXT,
                 color: 'white',
-                trim: 'none',
                 maxWidth: 600,
                 fontSize: 16,
             },

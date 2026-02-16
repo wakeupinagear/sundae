@@ -59,6 +59,10 @@
         "./wrapper": {
             "types": "./exports/wrapper.ts",
             "default": "./dist/exports/wrapper.js"
+        },
+        "./signal": {
+            "types": "./exports/signal.ts",
+            "default": "./dist/exports/signal.js"
         }
     },
     "devDependencies": {

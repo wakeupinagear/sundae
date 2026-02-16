@@ -3,13 +3,17 @@ import type { Engine } from '../../engine';
 
 export type SignalValueFormat = 'default' | 'string' | 'number';
 
-type ToStringFunction<T> = (value: T) => string;
-type ToNumberFunction<T> = (value: T) => number;
+export type ToStringFunction<T> = (value: T) => string;
+export type ToNumberFunction<T> = (value: T) => number;
 
 interface SignalOptions<T> {
     stringFormatter?: ToStringFunction<T>;
     numberFormatter?: ToNumberFunction<T>;
 }
+
+export const defaultNumberStringFormatter: ToStringFunction<number> = (
+    value: number,
+) => value.toFixed(2);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class SignalVariable<T = any> {

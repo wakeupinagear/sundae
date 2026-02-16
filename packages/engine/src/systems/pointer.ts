@@ -3,6 +3,14 @@ import { type Engine } from '../engine';
 import { type IVector, Vector } from '../math/vector';
 import { System } from './index';
 import type { ButtonState } from './input';
+import {
+    SIGNAL_POINTER_SCREEN_X,
+    SIGNAL_POINTER_SCREEN_Y,
+} from './signal/constants';
+import {
+    SignalVariable,
+    defaultNumberStringFormatter,
+} from './signal/variable';
 
 const DEFAULT_CURSOR_PRIORITY = 0;
 
@@ -146,6 +154,26 @@ export class PointerSystem<TEngine extends Engine = Engine>
 
     #canvasPointers: Record<string, CanvasPointer> = {};
     #cameraPointers: Record<string, CameraPointer> = {};
+
+    #pointerScreenX: SignalVariable<number>;
+    #pointerScreenY: SignalVariable<number>;
+
+    constructor(engine: TEngine) {
+        super(engine);
+
+        this.#pointerScreenX = new SignalVariable<number>(
+            SIGNAL_POINTER_SCREEN_X,
+            0,
+            engine,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
+        this.#pointerScreenY = new SignalVariable<number>(
+            SIGNAL_POINTER_SCREEN_Y,
+            0,
+            engine,
+            { stringFormatter: defaultNumberStringFormatter },
+        );
+    }
 
     override get typeString(): string {
         return PointerSystem.typeString;
@@ -323,6 +351,11 @@ export class PointerSystem<TEngine extends Engine = Engine>
                 },
             };
             pointer.prevState.position.set(position);
+
+            if (pointer.currentState.justMoved) {
+                this.#pointerScreenX.set(position.x);
+                this.#pointerScreenY.set(position.y);
+            }
         }
     }
 
