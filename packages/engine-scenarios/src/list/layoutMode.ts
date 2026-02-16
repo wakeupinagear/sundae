@@ -33,7 +33,7 @@ function mapWordsToEntities(sentence: string): EntityJSON[] {
             color: BOX_COLORS[index % BOX_COLORS.length],
             opacity: 1,
         },
-        textAlign: 'bottom-right',
+        positioning: 'bottom-right',
     }));
 }
 

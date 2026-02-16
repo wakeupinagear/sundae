@@ -14,7 +14,8 @@ const TEXT_OPTIONS: E_TextOptions = {
     bold: true,
     color: 'white',
     position: TEXT_OFFSET,
-    textAlign: 'right',
+    positioning: 'right',
+    horizontalAlignment: 'start',
 };
 
 export const images: EngineScenario = async (harness) => {
@@ -71,7 +72,7 @@ export const images: EngineScenario = async (harness) => {
                         text: 'Note: SVGs are rendered to a bitmap in worker mode',
                         ...TEXT_OPTIONS,
                         position: { x: -0.5, y: 0.55 },
-                        textAlign: 'bottom-right',
+                        positioning: 'bottom-right',
                         fontSize: 16 / IMAGE_SCALE,
                         maxWidth: 1,
                     },

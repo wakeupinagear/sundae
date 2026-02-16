@@ -133,7 +133,7 @@ class TextStressScene extends Scene {
             type: 'text',
             text: this.#stressText,
             positionRelativeToCamera: 'start',
-            textAlign: 'bottom-right',
+            positioning: 'bottom-right',
             scaleRelativeToCamera: true,
             padding: { x1: 8, y1: 8, x2: 8, y2: 8 },
             background: true,

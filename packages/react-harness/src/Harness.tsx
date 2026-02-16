@@ -108,8 +108,9 @@ export function Harness<
     if (!wrapperRef.current) {
         const options: Partial<TEngine['options']> = {
             onReadyForNextFrame: (startNextFrame: () => void) => {
-                requestedAnimationFrame.current =
-                    window.requestAnimationFrame(startNextFrame);
+                requestedAnimationFrame.current = window.requestAnimationFrame(
+                    () => startNextFrame(),
+                );
             },
             onDestroy: () => {
                 if (requestedAnimationFrame.current !== -1) {

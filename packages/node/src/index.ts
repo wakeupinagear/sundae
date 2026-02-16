@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 import { AssetLoader } from '@repo/engine/asset';
 
+const FILE_SLASH_REGEX = /\\/g;
+const SCENARIO_ASSETS_REGEX = /(?:^|\/)scenario-assets\/(.+)$/;
+
 interface ImageLike {
     src: string | URL | Buffer;
     onload: (() => void) | null;
@@ -39,8 +42,8 @@ export class FilesystemAssetLoader extends AssetLoader {
 
         const scenarioAssetPath =
             src
-                .replace(/\\/g, '/')
-                .match(/(?:^|\/)scenario-assets\/(.+)$/)?.[1] ?? null;
+                .replace(FILE_SLASH_REGEX, '/')
+                .match(SCENARIO_ASSETS_REGEX)?.[1] ?? null;
         if (scenarioAssetPath) {
             return path.resolve(rootDir, scenarioAssetPath);
         }

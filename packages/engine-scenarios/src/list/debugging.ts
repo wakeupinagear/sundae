@@ -44,6 +44,7 @@ export const debugging: EngineScenario = (harness) => {
                 color: 'white',
                 maxWidth: 600,
                 fontSize: 16,
+                horizontalAlignment: 'start',
             },
         ],
     });

@@ -25,11 +25,11 @@ ${mustacheLiteral(SIGNAL_FRAME_COUNT)} -> {{frameCount}}
 ${mustacheLiteral(SIGNAL_POINTER_SCREEN_X)} -> {{${SIGNAL_POINTER_SCREEN_X}}}
 ${mustacheLiteral(SIGNAL_POINTER_SCREEN_Y)} -> {{${SIGNAL_POINTER_SCREEN_Y}}}
 
-${mustacheLiteral(PRIMARY_CAMERA_WORLD_X)} -> {{${PRIMARY_CAMERA_WORLD_X}}}
-${mustacheLiteral(PRIMARY_CAMERA_WORLD_Y)} -> {{${PRIMARY_CAMERA_WORLD_Y}}}
-
 ${mustacheLiteral(PRIMARY_CAMERA_POINTER_WORLD_X)} -> {{${PRIMARY_CAMERA_POINTER_WORLD_X}}}
 ${mustacheLiteral(PRIMARY_CAMERA_POINTER_WORLD_Y)} -> {{${PRIMARY_CAMERA_POINTER_WORLD_Y}}}
+
+${mustacheLiteral(PRIMARY_CAMERA_WORLD_X)} -> {{${PRIMARY_CAMERA_WORLD_X}}}
+${mustacheLiteral(PRIMARY_CAMERA_WORLD_Y)} -> {{${PRIMARY_CAMERA_WORLD_Y}}}
 `;
 
 export const signals: EngineScenario = async (harness) => {
@@ -41,6 +41,7 @@ export const signals: EngineScenario = async (harness) => {
                 text: INFO_TEXT,
                 maxWidth: 600,
                 fontSize: 16,
+                horizontalAlignment: 'start',
             },
         ],
     });

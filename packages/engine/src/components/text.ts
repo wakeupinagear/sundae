@@ -4,12 +4,27 @@ import { BoundingBox, type BoundingBoxConstructor } from '../math/boundingBox';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import type { RenderCommandStream } from '../systems/render/command';
-import type { TwoAxisAlignment } from '../types';
+import type { OneAxisAlignment, TwoAxisAlignment } from '../types';
 
 const MONOSPACE_WIDTH_RATIO = 0.6;
 const MONOSPACE_HEIGHT_RATIO = 0.8;
 
 const TEMPLATE_REGEX = /\{\{\s*([a-zA-Z0-9_.$]+)\s*\}\}/g;
+
+const POSITIONING_TO_HORIZONTAL_ALIGNMENT: Record<
+    TwoAxisAlignment,
+    OneAxisAlignment
+> = {
+    'top-left': 'start',
+    'top-center': 'center',
+    'top-right': 'end',
+    left: 'start',
+    center: 'center',
+    right: 'end',
+    'bottom-left': 'start',
+    'bottom-center': 'center',
+    'bottom-right': 'end',
+};
 
 const TagKeys = {
     COLOR: 'color',
@@ -76,7 +91,8 @@ export interface C_TextOptions extends C_DrawableOptions {
     fontSize?: number;
     fontFamily?: FontFamily;
     lineGap?: number;
-    textAlign?: TwoAxisAlignment;
+    positioning?: TwoAxisAlignment;
+    horizontalAlignment?: OneAxisAlignment;
     trim?: Trim;
     italic?: boolean;
     bold?: boolean;
@@ -102,7 +118,8 @@ export class C_Text<
     #fontSize: number;
     #fontFamily: FontFamily;
     #lineGap: number;
-    #textAlign: TwoAxisAlignment;
+    #positioning: TwoAxisAlignment;
+    #horizontalAlignment: OneAxisAlignment;
     #trim: Trim;
     #startTagDelim: string;
     #endTagDelim: string;
@@ -127,7 +144,10 @@ export class C_Text<
         this.#fontSize = options.fontSize ?? 12;
         this.#fontFamily = options.fontFamily ?? 'monospace';
         this.#lineGap = options.lineGap ?? this.#fontSize * 0.5;
-        this.#textAlign = options.textAlign ?? 'top-left';
+        this.#positioning = options.positioning ?? 'center';
+        this.#horizontalAlignment =
+            options.horizontalAlignment ??
+            POSITIONING_TO_HORIZONTAL_ALIGNMENT[this.#positioning];
         this.#trim = options.trim ?? 'ends';
         this.#startTagDelim = options.startTagDelim ?? '<|';
         this.#endTagDelim = options.endTagDelim ?? '|>';
@@ -189,13 +209,24 @@ export class C_Text<
         }
     }
 
-    get textAlign(): TwoAxisAlignment {
-        return this.#textAlign;
+    get positioning(): TwoAxisAlignment {
+        return this.#positioning;
     }
 
-    set textAlign(textAlign: TwoAxisAlignment) {
-        if (textAlign != this.#textAlign) {
-            this.#textAlign = textAlign;
+    set positioning(positioning: TwoAxisAlignment) {
+        if (positioning != this.#positioning) {
+            this.#positioning = positioning;
+            this.#markTextDirty();
+        }
+    }
+
+    get horizontalAlignment(): OneAxisAlignment {
+        return this.#horizontalAlignment;
+    }
+
+    set horizontalAlignment(horizontalAlignment: OneAxisAlignment) {
+        if (horizontalAlignment != this.#horizontalAlignment) {
+            this.#horizontalAlignment = horizontalAlignment;
             this.#markTextDirty();
         }
     }
@@ -423,20 +454,39 @@ export class C_Text<
             }
 
             const charWidth = currentStyle.fontSize * MONOSPACE_WIDTH_RATIO;
-            const tokens = text.match(/ +|[^ ]+/g) ?? [];
+            if (charWidth <= 0) {
+                pushTextNode(text);
+                return;
+            }
 
-            for (const token of tokens) {
-                const isSpaceToken = token.trim().length === 0;
-                const tokenWidth = charWidth * token.length;
-                if (currentLineWidth + tokenWidth <= maxWidth) {
-                    pushTextNode(token);
+            const maxCharsPerLine = Math.max(
+                1,
+                Math.floor(maxWidth / charWidth),
+            );
+            const len = text.length;
+            let i = 0;
+
+            while (i < len) {
+                const isSpaceRun = text[i] === ' ';
+                let runEnd = i + 1;
+                while (runEnd < len && (text[runEnd] === ' ') === isSpaceRun) {
+                    runEnd++;
+                }
+
+                const runLength = runEnd - i;
+                const runWidth = runLength * charWidth;
+
+                if (currentLineWidth + runWidth <= maxWidth) {
+                    pushTextNode(text.slice(i, runEnd));
+                    i = runEnd;
                     continue;
                 }
 
-                if (isSpaceToken) {
+                if (isSpaceRun) {
                     if (currentLineWidth > 0) {
                         pushLine();
                     }
+                    i = runEnd;
                     continue;
                 }
 
@@ -444,26 +494,26 @@ export class C_Text<
                     pushLine();
                 }
 
-                if (tokenWidth <= maxWidth) {
-                    pushTextNode(token);
+                if (runWidth <= maxWidth) {
+                    pushTextNode(text.slice(i, runEnd));
+                    i = runEnd;
                     continue;
                 }
 
-                // Token is longer than maxWidth, so split by characters.
-                let chunk = '';
-                for (const char of token) {
-                    const chunkWidth = charWidth * chunk.length;
-                    if (chunk && chunkWidth + charWidth > maxWidth) {
-                        pushTextNode(chunk);
+                // Word is longer than maxWidth, split by character count.
+                let chunkStart = i;
+                while (chunkStart < runEnd) {
+                    const chunkEnd = Math.min(
+                        chunkStart + maxCharsPerLine,
+                        runEnd,
+                    );
+                    pushTextNode(text.slice(chunkStart, chunkEnd));
+                    chunkStart = chunkEnd;
+                    if (chunkStart < runEnd) {
                         pushLine();
-                        chunk = char;
-                    } else {
-                        chunk += char;
                     }
                 }
-                if (chunk) {
-                    pushTextNode(chunk);
-                }
+                i = runEnd;
             }
         };
 
@@ -497,8 +547,7 @@ export class C_Text<
         const trimmedLines: Line[] = [];
         const lineHasVisibleText = (line: Line) =>
             line.nodes.some(
-                (node) =>
-                    node.type === 'text' && node.text.trim().length > 0,
+                (node) => node.type === 'text' && node.text.trim().length > 0,
             );
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -609,7 +658,7 @@ export class C_Text<
         const boxY2 = boxY1 + totalHeight;
 
         // Horizontal alignment
-        switch (this.#textAlign) {
+        switch (this.#positioning) {
             case 'top-left':
             case 'left':
             case 'bottom-left':
@@ -628,7 +677,7 @@ export class C_Text<
         }
 
         // Vertical alignment
-        switch (this.#textAlign) {
+        switch (this.#positioning) {
             case 'top-left':
             case 'top-center':
             case 'top-right':
@@ -663,21 +712,15 @@ export class C_Text<
             let currentX = this.#textPosition.x;
 
             // Apply per-line horizontal alignment
-            switch (this.#textAlign) {
-                case 'top-left':
-                case 'left':
-                case 'bottom-left':
+            switch (this.#horizontalAlignment) {
+                case 'start':
                     currentX = this.#textPosition.x;
                     break;
-                case 'top-center':
                 case 'center':
-                case 'bottom-center':
                     currentX =
                         this.#textPosition.x + (overallWidth - line.width) / 2;
                     break;
-                case 'top-right':
-                case 'right':
-                case 'bottom-right':
+                case 'end':
                     currentX =
                         this.#textPosition.x + (overallWidth - line.width);
                     break;

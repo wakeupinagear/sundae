@@ -60,7 +60,6 @@ class PongScene extends Scene {
             name: 'Score Text',
             text: '0-1',
             fontSize: 300,
-            textAlign: 'center',
             color: '#333333',
             zIndex: -1,
         }) as E_Text;

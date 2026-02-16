@@ -157,7 +157,7 @@ class ChaosScene extends Scene {
         this.#addOrbiters();
         this.#addOrbiters2();
         this.#addFigureEights();
-        this.#loadTextAlignmentTest();
+        this.#loadTextPositioningTest();
 
         this._engine.setCameraRotation(125);
     }
@@ -415,8 +415,8 @@ class ChaosScene extends Scene {
         return root!;
     }
 
-    #loadTextAlignmentTest() {
-        const textAlignments: TwoAxisAlignment[] = [
+    #loadTextPositioningTest() {
+        const textPositionings: TwoAxisAlignment[] = [
             'top-left',
             'top-center',
             'top-right',
@@ -435,21 +435,21 @@ class ChaosScene extends Scene {
         const startX = -300;
         const startY = -300;
 
-        for (let i = 0; i < textAlignments.length; i++) {
+        for (let i = 0; i < textPositionings.length; i++) {
             const col = i % gridSize;
             const row = Math.floor(i / gridSize);
             const x = startX + col * cellWidth + cellWidth / 2;
             const y = startY + row * cellHeight + cellHeight / 2;
 
             const textEntity = this.createEntity({
-                name: `textAlign_${textAlignments[i]}`,
+                name: `textPositioning_${textPositionings[i]}`,
                 position: { x, y },
             });
             textEntity.addComponents({
                 type: 'text',
-                text: `${debugText}\n(${textAlignments[i]})`,
+                text: `${debugText}\n(${textPositionings[i]})`,
                 fontSize: 14,
-                textAlign: textAlignments[i],
+                positioning: textPositionings[i],
                 color: 'white',
             });
         }

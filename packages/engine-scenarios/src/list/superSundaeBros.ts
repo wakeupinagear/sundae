@@ -195,7 +195,7 @@ class LevelScene extends Scene {
             type: 'text',
             name: 'Score Text',
             fontSize: 24,
-            textAlign: 'bottom-left',
+            positioning: 'bottom-left',
             padding: 24,
             bold: true,
             positionRelativeToCamera: { x: 'end', y: 'start' },

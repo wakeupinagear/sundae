@@ -78,7 +78,7 @@ class EngineScene extends Scene {
                             type: 'text',
                             text: key.toUpperCase(),
                             fontSize: 0.5,
-                            textAlign: 'center',
+                            positioning: 'center',
                         },
                     ],
                 })),
