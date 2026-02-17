@@ -13,6 +13,7 @@ import type { C_RectangleJSON } from '../components/rectangle';
 import type { C_Rigidbody } from '../components/rigidbody';
 import type { C_Transform } from '../components/transforms';
 import { type Engine } from '../engine';
+import type { BoundingBox } from '../math/boundingBox';
 import type { Matrix2D } from '../math/matrix';
 import {
     type IVector,
@@ -259,6 +260,10 @@ export class Entity<TEngine extends Engine = Engine> implements IRenderable {
 
     get transform(): C_Transform<TEngine> {
         return this._transform;
+    }
+
+    get boundingBox(): BoundingBox {
+        return this._transform.boundingBox;
     }
 
     get collider(): C_Collider<TEngine> | null {
@@ -609,6 +614,19 @@ export class Entity<TEngine extends Engine = Engine> implements IRenderable {
                 comp.onPointerLeave();
             }
         }
+    }
+
+    applyLayoutInTree(): boolean {
+        let changed = false;
+        for (const child of this._children) {
+            changed = child.applyLayoutInTree() || changed;
+        }
+
+        if (this._layoutMode) {
+            changed = this.#applyLayout() || changed;
+        }
+
+        return changed;
     }
 
     engineUpdate(deltaTime: number): boolean {

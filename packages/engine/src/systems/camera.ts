@@ -1,11 +1,12 @@
 import type { C_Collider } from '../components/colliders';
 import { DEFAULT_CANVAS_ID, DEFAULT_CLICK_THRESHOLD } from '../constants';
 import { type Engine } from '../engine';
+import type { Entity } from '../entities';
 import { FractionalLerp, LinearLerp } from '../lerp';
 import { BoundingBox, type IBoundingBox } from '../math/boundingBox';
 import { Matrix2D } from '../math/matrix';
 import { type IVector, Vector, type VectorConstructor } from '../math/vector';
-import { zoomToScale } from '../utils';
+import { scaleToZoom, zoomToScale } from '../utils';
 import { System } from './index';
 import {
     type CameraPointer,
@@ -28,6 +29,11 @@ import {
 const SCROLL_DELTA_PER_STEP = 120;
 const DRAG_CURSOR_PRIORITY = 100;
 
+interface CameraFitOptions {
+    instant?: boolean;
+    padding?: number;
+}
+
 export interface CameraOptions {
     canvasID?: string;
     canDrag?: boolean;
@@ -44,6 +50,8 @@ export interface CameraOptions {
     minZoom?: number;
     maxZoom?: number;
     bounds?: IBoundingBox;
+    fitOnStartup?: boolean;
+    fitOptions?: CameraFitOptions;
 }
 
 export interface CameraSystemOptions extends CameraOptions {
@@ -57,7 +65,7 @@ export interface CameraSystemOptions extends CameraOptions {
     primary?: boolean;
 }
 
-type CameraTarget =
+export type CameraTarget =
     | {
           type: 'entity';
           name: string;
@@ -85,11 +93,14 @@ export class CameraSystem<
 
     #id: string;
 
+    #firstFrame: boolean = true;
+
     #position: Vector = new Vector(0);
     #rotation: number = 0;
     #zoom: number = 0;
     #scaledZoom: number = zoomToScale(0);
     #target: CameraTarget | null = null;
+    #fit: boolean = false;
 
     #positionLerp = new FractionalLerp({
         get: (() => this.#position).bind(this),
@@ -122,9 +133,10 @@ export class CameraSystem<
     #boundsDirty: boolean = true;
 
     #worldPosition: Vector = new Vector(0);
-    #canvasSize: Vector | null = null;
-    #prevCanvasSize: Vector | null = null;
-    #size: Vector | null = null;
+    #canvasSize: Vector = new Vector(0);
+    #prevCanvasSize: Vector = new Vector(0);
+    #size: Vector = new Vector(0);
+    #sizesDirty: boolean = true;
 
     #worldX: SignalVariable<number>;
     #worldY: SignalVariable<number>;
@@ -160,6 +172,11 @@ export class CameraSystem<
                 x2: Infinity,
                 y1: -Infinity,
                 y2: Infinity,
+            },
+            fitOnStartup: false,
+            fitOptions: {
+                instant: false,
+                padding: 32,
             },
         };
 
@@ -221,6 +238,10 @@ export class CameraSystem<
         return Boolean(this.cameraPointer?.dragStartCameraPosition);
     }
 
+    get isScrolling(): boolean {
+        return Boolean(this.cameraPointer?.scrollSteps);
+    }
+
     get worldToScreenMatrix(): Readonly<Matrix2D> {
         if (!this.#worldToScreenMatrix || this.#matricesDirty) {
             this.#computeMatrices();
@@ -266,11 +287,21 @@ export class CameraSystem<
         return this.#canvasBoundingBox;
     }
 
-    get canvasSize(): Readonly<Vector> | null {
+    get canvasSize(): Readonly<Vector> {
+        if (this.#sizesDirty) {
+            this.#updateSizes();
+            this.#sizesDirty = false;
+        }
+
         return this.#canvasSize;
     }
 
-    get size(): Readonly<Vector> | null {
+    get size(): Readonly<Vector> {
+        if (this.#sizesDirty) {
+            this.#updateSizes();
+            this.#sizesDirty = false;
+        }
+
         return this.#size;
     }
 
@@ -370,6 +401,51 @@ export class CameraSystem<
         }
     }
 
+    getZoomToFit(boundingBox: IBoundingBox, padding = 32): number {
+        const boxWidth = boundingBox.x2 - boundingBox.x1 + padding * 2;
+        const boxHeight = boundingBox.y2 - boundingBox.y1 + padding * 2;
+        const size = this.size;
+        const scale = Math.min(size.x / boxWidth, size.y / boxHeight);
+
+        return scaleToZoom(scale);
+    }
+
+    moveToFit(
+        entity: Readonly<Entity<TEngine>>,
+        instant = false,
+        padding = 32,
+    ): Readonly<CameraTarget> | null {
+        if (this.isDragging) {
+            return null;
+        }
+
+        entity.applyLayoutInTree();
+
+        const target: CameraTarget = {
+            type: 'fixed',
+            position: new Vector(
+                (entity.boundingBox.x1 + entity.boundingBox.x2) / 2,
+                (entity.boundingBox.y1 + entity.boundingBox.y2) / 2,
+            ),
+            zoom: this.getZoomToFit(entity.boundingBox, padding),
+        };
+        if (instant) {
+            if (target.position) {
+                this.setPosition(target.position);
+            }
+            if (target.zoom !== undefined) {
+                this.setZoom(target.zoom);
+            }
+            if (target.rotation) {
+                this.setRotation(target.rotation);
+            }
+        } else {
+            this.setTarget(target);
+        }
+
+        return target;
+    }
+
     screenToWorld(position: IVector<number>): IVector<number> | null {
         return (
             this.inverseWorldToScreenMatrix?.transformPoint(position) ?? null
@@ -436,7 +512,8 @@ export class CameraSystem<
             this.#scale.set(scale);
         }
 
-        if (!this.#optionsAlreadySet) {
+        const isFirstOptionsSet = !this.#optionsAlreadySet;
+        if (isFirstOptionsSet) {
             this.#optionsAlreadySet = true;
             if (!rest.resetCameraTarget) {
                 this.#options.resetCameraTarget = {
@@ -454,6 +531,8 @@ export class CameraSystem<
             this.#syncPrimaryCameraSignals();
         }
 
+        this.#fit = Boolean(this.#firstFrame && options.fitOnStartup);
+
         this.#markDirty();
     }
 
@@ -462,7 +541,20 @@ export class CameraSystem<
             return false;
         }
 
-        let updated = false;
+        let updated = this.#updateSizes();
+        if (this.#fit) {
+            const target = this.moveToFit(
+                this._engine.rootEntity,
+                this.#firstFrame || this.#options.fitOptions.instant,
+                this.#options.fitOptions.padding,
+            );
+            if (target) {
+                this.setResetTarget(target);
+            }
+            this.#fit = false;
+            updated = true;
+        }
+
         if (this.#target) {
             updated ||= this.#updateTarget(this.#target, deltaTime);
         }
@@ -477,51 +569,8 @@ export class CameraSystem<
         if (worldPosition) {
             this.#worldPosition.set(worldPosition);
             if (this.#isPointerOverCamera) {
-                this.#updateAllPointerTargets(
-                    this.#worldPosition,
-                    canvasPointer,
-                );
+                this.#updateAllPointerTargets(this.#worldPosition);
             }
-        }
-
-        const canvas = this._engine.getCanvas(this.#options.canvasID);
-        if (canvas) {
-            if (!this.#canvasSize) {
-                this.#canvasSize = new Vector(canvas.width, canvas.height);
-            } else {
-                this.#canvasSize.x = canvas.width;
-                this.#canvasSize.y = canvas.height;
-            }
-
-            if (this.#prevCanvasSize === null && this.#canvasSize !== null) {
-                this.#prevCanvasSize = new Vector(this.#canvasSize);
-                updated = true;
-                this.#markDirty();
-            } else if (
-                this.#prevCanvasSize !== null &&
-                this.#canvasSize !== null &&
-                this.#prevCanvasSize.set(this.#canvasSize)
-            ) {
-                updated = true;
-                this.#markDirty();
-            }
-
-            if (!this.#size) {
-                this.#size = new Vector(
-                    this.#canvasSize
-                        .mul(this.#scale)
-                        .div(this._engine.devicePixelRatio),
-                );
-            } else {
-                this.#size.set(
-                    this.#canvasSize
-                        .mul(this.#scale)
-                        .div(this._engine.devicePixelRatio),
-                );
-            }
-        } else {
-            this.#canvasSize = null;
-            this.#size = null;
         }
 
         this.#worldX.set(this.#position.x);
@@ -531,6 +580,8 @@ export class CameraSystem<
         if (this.#isPrimary) {
             this.#syncPrimaryCameraSignals();
         }
+
+        this.#firstFrame = false;
 
         return updated;
     }
@@ -581,6 +632,51 @@ export class CameraSystem<
         this._engine.renderSystem.render(ctx, this._engine.rootEntity, this);
 
         ctx.restore();
+    }
+
+    #updateSizes(): boolean {
+        let updated = false;
+        const canvas = this._engine.getCanvas(this.#options.canvasID);
+        if (canvas) {
+            if (!this.#canvasSize) {
+                this.#canvasSize = new Vector(canvas.width, canvas.height);
+            } else {
+                this.#canvasSize.x = canvas.width;
+                this.#canvasSize.y = canvas.height;
+            }
+
+            if (this.#prevCanvasSize === null && this.#canvasSize !== null) {
+                this.#prevCanvasSize = new Vector(this.#canvasSize);
+                updated = true;
+                this.#markDirty();
+            } else if (
+                this.#prevCanvasSize !== null &&
+                this.#canvasSize !== null &&
+                this.#prevCanvasSize.set(this.#canvasSize)
+            ) {
+                updated = true;
+                this.#markDirty();
+            }
+
+            if (!this.#size) {
+                this.#size = new Vector(
+                    this.#canvasSize
+                        .mul(this.#scale)
+                        .div(this._engine.devicePixelRatio),
+                );
+            } else {
+                this.#size.set(
+                    this.#canvasSize
+                        .mul(this.#scale)
+                        .div(this._engine.devicePixelRatio),
+                );
+            }
+        } else {
+            this.#canvasSize.set(0);
+            this.#size.set(0);
+        }
+
+        return updated;
     }
 
     #updateTarget(target: CameraTarget, deltaTime: number): boolean {
@@ -638,6 +734,7 @@ export class CameraSystem<
             canvasPointer.currentState.scrollDelta !== 0 &&
             this.#isPointerOverCamera
         ) {
+            const scrollDelta = canvasPointer.currentState.scrollDelta;
             const scrollMode = this.#options.scrollMode;
             const meta =
                 this._engine.getKey('Meta').down ||
@@ -652,7 +749,7 @@ export class CameraSystem<
                 );
                 if (worldPosition) {
                     this._engine.zoomCamera(
-                        canvasPointer.currentState.scrollDelta,
+                        scrollDelta,
                         worldPosition,
                         this.#id,
                     );
@@ -663,14 +760,12 @@ export class CameraSystem<
                 }
             }
 
-            cameraPointer.accumulatedScrollDelta +=
-                canvasPointer.currentState.scrollDelta;
+            cameraPointer.accumulatedScrollDelta += scrollDelta;
             cameraPointer.scrollSteps = Math.trunc(
                 cameraPointer.accumulatedScrollDelta / SCROLL_DELTA_PER_STEP,
             );
             cameraPointer.accumulatedScrollDelta -=
                 cameraPointer.scrollSteps * SCROLL_DELTA_PER_STEP;
-            canvasPointer.currentState.scrollDelta = 0;
 
             this.#cancelCameraTarget();
 
@@ -781,19 +876,12 @@ export class CameraSystem<
         }
     }
 
-    #updateAllPointerTargets(
-        pointerWorldPosition: Vector,
-        canvasPointer: CanvasPointer,
-    ): void {
+    #updateAllPointerTargets(pointerWorldPosition: Vector): void {
         const pointerTargets = this.#getAllPointerTargets(pointerWorldPosition);
 
         for (let i = pointerTargets.length - 1; i >= 0; i--) {
             const pointerTarget = pointerTargets[i];
             pointerTarget.checkIfPointerOver(pointerWorldPosition);
-        }
-
-        if (canvasPointer.currentState.justMovedOnScreen) {
-            canvasPointer.currentState.justMovedOnScreen = false;
         }
     }
 
@@ -886,15 +974,12 @@ export class CameraSystem<
             { x: culledWorldSize.x / 2, y: culledWorldSize.y / 2 },
         );
 
-        const canvasSize = this._engine.getCanvasSize(this.#options.canvasID);
-        if (canvasSize) {
-            this.#canvasBoundingBox.set(
-                Math.floor(this.#offset.x * canvasSize.x),
-                Math.floor(this.#offset.y * canvasSize.y),
-                Math.ceil((this.#offset.x + this.#scale.x) * canvasSize.x),
-                Math.ceil((this.#offset.y + this.#scale.y) * canvasSize.y),
-            );
-        }
+        this.#canvasBoundingBox.set(
+            Math.floor(this.#offset.x * cssWidth),
+            Math.floor(this.#offset.y * cssHeight),
+            Math.ceil((this.#offset.x + this.#scale.x) * cssWidth),
+            Math.ceil((this.#offset.y + this.#scale.y) * cssHeight),
+        );
     }
 
     #cancelCameraTarget(): void {

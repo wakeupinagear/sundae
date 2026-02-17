@@ -7,6 +7,8 @@ import {
     createComponentFromJSON,
 } from './components/factory';
 import {
+    DEBUG_OVERLAY_SCENE_NAME,
+    DEBUG_OVERLAY_SCENE_Z_INDEX,
     DEFAULT_CAMERA_ID,
     DEFAULT_CANVAS_ID,
     DEFAULT_CLICK_THRESHOLD,
@@ -37,6 +39,7 @@ import {
     type CameraOptions,
     CameraSystem,
     type CameraSystemOptions,
+    type CameraTarget,
     type CameraTargetConstructor,
 } from './systems/camera';
 import {
@@ -84,9 +87,6 @@ import {
 import { type Stats, StatsSystem } from './systems/stats';
 import { type ICanvas, type Platform, type WebKey } from './types';
 import type { ToEngineMsg } from './worker';
-
-const DEBUG_OVERLAY_SCENE_NAME = '__ENGINE_DEBUG_SCENE__';
-const DEBUG_OVERLAY_SCENE_Z_INDEX = 100;
 
 type BrowserWindowEvent = 'keydown' | 'keyup';
 
@@ -186,6 +186,8 @@ export interface EngineOptions {
     onReadyForNextFrame:
         | ((startNextFrame: (deltaTime?: number) => void) => void)
         | null;
+    onSceneOpened: ((scene: Scene) => void) | null;
+    onCameraAdded: ((camera: CameraSystem) => void) | null;
     onDestroy: (() => void) | null;
 
     devicePixelRatio: number;
@@ -230,6 +232,8 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     onCursorChange: null,
 
     onReadyForNextFrame: null,
+    onSceneOpened: null,
+    onCameraAdded: null,
     onDestroy: null,
 
     devicePixelRatio: 1,
@@ -727,6 +731,10 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         return this._cameraSystems[cameraID] ?? null;
     }
 
+    getCameras(): Readonly<Record<string, CameraSystem<this>>> {
+        return this._cameraSystems;
+    }
+
     setCameraPosition(
         position: IVector<number>,
         cancelCameraTarget: boolean = true,
@@ -769,6 +777,21 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         for (const camera of Object.values(this._cameraSystems)) {
             camera.zoomBy(delta);
         }
+    }
+
+    moveCameraToFit(
+        entity: Readonly<Entity<this>>,
+        instant?: boolean,
+        padding?: number,
+        cameraID = this.#getPrimaryCameraID(),
+    ): Readonly<CameraTarget> | null {
+        return (
+            this._cameraSystems[cameraID]?.moveToFit(
+                entity,
+                instant,
+                padding,
+            ) ?? null
+        );
     }
 
     setCameraRotation(

@@ -232,6 +232,8 @@ export class SceneSystem<
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             scene.createEntities(...(initialEntities as any));
         }
+
+        this._engine.options.onSceneOpened?.(scene);
     }
 
     #performQueuedUpdate(): boolean {

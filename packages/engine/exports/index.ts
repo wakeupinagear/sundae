@@ -9,7 +9,11 @@ export {
     type EngineOptions,
     type BrowserKeyEvent,
 } from '../src/engine';
-export { DEFAULT_CANVAS_ID, DEFAULT_CAMERA_ID } from '../src/constants';
+export {
+    DEFAULT_CANVAS_ID,
+    DEFAULT_CAMERA_ID,
+    DEBUG_OVERLAY_SCENE_NAME,
+} from '../src/constants';
 export {
     type WebKey,
     type TwoAxisAlignment,

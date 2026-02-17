@@ -382,6 +382,9 @@ export class PointerSystem<TEngine extends Engine = Engine>
         for (const canvasID in this.#canvasPointers) {
             const pointer = this.#canvasPointers[canvasID]!;
             this.#applyCanvasCursor(pointer, 'default');
+            pointer.currentState.scrollDelta = 0;
+            pointer.currentState.justMovedOnScreen = false;
+            pointer.currentState.justMovedOffScreen = false;
         }
     }
 

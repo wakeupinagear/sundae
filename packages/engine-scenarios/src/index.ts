@@ -1,5 +1,4 @@
-import { DebugOverlayFlags } from '@repo/engine';
-import type { AssetPreload } from '@repo/engine/asset';
+import { DEBUG_OVERLAY_SCENE_NAME, DebugOverlayFlags } from '@repo/engine';
 
 import { SCENARIO_ASSETS, type ScenarioAssets } from './assets';
 import { ballPit } from './list/ballPit';
@@ -21,7 +20,7 @@ import { textStressTest } from './list/textStressTest';
 import { typeErrors } from './list/type-errors';
 import { usMap } from './list/usMap';
 import { zIndex } from './list/zIndex';
-import type { EngineScenario } from './types';
+import type { EngineScenario, IEngineHarness } from './types';
 
 export * from './types';
 export * from './assets';
@@ -33,7 +32,6 @@ export interface ScenarioMetadata {
     skipInTests?: boolean;
     maxCameras?: number;
     debugOverlayFlags?: DebugOverlayFlags;
-    assets?: AssetPreload[];
 }
 
 export interface ScenarioCategory {
@@ -45,12 +43,58 @@ export interface ScenarioCategory {
 
 export type ScenarioList = Record<string, ScenarioCategory>;
 
-const assetsToPreloads = (assets: ScenarioAssets): AssetPreload[] => {
-    return Object.values(assets).map((asset) => ({
-        type: asset.type,
-        src: asset.src,
-    }));
-};
+type ScenarioMiddleware<T extends unknown[]> = (
+    scenario: EngineScenario,
+    ...args: [...T] | []
+) => (harness: IEngineHarness) => void;
+
+const defaultOptions: ScenarioMiddleware<ScenarioAssets[]> =
+    (scenario, ...assets) =>
+    (harness) => {
+        harness.engine.options = {
+            assetPreloads: assets.flatMap((assets) =>
+                Object.values(assets).map((asset) => ({
+                    type: asset.type,
+                    src: asset.src,
+                })),
+            ),
+        };
+        scenario(harness);
+    };
+
+const dynamicCamera: ScenarioMiddleware<[number]> =
+    (scenario, padding = 64) =>
+    (harness) => {
+        harness.engine.options = {
+            onSceneOpened: (scene) => {
+                if (scene.name !== DEBUG_OVERLAY_SCENE_NAME) {
+                    const cameras = harness.engine.getCameras();
+                    for (const cameraID of Object.keys(cameras)) {
+                        const target = harness.engine.moveCameraToFit(
+                            scene.rootEntity,
+                            true,
+                            padding,
+                            cameraID,
+                        );
+                        if (target) {
+                            harness.engine.setCameraResetTarget(
+                                target,
+                                cameraID,
+                            );
+                        }
+                    }
+                }
+            },
+            cameraOptions: {
+                fitOnStartup: true,
+                fitOptions: {
+                    instant: true,
+                    padding,
+                },
+            },
+        };
+        scenario(harness);
+    };
 
 export const ENGINE_SCENARIOS: ScenarioList = {
     features: {
@@ -60,28 +104,29 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             primitives: {
                 name: 'Primitives',
                 description: 'Circle, rectangle, line, arrows, polygon',
-                run: primitives,
+                run: dynamicCamera(defaultOptions(primitives)),
             },
             images: {
                 name: 'Images',
                 description: 'Image scenarios',
-                run: images,
-                assets: assetsToPreloads(SCENARIO_ASSETS.SUNDAE_IMAGES),
+                run: dynamicCamera(
+                    defaultOptions(images, SCENARIO_ASSETS.SUNDAE_IMAGES),
+                ),
             },
             text: {
                 name: 'Text',
                 description: 'Text rendering scenarios',
-                run: text,
+                run: dynamicCamera(defaultOptions(text), -128),
             },
             signals: {
                 name: 'Signals',
                 description: 'Signals',
-                run: signals,
+                run: dynamicCamera(defaultOptions(signals)),
             },
             raycasts: {
                 name: 'Raycasts',
                 description: 'Raycast scenarios',
-                run: raycasts,
+                run: dynamicCamera(defaultOptions(raycasts), 32),
                 debugOverlayFlags:
                     DebugOverlayFlags.VISUAL_RAYCASTS |
                     DebugOverlayFlags.VISUAL_COLLIDERS,
@@ -89,27 +134,27 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             inputs: {
                 name: 'Keyboard Inputs',
                 description: 'Interact with the engine',
-                run: inputs,
+                run: dynamicCamera(defaultOptions(inputs)),
             },
             cursors: {
                 name: 'Pointer Cursor',
                 description: 'Buttons that set cursor type on hover',
-                run: cursors,
+                run: dynamicCamera(defaultOptions(cursors)),
             },
             layoutMode: {
                 name: 'Layout Mode',
                 description: 'Row and column layout with text boxes',
-                run: layoutMode,
+                run: dynamicCamera(defaultOptions(layoutMode)),
             },
             zIndex: {
                 name: 'Z-Index',
                 description: 'Overlapping shapes with different draw order',
-                run: zIndex,
+                run: dynamicCamera(defaultOptions(zIndex)),
             },
             debugging: {
                 name: 'Debugging',
                 description: 'Debugging scenarios',
-                run: debugging,
+                run: dynamicCamera(defaultOptions(debugging)),
                 debugOverlayFlags: DebugOverlayFlags.ALL,
             },
         },
@@ -126,8 +171,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             usMap: {
                 name: 'US Map',
                 description: 'A map of the United States',
-                run: usMap,
-                assets: assetsToPreloads(SCENARIO_ASSETS.US_MAP),
+                run: defaultOptions(usMap, SCENARIO_ASSETS.US_MAP),
             },
         },
     },
@@ -138,13 +182,13 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             pong: {
                 name: 'Pong',
                 description: 'A simple pong game',
-                run: pong,
+                run: dynamicCamera(defaultOptions(pong)),
                 maxCameras: 1,
             },
             superSundaeBros: {
                 name: 'Super Sundae Bros',
                 description: 'A simple platformer game',
-                run: superSundaeBros,
+                run: defaultOptions(superSundaeBros),
                 maxCameras: 1,
             },
         },
@@ -156,12 +200,12 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             ballPit: {
                 name: 'Ball Pit',
                 description: 'So many balls',
-                run: ballPit,
+                run: dynamicCamera(defaultOptions(ballPit)),
             },
             ballVortex: {
                 name: 'Ball Vortex',
                 description: 'A vortex of balls',
-                run: ballVortex,
+                run: dynamicCamera(defaultOptions(ballVortex)),
             },
         },
     },
@@ -172,12 +216,13 @@ export const ENGINE_SCENARIOS: ScenarioList = {
             renderChaos: {
                 name: 'Render Chaos',
                 description: 'Funky visuals',
-                run: renderChaos,
+                run: dynamicCamera(defaultOptions(renderChaos)),
             },
             textStressTest: {
                 name: 'Text Stress Test',
                 description: 'Procedural text with random style changes',
-                run: textStressTest,
+                run: dynamicCamera(defaultOptions(textStressTest)),
+                maxCameras: 1,
             },
         },
     },
@@ -190,7 +235,7 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Type Errors',
                 description:
                     'Type error test case to validate engine type safety. Not an actual scenario.',
-                run: typeErrors,
+                run: dynamicCamera(defaultOptions(typeErrors)),
                 skipInTests: true,
             },
         },

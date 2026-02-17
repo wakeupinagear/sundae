@@ -13,7 +13,6 @@ export const zIndex: EngineScenario = (harness) => {
                 scale: SIZE * 0.5,
                 zIndex: 2,
                 color: '#e74c3c',
-                lineWidth: 2,
             },
             {
                 name: 'Front (z 1)',
@@ -22,7 +21,6 @@ export const zIndex: EngineScenario = (harness) => {
                 scale: SIZE * 0.7,
                 zIndex: 1,
                 color: '#f9a826',
-                lineWidth: 2,
             },
             {
                 name: 'Middle (z 0)',
@@ -31,7 +29,6 @@ export const zIndex: EngineScenario = (harness) => {
                 scale: SIZE * 0.85,
                 zIndex: 0,
                 color: '#7ed56f',
-                lineWidth: 2,
             },
             {
                 name: 'Back (z -1)',
@@ -39,7 +36,6 @@ export const zIndex: EngineScenario = (harness) => {
                 scale: SIZE,
                 zIndex: -1,
                 color: '#4a90d9',
-                lineWidth: 2,
             },
         ],
     });

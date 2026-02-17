@@ -213,8 +213,6 @@ export function App() {
         (engine: Engine) => {
             if (scenario) {
                 const harness = new WebHarness(engine);
-                engine.options = { assetPreloads: scenario.assets ?? [] };
-
                 scenario.run(harness);
             }
         },

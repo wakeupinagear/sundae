@@ -22,7 +22,6 @@ runEngineInWorker<Engine, ExtendedToEngineMsg>({
                 const scenario =
                     ENGINE_SCENARIOS[categoryID]?.scenarios[scenarioID];
                 if (scenario) {
-                    engine.options = { assetPreloads: scenario.assets ?? [] };
                     scenario.run(harness);
                 } else {
                     engine.warn('Scenario not found', categoryID, scenarioID);

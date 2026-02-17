@@ -51,7 +51,7 @@ export const layoutMode: EngineScenario = (harness) => {
             },
             {
                 type: 'entity',
-                position: { x: 150, y: 0 },
+                position: { x: 75, y: 0 },
                 layoutMode: 'row',
                 gap: WORD_GAP,
                 background: '#333333',

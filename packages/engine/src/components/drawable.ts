@@ -203,7 +203,7 @@ export abstract class C_Drawable<
         const bbox = super._setBoundingBox(newBBox);
 
         const strokeWidth = this._style.lineWidth ?? 0;
-        if (strokeWidth <= 0) {
+        if (strokeWidth <= 0 || !this._style.lineColor) {
             return bbox;
         }
 
