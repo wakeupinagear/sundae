@@ -41,7 +41,15 @@ export class MainThreadWrapper<
     }
 
     setCanvas(canvas: HTMLCanvasElement | null, canvasID: string) {
-        this.#engine.setCanvas(canvas, canvasID);
+        const styleProperties = canvas ? window.getComputedStyle(canvas) : null;
+        this.#engine.setCanvas(canvas, styleProperties, canvasID);
+    }
+
+    onCanvasStyleChange(
+        canvasID: string,
+        styleProperties: CSSStyleDeclaration,
+    ) {
+        this.#engine.onCanvasStyleChange(canvasID, styleProperties);
     }
 
     onPointerMove(canvasID: string, position: IVector<number>) {

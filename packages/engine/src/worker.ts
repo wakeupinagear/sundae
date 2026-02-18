@@ -215,7 +215,7 @@ export const runEngineInWorker = <
                 engineInstance.startNextFrame();
                 break;
             case ToEngineMsgType.SET_CANVAS:
-                engineInstance.setCanvas(data.canvas, data.canvasID);
+                engineInstance.setCanvas(data.canvas, null, data.canvasID);
                 break;
             case ToEngineMsgType.SET_CANVAS_SIZE: {
                 const canvas = engineInstance.getCanvas(data.canvasID);

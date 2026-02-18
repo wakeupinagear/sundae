@@ -3,7 +3,12 @@ import type { BoundingBox, BoundingBoxConstructor } from '../math/boundingBox';
 import { Vector, type VectorConstructor } from '../math/vector';
 import type { CameraSystem } from '../systems/camera';
 import { type RenderCommandStream } from '../systems/render/command';
-import { RENDER_STYLE_KEYS, type RenderStyle } from '../systems/render/style';
+import {
+    RENDER_STYLE_KEYS,
+    type RenderStyle,
+    getCSSColor,
+    isCSSColor,
+} from '../systems/render/style';
 import { ComponentAppearance } from '../types';
 import { OPACITY_THRESHOLD } from '../utils';
 import type { C_ColliderOptions } from './colliders';
@@ -228,9 +233,22 @@ export abstract class C_Drawable<
             false,
     ): void {
         const prevStyle = { ...this.#computedStyle };
-        this.#computedStyle = pointerHovered
-            ? { ...this._style, ...this._hoverStyle }
+        const newStyle = pointerHovered
+            ? { ...this._hoverStyle }
             : { ...this._style };
+        if (typeof newStyle.color === 'string' && isCSSColor(newStyle.color)) {
+            newStyle.color = getCSSColor(newStyle.color);
+            newStyle.colorIsCSS = true;
+        }
+        if (
+            typeof newStyle.lineColor === 'string' &&
+            isCSSColor(newStyle.lineColor)
+        ) {
+            newStyle.lineColor = getCSSColor(newStyle.lineColor);
+            newStyle.lineColorIsCSS = true;
+        }
+        this.#computedStyle = newStyle;
+
         if (
             Object.keys(prevStyle).some(
                 (key) =>

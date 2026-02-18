@@ -34,7 +34,9 @@ export class RenderSystem<
     #hashedMaterials: HashFactory<RenderStyle> = new HashFactory<RenderStyle>(
         (style: RenderStyle) => {
             return `${style.color ?? DEFAULT_RENDER_STYLE.color}|${
-                style.lineColor ?? DEFAULT_RENDER_STYLE.lineColor
+                style.colorIsCSS ?? DEFAULT_RENDER_STYLE.colorIsCSS
+            }|${style.lineColor ?? DEFAULT_RENDER_STYLE.lineColor}|${
+                style.lineColorIsCSS ?? DEFAULT_RENDER_STYLE.lineColorIsCSS
             }|${style.lineWidth ?? DEFAULT_RENDER_STYLE.lineWidth}|${
                 style.lineJoin ?? DEFAULT_RENDER_STYLE.lineJoin
             }|${style.lineCap ?? DEFAULT_RENDER_STYLE.lineCap}|${
@@ -193,9 +195,15 @@ export class RenderSystem<
                     if (style) {
                         activeStyle.color =
                             style.value.color ?? DEFAULT_RENDER_STYLE.color;
+                        activeStyle.colorIsCSS =
+                            style.value.colorIsCSS ??
+                            DEFAULT_RENDER_STYLE.colorIsCSS;
                         activeStyle.lineColor =
                             style.value.lineColor ??
                             DEFAULT_RENDER_STYLE.lineColor;
+                        activeStyle.lineColorIsCSS =
+                            style.value.lineColorIsCSS ??
+                            DEFAULT_RENDER_STYLE.lineColorIsCSS;
                         activeStyle.lineWidth =
                             style.value.lineWidth ??
                             DEFAULT_RENDER_STYLE.lineWidth;
@@ -302,15 +310,29 @@ export class RenderSystem<
             style.color !== undefined &&
             canvasPointerCache.color !== style.color
         ) {
-            ctx.fillStyle = style.color;
-            canvasPointerCache.color = style.color;
+            if (!style.colorIsCSS || typeof style.color !== 'string') {
+                ctx.fillStyle = style.color;
+                canvasPointerCache.color = style.color;
+            } else {
+                const computedStyle =
+                    this._engine.getCanvasPropertyValue(style.color) || '';
+                ctx.fillStyle = computedStyle;
+                canvasPointerCache.color = computedStyle;
+            }
         }
         if (
             style.lineColor !== undefined &&
             canvasPointerCache.lineColor !== style.lineColor
         ) {
-            ctx.strokeStyle = style.lineColor;
-            canvasPointerCache.lineColor = style.lineColor;
+            if (!style.lineColorIsCSS || typeof style.lineColor !== 'string') {
+                ctx.strokeStyle = style.lineColor;
+                canvasPointerCache.lineColor = style.lineColor;
+            } else {
+                const computedStyle =
+                    this._engine.getCanvasPropertyValue(style.lineColor) || '';
+                ctx.strokeStyle = computedStyle;
+                canvasPointerCache.lineColor = computedStyle;
+            }
         }
         if (
             style.lineWidth !== undefined &&

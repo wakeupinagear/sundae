@@ -24,6 +24,10 @@ export abstract class EngineWrapper<
         canvas: HTMLCanvasElement | null,
         canvasID: string,
     ): void;
+    abstract onCanvasStyleChange(
+        canvasID: string,
+        styleProperties: CSSStyleDeclaration,
+    ): void;
 
     abstract onKeyDown(event: BrowserKeyEvent): void;
     abstract onKeyUp(event: BrowserKeyEvent): void;

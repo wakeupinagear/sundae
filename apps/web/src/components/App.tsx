@@ -1,4 +1,4 @@
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, Monitor, Moon, Sun } from 'lucide-react';
 import {
     useCallback,
     useDeferredValue,
@@ -17,7 +17,7 @@ import { ENGINE_SCENARIOS } from '@repo/engine-scenarios';
 import { PointerButton } from '@repo/engine/pointer';
 import type { EngineWrapper } from '@repo/engine/wrapper';
 import { Harness } from '@repo/react';
-import { ThemeProvider } from '@repo/ui/components/ThemeProvider';
+import { ThemeProvider, useTheme } from '@repo/ui/components/ThemeProvider';
 import { Button } from '@repo/ui/components/ui/button';
 
 import { useAppStore } from '../store';
@@ -91,6 +91,26 @@ const makeGridCameras = (
 
     return cameras;
 };
+
+const THEME_CYCLE = ['system', 'light', 'dark'] as const;
+
+function ThemeToggle() {
+    const { theme, setTheme } = useTheme();
+    const next = THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length];
+    const Icon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor;
+    return (
+        <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={() => setTheme(next)}
+            title={`Theme: ${theme} (click for ${next})`}
+            type="button"
+        >
+            <Icon className="size-4" />
+        </Button>
+    );
+}
 
 export function App() {
     const cameraCount = useAppStore((state) => state.cameraCount);
@@ -234,7 +254,10 @@ export function App() {
         <ThemeProvider>
             <div className="flex items-stretch h-screen overflow-hidden">
                 <aside className="flex flex-col gap-2 h-screen min-h-0 w-32 sm:w-48 xs:w-56 lg:w-64 shrink-0 bg-background p-4">
-                    <h1 className="text-primary">🍨 Sundae</h1>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-primary">🍨 Sundae</h1>
+                        <ThemeToggle />
+                    </div>
                     <ExampleSearchBar value={search} onChange={setSearch} />
                     <div className="min-h-0 flex-1 overflow-y-auto w-full scrollbar-styled">
                         <ExampleList

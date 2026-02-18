@@ -91,6 +91,13 @@ export class WorkerWrapper<
         );
     }
 
+    onCanvasStyleChange(
+        canvasID: string,
+        styleProperties: CSSStyleDeclaration,
+    ) {
+        // TODO: Implement
+    }
+
     onKeyDown(event: BrowserKeyEvent) {
         this.sendMessage({
             type: ToEngineMsgType.ON_KEY_DOWN,

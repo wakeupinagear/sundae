@@ -158,6 +158,11 @@ type AssetLoadingBehavior =
     | 'block-render'
     | 'block-all';
 
+interface CanvasRecord {
+    canvas: ICanvas;
+    styleProperties: CSSStyleDeclaration | null;
+}
+
 export interface EngineOptions {
     cameras: Record<string, CameraSystemOptions>;
     cameraOptions: CameraOptions;
@@ -254,7 +259,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     protected static _nextId: number = 1;
     protected readonly _id: string = (Engine._nextId++).toString();
 
-    protected _canvases: Record<string, ICanvas | null> = {};
+    protected _canvases: Record<string, CanvasRecord | null> = {};
 
     protected _options: TOptions = { ...DEFAULT_ENGINE_OPTIONS } as TOptions;
     protected _devicePixelRatio: number = 1;
@@ -626,10 +631,11 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
 
     setCanvas(
         canvas: ICanvas | null,
+        styleProperties: CSSStyleDeclaration | null = null,
         id = this.#primaryCanvasID || DEFAULT_CANVAS_ID,
     ): void {
         if (canvas) {
-            this._canvases[id] = canvas;
+            this._canvases[id] = { canvas, styleProperties };
         } else {
             delete this._canvases[id];
         }
@@ -643,7 +649,7 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
     getCanvas(
         id: string = this.#primaryCanvasID || DEFAULT_CANVAS_ID,
     ): ICanvas | null {
-        return this._canvases[id] ?? null;
+        return this._canvases[id]?.canvas ?? null;
     }
 
     getCanvasSize(
@@ -658,6 +664,26 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         }
 
         return null;
+    }
+
+    getCanvasPropertyValue(
+        property: string,
+        id: string = this.#primaryCanvasID || DEFAULT_CANVAS_ID,
+    ): string | null {
+        const properties = this._canvases[id]?.styleProperties;
+        if (!properties) return null;
+
+        return properties.getPropertyValue(property);
+    }
+
+    onCanvasStyleChange(
+        canvasID: string,
+        styleProperties: CSSStyleDeclaration,
+    ): void {
+        if (this._canvases[canvasID]) {
+            this._canvases[canvasID].styleProperties = styleProperties;
+            this.forceRender();
+        }
     }
 
     screenToWorld(
@@ -1122,12 +1148,15 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
                 // Only clear the canvas if we are forcing a full render
                 if (forceRender) {
                     for (const canvasID in this._canvases) {
-                        const canvas = this._canvases[canvasID];
-                        const ctx = canvas?.getContext('2d');
-                        if (canvas && ctx) {
-                            ctx.setTransform(1, 0, 0, 1, 0, 0);
-                            ctx.fillStyle = this._options.canvasClearColor;
-                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        const canvasRecord = this._canvases[canvasID];
+                        if (canvasRecord) {
+                            const { canvas } = canvasRecord;
+                            const ctx = canvas?.getContext('2d');
+                            if (canvas && ctx) {
+                                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                                ctx.fillStyle = this._options.canvasClearColor;
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            }
                         }
                     }
                 }

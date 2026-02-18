@@ -30,8 +30,24 @@ export function CanvasTracker({
         wrapper.current?.setCanvas(canvas, canvasID);
         wrapper.current?.setCanvasSize?.(canvasID, canvas.width, canvas.height);
 
+        const mutationObserver = new MutationObserver(() => {
+            wrapper.current?.onCanvasStyleChange(
+                canvasID,
+                window.getComputedStyle(canvas),
+            );
+        });
+        mutationObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['style', 'class'],
+        });
+        mutationObserver.observe(canvas, {
+            attributes: true,
+            attributeFilter: ['style', 'class'],
+        });
+
         return () => {
             wrapper.current?.setCanvas(null, canvasID);
+            mutationObserver.disconnect();
         };
     }, [canvasID, wrapper, canvasRef]);
 
