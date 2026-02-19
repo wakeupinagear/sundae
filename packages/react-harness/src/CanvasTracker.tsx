@@ -57,13 +57,51 @@ export function CanvasTracker({
             return;
         }
 
+        // Track active pointers for pinch-to-zoom detection
+        const activePointers = new Map<number, { x: number; y: number }>();
+        let lastPinchDistance: number | null = null;
+
         const onPointerMove = (event: PointerEvent) => {
-            const x = event.offsetX,
-                y = event.offsetY;
-            wrapper.current?.onPointerMove(canvasID, {
-                x,
-                y,
-            });
+            // Update stored position for this pointer
+            if (activePointers.has(event.pointerId)) {
+                activePointers.set(event.pointerId, {
+                    x: event.clientX,
+                    y: event.clientY,
+                });
+            }
+
+            if (activePointers.size >= 2) {
+                // Two-finger pinch: compute distance change and emit as scroll
+                const positions = Array.from(activePointers.values());
+                const [p1, p2] = positions;
+                const currentDistance = Math.hypot(
+                    p2.x - p1.x,
+                    p2.y - p1.y,
+                );
+                if (lastPinchDistance !== null) {
+                    const delta =
+                        (currentDistance - lastPinchDistance) *
+                        scrollSensitivity;
+                    // Move pointer to pinch midpoint (in CSS pixels)
+                    const rect = localCanvas.getBoundingClientRect();
+                    const midX = (p1.x + p2.x) / 2 - rect.left;
+                    const midY = (p1.y + p2.y) / 2 - rect.top;
+                    wrapper.current?.onPointerMove(canvasID, {
+                        x: midX,
+                        y: midY,
+                    });
+                    if (delta !== 0) {
+                        wrapper.current?.onWheel(canvasID, delta);
+                    }
+                }
+                lastPinchDistance = currentDistance;
+            } else {
+                lastPinchDistance = null;
+                wrapper.current?.onPointerMove(canvasID, {
+                    x: event.offsetX,
+                    y: event.offsetY,
+                });
+            }
         };
         localCanvas.addEventListener('pointermove', onPointerMove);
 
@@ -88,22 +126,37 @@ export function CanvasTracker({
 
         const onPointerDown = (event: PointerEvent) => {
             localCanvas.setPointerCapture(event.pointerId);
-            wrapper.current?.onPointerDown(
-                canvasID,
-                event.button as PointerButton,
-            );
+            activePointers.set(event.pointerId, {
+                x: event.clientX,
+                y: event.clientY,
+            });
+            // Only fire button events for the first pointer; additional fingers
+            // are treated as a pinch gesture, not button presses.
+            if (activePointers.size === 1) {
+                wrapper.current?.onPointerDown(
+                    canvasID,
+                    event.button as PointerButton,
+                );
+            }
         };
         localCanvas.addEventListener('pointerdown', onPointerDown);
 
         const onPointerUp = (event: PointerEvent) => {
+            const wasMultiTouch = activePointers.size > 1;
+            activePointers.delete(event.pointerId);
             if (localCanvas.hasPointerCapture(event.pointerId)) {
                 localCanvas.releasePointerCapture(event.pointerId);
             }
-
-            wrapper.current?.onPointerUp(
-                canvasID,
-                event.button as PointerButton,
-            );
+            if (activePointers.size === 0) {
+                lastPinchDistance = null;
+            }
+            // Only fire button up when not in a pinch gesture
+            if (!wasMultiTouch) {
+                wrapper.current?.onPointerUp(
+                    canvasID,
+                    event.button as PointerButton,
+                );
+            }
         };
         window.addEventListener('pointerup', onPointerUp);
         window.addEventListener('pointercancel', onPointerUp);

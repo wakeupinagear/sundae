@@ -42,6 +42,7 @@ export interface CameraOptions {
     dragCursor?: CursorType;
     dragThreshold?: number;
     resetAfterNClicks?: number;
+    resetButtons?: PointerButton[] | null;
     resetCameraTarget?: CameraTarget | null;
     targetLerpSpeed?: number;
     cullScale?: number;
@@ -160,6 +161,7 @@ export class CameraSystem<
             dragCursor: 'grabbing',
             dragThreshold: DEFAULT_CLICK_THRESHOLD,
             resetAfterNClicks: 2,
+            resetButtons: null,
             resetCameraTarget: { type: 'fixed' },
             targetLerpSpeed: 10,
             cullScale: 1,
@@ -853,7 +855,7 @@ export class CameraSystem<
             } else if (
                 this.#isPointerOverCamera &&
                 this.#options.resetAfterNClicks > 0 &&
-                dragButtons.some((button) =>
+                (this.#options.resetButtons ?? dragButtons).some((button) =>
                     this._engine.getPointerButtonClicked(
                         button,
                         this.#options.resetAfterNClicks,

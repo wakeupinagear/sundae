@@ -280,6 +280,8 @@ export function Harness<
                     width: `${size.width}px`,
                     height: `${size.height}px`,
                     touchAction: 'none',
+                    userSelect: 'none',
+                    WebkitTapHighlightColor: 'transparent',
                 }}
             />
             <CanvasTracker
