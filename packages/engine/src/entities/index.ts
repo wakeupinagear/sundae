@@ -365,6 +365,13 @@ export class Entity<TEngine extends Engine = Engine> implements IRenderable {
         return this._positionRelativeToCamera;
     }
 
+    get isPositionRelativeToCamera(): boolean {
+        return (
+            this._positionRelativeToCamera.x !== 'none' ||
+            this._positionRelativeToCamera.y !== 'none'
+        );
+    }
+
     get lod(): LODOptions | null {
         return this._lod;
     }
@@ -872,7 +879,8 @@ export class Entity<TEngine extends Engine = Engine> implements IRenderable {
             this.transform.setRotationOffset(-camera.rotation);
         }
 
-        const culled = this._cull !== 'none' && this.isCulled(camera);
+        const cullDisabled = this.isPositionRelativeToCamera;
+        const culled = !cullDisabled && this._cull !== 'none' && this.isCulled(camera);
         if (culled && this._cull === 'all') {
             return;
         }
@@ -932,6 +940,10 @@ export class Entity<TEngine extends Engine = Engine> implements IRenderable {
     }
 
     isCulled(camera: CameraSystem): boolean {
+        if (this.isPositionRelativeToCamera) {
+            return false;
+        }
+
         if (
             !camera.cullBoundingBox.intersects(this.transform.boundingBox) ||
             this.isLODCulled(camera)

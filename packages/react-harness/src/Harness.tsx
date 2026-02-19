@@ -130,6 +130,7 @@ export function Harness<
         if (runInWorker && workerConstructor) {
             wrapperRef.current = new WorkerWrapper<TEngine, TToEngineMsg>(
                 workerConstructor,
+                initialEngineOptions ?? {},
             );
         } else {
             const engineInstance = createEngine(engine, {
@@ -138,10 +139,10 @@ export function Harness<
             });
             wrapperRef.current = new MainThreadWrapper<TEngine, TToEngineMsg>(
                 engineInstance,
+                initialEngineOptions ?? {},
             );
         }
 
-        wrapperRef.current.setOptions(initialEngineOptions ?? {});
         if (externalEngineWrapperRef) {
             externalEngineWrapperRef.current = wrapperRef.current;
         }

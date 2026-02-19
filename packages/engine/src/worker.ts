@@ -3,6 +3,7 @@ import type { IVector } from './math/vector';
 import type { AssetLoader } from './systems/asset/loader';
 import { WorkerAssetLoader } from './systems/asset/loader/worker';
 import type { CursorType, PointerButton } from './systems/pointer';
+import type { StylePropertyValues } from './systems/render/style';
 import { type EngineConstructor, createEngine } from './utils';
 
 export const FromEngineMsgType = {
@@ -46,6 +47,7 @@ export const ToEngineMsgType = {
     TICK: 'tick',
     SET_CANVAS: 'set_canvas',
     SET_CANVAS_SIZE: 'set_canvas_size',
+    SET_CANVAS_STYLE_PROPERTY_VALUES: 'set_canvas_style_property_values',
     SET_OPTIONS: 'set_options',
     ON_KEY_DOWN: 'on_key_down',
     ON_KEY_UP: 'on_key_up',
@@ -56,7 +58,7 @@ export const ToEngineMsgType = {
     ON_POINTER_UP: 'on_pointer_up',
     ON_POINTER_ENTER: 'on_pointer_enter',
     ON_POINTER_LEAVE: 'on_pointer_leave',
-    WORKER_LOAD_SVG_RESPONSE: 'worker_load_svg_response',
+    LOAD_SVG_RESPONSE: 'load_svg_response',
 } as const;
 export type ToEngineMsgType =
     (typeof ToEngineMsgType)[keyof typeof ToEngineMsgType];
@@ -76,6 +78,12 @@ interface ToEngineMsg_SetCanvasSize {
     canvasID: string;
     width: number;
     height: number;
+}
+
+interface ToEngineMsg_SetCanvasStylePropertyValues {
+    type: typeof ToEngineMsgType.SET_CANVAS_STYLE_PROPERTY_VALUES;
+    canvasID: string;
+    stylePropertyValues: StylePropertyValues;
 }
 
 interface ToEngineMsg_SetOptions {
@@ -134,7 +142,7 @@ interface ToEngineMsg_OnPointerLeave {
 }
 
 interface ToEngineMsg_WorkerLoadSvgResponse {
-    type: typeof ToEngineMsgType.WORKER_LOAD_SVG_RESPONSE;
+    type: typeof ToEngineMsgType.LOAD_SVG_RESPONSE;
     requestId: string;
     imageBitmap: ImageBitmap | null;
 }
@@ -143,6 +151,7 @@ export type ToEngineMsg =
     | ToEngineMsg_Tick
     | ToEngineMsg_SetCanvas
     | ToEngineMsg_SetCanvasSize
+    | ToEngineMsg_SetCanvasStylePropertyValues
     | ToEngineMsg_SetOptions
     | ToEngineMsg_OnKeyDown
     | ToEngineMsg_OnKeyUp
@@ -224,6 +233,13 @@ export const runEngineInWorker = <
                     canvas.height = data.height;
                     engineInstance.forceRender();
                 }
+                break;
+            }
+            case ToEngineMsgType.SET_CANVAS_STYLE_PROPERTY_VALUES: {
+                engineInstance.setCanvasStylePropertyValues(
+                    data.stylePropertyValues,
+                    data.canvasID,
+                );
                 break;
             }
             case ToEngineMsgType.SET_OPTIONS:

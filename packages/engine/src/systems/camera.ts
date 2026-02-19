@@ -15,6 +15,7 @@ import {
     type CursorType,
     PointerButton,
 } from './pointer';
+import { getCSSColor, isCSSColor } from './render/style';
 import {
     PRIMARY_CAMERA_POINTER_WORLD_X,
     PRIMARY_CAMERA_POINTER_WORLD_Y,
@@ -613,7 +614,11 @@ export class CameraSystem<
             this.#options.clearColor &&
             this.#options.clearColor !== 'transparent'
         ) {
-            ctx.fillStyle = this.#options.clearColor;
+            ctx.fillStyle = isCSSColor(this.#options.clearColor)
+                ? this._engine.getCanvasPropertyValue(
+                      getCSSColor(this.#options.clearColor),
+                  )
+                : this.#options.clearColor;
             ctx.fillRect(x, y, w, h);
         } else {
             ctx.clearRect(x, y, w, h);

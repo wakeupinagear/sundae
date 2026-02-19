@@ -332,11 +332,28 @@ export class C_Transform<
         }
 
         for (const child of this.entity.children) {
+            if (child.isPositionRelativeToCamera) {
+                continue;
+            }
             const childBB = child.transform.boundingBox;
             minX = Math.min(minX, childBB.x1);
             maxX = Math.max(maxX, childBB.x2);
             minY = Math.min(minY, childBB.y1);
             maxY = Math.max(maxY, childBB.y2);
+        }
+
+        if (
+            !Number.isFinite(minX) ||
+            !Number.isFinite(maxX) ||
+            !Number.isFinite(minY) ||
+            !Number.isFinite(maxY)
+        ) {
+            this.#boundingBox.set(0);
+            this.#corners[0].set(0);
+            this.#corners[1].set(0);
+            this.#corners[2].set(0);
+            this.#corners[3].set(0);
+            return;
         }
 
         this.#boundingBox.x1 = minX;

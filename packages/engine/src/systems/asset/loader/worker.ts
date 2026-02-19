@@ -13,7 +13,7 @@ export class WorkerAssetLoader extends AssetLoader {
 
     override onWorkerMessage({ data }: MessageEvent<ToEngineMsg>): void {
         switch (data.type) {
-            case ToEngineMsgType.WORKER_LOAD_SVG_RESPONSE: {
+            case ToEngineMsgType.LOAD_SVG_RESPONSE: {
                 const { requestId, imageBitmap } = data;
                 const pending = this.#pendingSvgLoads.get(requestId);
                 if (pending) {

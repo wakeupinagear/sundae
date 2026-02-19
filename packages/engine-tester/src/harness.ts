@@ -28,7 +28,16 @@ interface SnapshotHarnessOptions {
     testName: string;
     snapshotFolder?: string;
     frameTimeout?: number;
+    stylePropertyValuePreloads?: string[];
 }
+
+const DARK_MODE_STYLE_PROPERTY_VALUES: Record<string, string> = {
+    '--background': '#0f0f1a',
+    '--foreground': '#e2e2f5',
+    '--card': '#1a1a2e',
+    '--border': '#303052',
+    '--primary': '#a48fff',
+};
 
 export class SnapshotHarness implements IEngineHarness {
     #engine: Engine;
@@ -58,6 +67,17 @@ export class SnapshotHarness implements IEngineHarness {
             },
         });
         this.#engine.setCanvas(canvas);
+        const preloads = options?.stylePropertyValuePreloads ?? [];
+        if (preloads.length > 0) {
+            this.#engine.setCanvasStylePropertyValues(
+                Object.fromEntries(
+                    preloads.map((property) => [
+                        property,
+                        DARK_MODE_STYLE_PROPERTY_VALUES[property],
+                    ]),
+                ),
+            );
+        }
         this.#canvas = canvas;
 
         this.#testName = options?.testName;

@@ -3,6 +3,10 @@ import { DEBUG_OVERLAY_SCENE_NAME, DebugOverlayFlags } from '@repo/engine';
 import { SCENARIO_ASSETS, type ScenarioAssets } from './assets';
 import { ballPit } from './list/ballPit';
 import { ballVortex } from './list/ballVortex';
+import {
+    CSS_COLOR_VARIABLES_STYLES_USED,
+    cssColorVariables,
+} from './list/cssColorVariables';
 import { cursors } from './list/cursors';
 import { debugging } from './list/debugging';
 import { images } from './list/images';
@@ -32,6 +36,7 @@ export interface ScenarioMetadata {
     skipInTests?: boolean;
     maxCameras?: number;
     debugOverlayFlags?: DebugOverlayFlags;
+    stylePropertyValuePreloads?: string[];
 }
 
 export interface ScenarioCategory {
@@ -118,18 +123,16 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 description: 'Text rendering scenarios',
                 run: dynamicCamera(defaultOptions(text), -128),
             },
+            cssColors: {
+                name: 'CSS Colors',
+                description: 'CSS color scenarios',
+                run: dynamicCamera(defaultOptions(cssColorVariables)),
+                stylePropertyValuePreloads: CSS_COLOR_VARIABLES_STYLES_USED,
+            },
             signals: {
                 name: 'Signals',
                 description: 'Signals',
                 run: dynamicCamera(defaultOptions(signals)),
-            },
-            raycasts: {
-                name: 'Raycasts',
-                description: 'Raycast scenarios',
-                run: dynamicCamera(defaultOptions(raycasts), 32),
-                debugOverlayFlags:
-                    DebugOverlayFlags.VISUAL_RAYCASTS |
-                    DebugOverlayFlags.VISUAL_COLLIDERS,
             },
             inputs: {
                 name: 'Keyboard Inputs',
@@ -206,6 +209,14 @@ export const ENGINE_SCENARIOS: ScenarioList = {
                 name: 'Ball Vortex',
                 description: 'A vortex of balls',
                 run: dynamicCamera(defaultOptions(ballVortex)),
+            },
+            raycasts: {
+                name: 'Raycasts',
+                description: 'Raycast scenarios',
+                run: dynamicCamera(defaultOptions(raycasts), 32),
+                debugOverlayFlags:
+                    DebugOverlayFlags.VISUAL_RAYCASTS |
+                    DebugOverlayFlags.VISUAL_COLLIDERS,
             },
         },
     },

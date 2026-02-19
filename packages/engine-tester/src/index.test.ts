@@ -8,7 +8,7 @@ import { SnapshotHarness } from './harness';
 for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
     for (const [
         scenarioID,
-        { name, run, debugOverlayFlags, skipInTests },
+        { name, run, debugOverlayFlags, skipInTests, stylePropertyValuePreloads },
     ] of Object.entries(scenarioMetadata.scenarios)) {
         if (skipInTests) continue;
 
@@ -19,7 +19,11 @@ for (const scenarioMetadata of Object.values(ENGINE_SCENARIOS)) {
                 {
                     debugOverlay: debugOverlayFlags,
                 },
-                { testName: name, snapshotFolder: scenarioID },
+                {
+                    testName: name,
+                    snapshotFolder: scenarioID,
+                    stylePropertyValuePreloads,
+                },
             );
 
             await run(harness);

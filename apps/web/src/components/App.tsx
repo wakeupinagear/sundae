@@ -96,7 +96,8 @@ const THEME_CYCLE = ['system', 'light', 'dark'] as const;
 
 function ThemeToggle() {
     const { theme, setTheme } = useTheme();
-    const next = THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length];
+    const next =
+        THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length];
     const Icon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor;
     return (
         <Button
@@ -161,6 +162,7 @@ export function App() {
 
     const prevCamerasRef = useRef<number[]>([-1, -1]);
     const cameraHash = useRef<number>(0);
+    const stylePropertyValuePreloads = scenario?.stylePropertyValuePreloads;
     const engineOptions = useMemo<Partial<EngineOptions>>(() => {
         if (
             prevCamerasRef.current[0] !== cameraCount ||
@@ -183,6 +185,7 @@ export function App() {
             randomSeed: trueRandom
                 ? (Math.random() * 2 ** 32) >>> 0
                 : undefined,
+            stylePropertyValuePreloads,
         };
 
         return options;
@@ -192,6 +195,7 @@ export function App() {
         trueRandom,
         cameraCount,
         maxCameras,
+        stylePropertyValuePreloads,
     ]);
 
     const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -248,7 +252,7 @@ export function App() {
                 scenarioID,
             });
         }
-    }, [runInWorker, scenarioID]);
+    }, [runInWorker, categoryID, scenarioID]);
 
     return (
         <ThemeProvider>

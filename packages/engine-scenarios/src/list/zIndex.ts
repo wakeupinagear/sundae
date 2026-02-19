@@ -20,7 +20,7 @@ export const zIndex: EngineScenario = (harness) => {
                 position: { x: -80, y: 80 },
                 scale: SIZE * 0.7,
                 zIndex: 1,
-                color: 'var(--background)', //'#f9a826',
+                color: '#f9a826',
             },
             {
                 name: 'Middle (z 0)',

@@ -64,6 +64,7 @@ import {
     PointerSystem,
 } from './systems/pointer';
 import { RenderSystem } from './systems/render';
+import type { StylePropertyValues } from './systems/render/style';
 import { type SceneJSON } from './systems/scene/factory';
 import {
     Scene,
@@ -161,6 +162,7 @@ type AssetLoadingBehavior =
 interface CanvasRecord {
     canvas: ICanvas;
     styleProperties: CSSStyleDeclaration | null;
+    stylePropertyValues: StylePropertyValues;
 }
 
 export interface EngineOptions {
@@ -183,6 +185,8 @@ export interface EngineOptions {
     assetLoader: AssetLoader | null;
     assetLoadingBehavior: AssetLoadingBehavior;
     assetPreloads: AssetPreload[];
+
+    stylePropertyValuePreloads: string[];
 
     inputConfigs: Record<string, InputConfig>;
     capturedKeys: CapturedKey[];
@@ -231,6 +235,8 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     assetLoader: null,
     assetLoadingBehavior: 'async',
     assetPreloads: [],
+
+    stylePropertyValuePreloads: [],
 
     inputConfigs: {},
     capturedKeys: [],
@@ -635,7 +641,11 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         id = this.#primaryCanvasID || DEFAULT_CANVAS_ID,
     ): void {
         if (canvas) {
-            this._canvases[id] = { canvas, styleProperties };
+            this._canvases[id] = {
+                canvas,
+                styleProperties,
+                stylePropertyValues: {},
+            };
         } else {
             delete this._canvases[id];
         }
@@ -670,20 +680,59 @@ export class Engine<TOptions extends EngineOptions = EngineOptions>
         property: string,
         id: string = this.#primaryCanvasID || DEFAULT_CANVAS_ID,
     ): string | null {
-        const properties = this._canvases[id]?.styleProperties;
-        if (!properties) return null;
+        const canvas = this._canvases[id];
+        if (!canvas) return null;
 
-        return properties.getPropertyValue(property);
+        const cachedValue = canvas.stylePropertyValues[property];
+        if (typeof cachedValue === 'string') {
+            const normalized = cachedValue.trim();
+            if (normalized.length > 0) {
+                return normalized;
+            }
+        }
+
+        const value = canvas.styleProperties?.getPropertyValue(property);
+        if (typeof value === 'string') {
+            const normalized = value.trim();
+            if (normalized.length > 0) {
+                canvas.stylePropertyValues[property] = normalized;
+                return normalized;
+            }
+        }
+
+        return null;
+    }
+
+    setCanvasStylePropertyValues(
+        propertyValues: StylePropertyValues,
+        canvasID: string = this.#primaryCanvasID || DEFAULT_CANVAS_ID,
+    ): void {
+        const canvas = this._canvases[canvasID];
+        if (!canvas) return;
+
+        const sanitizedPropertyValues = Object.fromEntries(
+            Object.entries(propertyValues).filter(
+                ([, value]) =>
+                    typeof value === 'string' && value.trim().length > 0,
+            ),
+        );
+        canvas.stylePropertyValues = {
+            ...canvas.stylePropertyValues,
+            ...sanitizedPropertyValues,
+        };
+        this.forceRender();
     }
 
     onCanvasStyleChange(
         canvasID: string,
         styleProperties: CSSStyleDeclaration,
     ): void {
-        if (this._canvases[canvasID]) {
-            this._canvases[canvasID].styleProperties = styleProperties;
-            this.forceRender();
-        }
+        const canvas = this._canvases[canvasID];
+        if (!canvas) return;
+
+        canvas.styleProperties = styleProperties;
+        canvas.stylePropertyValues = {};
+        this.forceRender();
     }
 
     screenToWorld(

@@ -22,7 +22,12 @@ export class WorkerWrapper<
     #waitingForFrame: boolean = false;
     #canvases: Record<string, HTMLCanvasElement | null> = {};
 
-    constructor(workerConstructor: WorkerConstructor) {
+    #options: Partial<EngineOptions> = {};
+
+    constructor(
+        workerConstructor: WorkerConstructor,
+        initialOptions: Partial<EngineOptions>,
+    ) {
         super();
 
         this.#worker =
@@ -30,6 +35,8 @@ export class WorkerWrapper<
             workerConstructor instanceof URL
                 ? new Worker(workerConstructor, { type: 'module' })
                 : new workerConstructor();
+
+        this.setOptions(initialOptions);
 
         this.#worker.onmessage = (event: MessageEvent<FromEngineMsg>) => {
             const data = event.data;
@@ -71,15 +78,37 @@ export class WorkerWrapper<
     }
 
     setOptions(options: Partial<EngineOptions>) {
+        const previousPreloads = this.#options.stylePropertyValuePreloads ?? [];
+        this.#options = {
+            ...this.#options,
+            ...options,
+        };
         this.sendMessage({
             type: ToEngineMsgType.SET_OPTIONS,
             options,
         });
+
+        const nextPreloads = this.#options.stylePropertyValuePreloads ?? [];
+        const preloadsChanged =
+            previousPreloads.length !== nextPreloads.length ||
+            previousPreloads.some(
+                (preload, index) => preload !== nextPreloads[index],
+            );
+        if (preloadsChanged && nextPreloads.length > 0) {
+            for (const [canvasID, canvas] of Object.entries(this.#canvases)) {
+                if (!canvas) continue;
+                this.onCanvasStyleChange(
+                    canvasID,
+                    window.getComputedStyle(canvas),
+                );
+            }
+        }
     }
 
     setCanvas(canvas: HTMLCanvasElement | null, canvasID: string) {
         if (canvas) {
             this.#canvases[canvasID] = canvas;
+            this.onCanvasStyleChange(canvasID, window.getComputedStyle(canvas));
         } else {
             delete this.#canvases[canvasID];
         }
@@ -95,7 +124,20 @@ export class WorkerWrapper<
         canvasID: string,
         styleProperties: CSSStyleDeclaration,
     ) {
-        // TODO: Implement
+        const preloads = this.#options.stylePropertyValuePreloads ?? [];
+        if (!preloads.length) return;
+
+        const stylePropertyValues = Object.fromEntries(
+            preloads.map((property) => [
+                property,
+                styleProperties.getPropertyValue(property),
+            ]),
+        );
+        this.sendMessage({
+            type: ToEngineMsgType.SET_CANVAS_STYLE_PROPERTY_VALUES,
+            canvasID,
+            stylePropertyValues,
+        });
     }
 
     onKeyDown(event: BrowserKeyEvent) {
@@ -198,7 +240,7 @@ export class WorkerWrapper<
             const imageBitmap = await this.#loadSvgAsImageBitmap(url.href);
             this.#worker.postMessage(
                 {
-                    type: ToEngineMsgType.WORKER_LOAD_SVG_RESPONSE,
+                    type: ToEngineMsgType.LOAD_SVG_RESPONSE,
                     requestId,
                     imageBitmap,
                 },
@@ -206,7 +248,7 @@ export class WorkerWrapper<
             );
         } catch {
             this.#worker.postMessage({
-                type: ToEngineMsgType.WORKER_LOAD_SVG_RESPONSE,
+                type: ToEngineMsgType.LOAD_SVG_RESPONSE,
                 requestId,
                 imageBitmap: null,
             });

@@ -38,3 +38,5 @@ export const isCSSColor = (color: string): boolean => {
 export const getCSSColor = (color: string): string => {
     return color.slice(4, -1);
 };
+
+export type StylePropertyValues = Record<string, string>;

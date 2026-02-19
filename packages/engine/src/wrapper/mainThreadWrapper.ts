@@ -10,10 +10,11 @@ export class MainThreadWrapper<
 > extends EngineWrapper<TEngine, TToEngineMsg> {
     #engine: TEngine;
 
-    constructor(engine: TEngine) {
+    constructor(engine: TEngine, initialOptions: Partial<EngineOptions>) {
         super();
 
         this.#engine = engine;
+        this.setOptions(initialOptions);
     }
 
     override getEngine() {
