@@ -54,6 +54,7 @@ export function Harness<
     engineOptions,
     scrollDirection: scrollDirectionProp,
     scrollSensitivity = 1,
+    pinchSensitivity = 4,
     onEngineReady,
     width: widthProp,
     height: heightProp,
@@ -263,6 +264,7 @@ export function Harness<
                         wrapper={wrapperRef}
                         scrollDirection={scrollDirection}
                         scrollSensitivity={scrollSensitivity}
+                        pinchSensitivity={pinchSensitivity}
                     />
                 ))}
             </>
@@ -288,6 +290,7 @@ export function Harness<
                 wrapper={wrapperRef}
                 scrollDirection={scrollDirection}
                 scrollSensitivity={scrollSensitivity}
+                pinchSensitivity={pinchSensitivity}
             />
         </>
     );

@@ -9,6 +9,7 @@ import type { EngineWrapper } from '@repo/engine/wrapper';
 export interface CanvasOptions {
     scrollDirection: -1 | 1;
     scrollSensitivity: number;
+    pinchSensitivity: number;
 }
 
 interface CanvasTrackerProps extends CanvasOptions {
@@ -23,6 +24,7 @@ export function CanvasTracker({
     wrapper,
     scrollDirection,
     scrollSensitivity,
+    pinchSensitivity,
 }: CanvasTrackerProps) {
     const getClientPosition = (clientX: number, clientY: number) => {
         const canvas = canvasRef.current;
@@ -142,7 +144,7 @@ export function CanvasTracker({
                     if (lastPinchDistance !== null) {
                         const pinchDelta =
                             (pinchData.distance - lastPinchDistance) *
-                            scrollSensitivity;
+                            pinchSensitivity;
                         if (pinchDelta !== 0) {
                             wrapper.current?.onWheel(canvasID, pinchDelta);
                         }
@@ -200,6 +202,7 @@ export function CanvasTracker({
                 }
 
                 event.preventDefault();
+
                 return;
             }
 
