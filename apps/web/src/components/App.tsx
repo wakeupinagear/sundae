@@ -14,7 +14,6 @@ import {
     type EngineOptions,
 } from '@repo/engine';
 import { ENGINE_SCENARIOS } from '@repo/engine-scenarios';
-import { PointerButton } from '@repo/engine/pointer';
 import type { EngineWrapper } from '@repo/engine/wrapper';
 import { Harness } from '@repo/react';
 import { ThemeProvider, useTheme } from '@repo/ui/components/ThemeProvider';
@@ -31,25 +30,7 @@ import HarnessOptions from './HarnessOptions';
 const DEFAULT_SCENARIO = 'stressTests-renderChaos';
 const MAX_CAMERAS = 64;
 
-const INITIAL_ENGINE_OPTIONS: Partial<EngineOptions> = {
-    cameraOptions: {
-        clearColor: '#111111',
-        canDrag: true,
-        dragButtons: [
-            PointerButton.LEFT,
-            PointerButton.MIDDLE,
-            PointerButton.RIGHT,
-        ],
-        bounds: {
-            x1: -400,
-            x2: 400,
-            y1: -300,
-            y2: 300,
-        },
-        scrollMode: 'all',
-    },
-    canvasClearColor: 'aqua',
-};
+const CLEAR_COLOR = '#222222';
 
 const readScenarioFromHash = () => {
     return idToScenario(window.location.hash.slice(1) || DEFAULT_SCENARIO);
@@ -303,11 +284,11 @@ export function App() {
                         key={`${scenarioKey}-${runInWorker}`}
                         containerRef={canvasContainerRef}
                         engineWrapperRef={engineWrapperRef}
-                        initialEngineOptions={INITIAL_ENGINE_OPTIONS}
                         engineOptions={engineOptions}
                         onEngineReady={onEngineReady}
                         runInWorker={runInWorker}
                         workerConstructor={EngineWorker}
+                        style={{ backgroundColor: CLEAR_COLOR }}
                     />
                 </main>
             </div>

@@ -1,4 +1,5 @@
 import { DEBUG_OVERLAY_SCENE_NAME, DebugOverlayFlags } from '@repo/engine';
+import { PointerButton } from '@repo/engine/pointer';
 
 import { SCENARIO_ASSETS, type ScenarioAssets } from './assets';
 import { ballPit } from './list/ballPit';
@@ -57,6 +58,22 @@ const defaultOptions: ScenarioMiddleware<ScenarioAssets[]> =
     (scenario, ...assets) =>
     (harness) => {
         harness.engine.options = {
+            cameraOptions: {
+                clearColor: '#222222',
+                canDrag: true,
+                dragButtons: [
+                    PointerButton.LEFT,
+                    PointerButton.MIDDLE,
+                    PointerButton.RIGHT,
+                ],
+                bounds: {
+                    x1: -400,
+                    x2: 400,
+                    y1: -300,
+                    y2: 300,
+                },
+                scrollMode: 'all',
+            },
             assetPreloads: assets.flatMap((assets) =>
                 Object.values(assets).map((asset) => ({
                     type: asset.type,

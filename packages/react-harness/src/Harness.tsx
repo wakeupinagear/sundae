@@ -279,6 +279,7 @@ export function Harness<
                 width={size.width * size.dpr}
                 height={size.height * size.dpr}
                 style={{
+                    ...rest.style,
                     width: `${size.width}px`,
                     height: `${size.height}px`,
                     touchAction: 'none',
